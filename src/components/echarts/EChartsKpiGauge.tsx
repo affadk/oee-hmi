@@ -22,7 +22,56 @@ export const EChartsKpiGauge: React.FC<EChartsKpiGaugeProps> = ({
   const chartRef = useRef<HTMLDivElement>(null);
   const { theme } = useTheme();
   const isDark = theme === 'dark';
-  const trackColor = isDark ? '#17253b' : '#e2e8f0';
+  const trackColor = isDark ? '#1a2e4c' : '#e2e8f0';
+
+  // Distinct, brighter illuminated background styles per gauge color to focus viewer attention
+  const getThemeStyles = () => {
+    if (color.includes('10b981') || color.includes('emerald') || color.includes('green')) {
+      return {
+        card: isDark
+          ? 'bg-gradient-to-br from-[#0c2f28]/95 via-[#10273f] to-[#0c1c30] border-emerald-500/50 hover:border-emerald-400 shadow-lg shadow-emerald-950/40 ring-1 ring-emerald-500/20'
+          : 'bg-emerald-50/90 border-emerald-300 hover:border-emerald-400 shadow-md shadow-emerald-100 ring-1 ring-emerald-400/20',
+        titleText: isDark ? 'text-emerald-300' : 'text-emerald-800',
+        badge: isDark ? 'bg-emerald-950/80 text-emerald-300 border-emerald-800/60' : 'bg-emerald-100 text-emerald-800 border-emerald-300',
+      };
+    }
+    if (color.includes('0ea5e9') || color.includes('3b82f6') || color.includes('sky') || color.includes('blue')) {
+      return {
+        card: isDark
+          ? 'bg-gradient-to-br from-[#0b2d4c]/95 via-[#10273f] to-[#0c1c30] border-sky-500/50 hover:border-sky-400 shadow-lg shadow-sky-950/40 ring-1 ring-sky-500/20'
+          : 'bg-sky-50/90 border-sky-300 hover:border-sky-400 shadow-md shadow-sky-100 ring-1 ring-sky-400/20',
+        titleText: isDark ? 'text-sky-300' : 'text-sky-800',
+        badge: isDark ? 'bg-sky-950/80 text-sky-300 border-sky-800/60' : 'bg-sky-100 text-sky-800 border-sky-300',
+      };
+    }
+    if (color.includes('f59e0b') || color.includes('amber') || color.includes('orange') || color.includes('eab308')) {
+      return {
+        card: isDark
+          ? 'bg-gradient-to-br from-[#3b2408]/95 via-[#1f2538] to-[#0c1c30] border-amber-500/50 hover:border-amber-400 shadow-lg shadow-amber-950/40 ring-1 ring-amber-500/20'
+          : 'bg-amber-50/90 border-amber-300 hover:border-amber-400 shadow-md shadow-amber-100 ring-1 ring-amber-400/20',
+        titleText: isDark ? 'text-amber-300' : 'text-amber-800',
+        badge: isDark ? 'bg-amber-950/80 text-amber-300 border-amber-800/60' : 'bg-amber-100 text-amber-800 border-amber-300',
+      };
+    }
+    if (color.includes('a855f7') || color.includes('purple') || color.includes('8b5cf6') || color.includes('d946ef')) {
+      return {
+        card: isDark
+          ? 'bg-gradient-to-br from-[#2f1345]/95 via-[#19223a] to-[#0c1c30] border-purple-500/50 hover:border-purple-400 shadow-lg shadow-purple-950/40 ring-1 ring-purple-500/20'
+          : 'bg-purple-50/90 border-purple-300 hover:border-purple-400 shadow-md shadow-purple-100 ring-1 ring-purple-400/20',
+        titleText: isDark ? 'text-purple-300' : 'text-purple-800',
+        badge: isDark ? 'bg-purple-950/80 text-purple-300 border-purple-800/60' : 'bg-purple-100 text-purple-800 border-purple-300',
+      };
+    }
+    return {
+      card: isDark
+        ? 'bg-[#10243d] border-[#1f3f6b] hover:border-slate-600 shadow-md'
+        : 'bg-slate-50 border-slate-300 hover:border-slate-400 shadow-sm',
+      titleText: isDark ? 'text-white' : 'text-slate-900',
+      badge: isDark ? 'bg-slate-800 text-slate-300 border-slate-700' : 'bg-slate-100 text-slate-700 border-slate-300',
+    };
+  };
+
+  const themeStyles = getThemeStyles();
 
   useEffect(() => {
     if (!chartRef.current) return;
@@ -74,11 +123,7 @@ export const EChartsKpiGauge: React.FC<EChartsKpiGaugeProps> = ({
   return (
     <div
       onClick={onClick}
-      className={`rounded-xl p-3 flex items-center justify-between transition-colors cursor-pointer select-none flex-1 min-w-[200px] border shadow-md ${
-        isDark
-          ? 'bg-[#0b1528] border-[#162744] hover:border-slate-700 text-white'
-          : 'bg-white border-slate-200 hover:border-slate-300 text-slate-900'
-      }`}
+      className={`rounded-xl p-3 flex items-center justify-between transition-all duration-200 cursor-pointer select-none flex-1 min-w-[200px] border ${themeStyles.card}`}
     >
       {/* Donut Gauge with Center Value */}
       <div className="relative w-20 h-20 sm:w-24 sm:h-24 shrink-0 flex items-center justify-center">
@@ -92,12 +137,13 @@ export const EChartsKpiGauge: React.FC<EChartsKpiGaugeProps> = ({
 
       {/* Metric Details */}
       <div className="ml-3 sm:ml-4 flex-1">
-        <div className={`font-bold text-base sm:text-lg tracking-wide mb-1 ${isDark ? 'text-white' : 'text-slate-900'}`}>
-          {title}
+        <div className={`font-bold text-base sm:text-lg tracking-wide mb-1 flex items-center gap-1.5 ${themeStyles.titleText}`}>
+          <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: color }} />
+          <span>{title}</span>
         </div>
-        <div className={`text-xs font-medium flex items-center gap-1.5 mb-1.5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+        <div className={`text-xs font-medium flex items-center gap-1.5 mb-1.5 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
           <span>Target</span>
-          <span className={`font-semibold ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>{target.toFixed(1)}%</span>
+          <span className={`font-semibold ${isDark ? 'text-white' : 'text-slate-900'}`}>{target.toFixed(1)}%</span>
         </div>
         <div className="flex items-center gap-1 text-xs font-semibold text-rose-500">
           <span>▼</span>
