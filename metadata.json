@@ -1,0 +1,6 @@
+{
+  "name": "Single-Page OEE Dashboard",
+  "description": "Industrial real-time Overall Equipment Effectiveness (OEE) dashboard featuring Availability, Performance, Quality decomposition, production loss analysis, machine status, and hourly trends.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

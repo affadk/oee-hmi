@@ -1,0 +1,198 @@
+import React, { useRef, useEffect } from 'react';
+import * as echarts from 'echarts';
+import { HourlyDataPoint } from '../../types';
+import { useTheme } from '../../context/ThemeContext';
+
+interface EChartsOeeTrendProps {
+  hourlyTrends: HourlyDataPoint[];
+}
+
+export const EChartsOeeTrend: React.FC<EChartsOeeTrendProps> = ({ hourlyTrends }) => {
+  const chartRef = useRef<HTMLDivElement>(null);
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
+
+  useEffect(() => {
+    if (!chartRef.current) return;
+    const chartInstance = echarts.init(chartRef.current, undefined, { renderer: 'canvas' });
+
+    const hours = hourlyTrends.map((d) => d.hour);
+    const oeeData = hourlyTrends.map((d) => d.oee);
+    const availData = hourlyTrends.map((d) => d.availability);
+    const perfData = hourlyTrends.map((d) => d.performance);
+    const qualData = hourlyTrends.map((d) => d.quality);
+
+    const option: echarts.EChartsOption = {
+      backgroundColor: 'transparent',
+      tooltip: {
+        trigger: 'axis',
+        backgroundColor: isDark ? '#0b1528' : '#ffffff',
+        borderColor: isDark ? '#1e3a5f' : '#cbd5e1',
+        borderWidth: 1,
+        textStyle: {
+          color: isDark ? '#e2e8f0' : '#0f172a',
+          fontSize: 11,
+          fontFamily: 'Inter, sans-serif',
+        },
+        formatter: (params: any) => {
+          if (!Array.isArray(params)) return '';
+          let tip = `<div class="font-bold mb-1 ${isDark ? 'text-slate-200' : 'text-slate-800'}">${params[0]?.axisValue}</div>`;
+          params.forEach((p: any) => {
+            tip += `
+              <div class="flex items-center justify-between gap-3 text-xs py-0.5">
+                <span style="color:${p.color}">● ${p.seriesName}:</span>
+                <span class="font-mono font-bold ${isDark ? 'text-white' : 'text-slate-900'}">${Number(p.value).toFixed(1)}%</span>
+              </div>
+            `;
+          });
+          return tip;
+        },
+      },
+      grid: {
+        left: '6%',
+        right: '4%',
+        top: '12%',
+        bottom: '12%',
+        containLabel: true,
+      },
+      xAxis: {
+        type: 'category',
+        boundaryGap: false,
+        data: hours,
+        axisLine: {
+          lineStyle: {
+            color: isDark ? '#1e293b' : '#cbd5e1',
+          },
+        },
+        axisLabel: {
+          color: isDark ? '#94a3b8' : '#64748b',
+          fontSize: 10,
+        },
+        splitLine: {
+          show: false,
+        },
+      },
+      yAxis: {
+        type: 'value',
+        min: 40,
+        max: 100,
+        interval: 20,
+        axisLabel: {
+          formatter: '{value}%',
+          color: isDark ? '#94a3b8' : '#64748b',
+          fontSize: 10,
+        },
+        splitLine: {
+          lineStyle: {
+            color: isDark ? '#162744' : '#f1f5f9',
+            type: 'solid',
+          },
+        },
+      },
+      series: [
+        {
+          name: 'OEE',
+          type: 'line',
+          smooth: true,
+          symbol: 'circle',
+          symbolSize: 6,
+          itemStyle: {
+            color: '#10b981',
+          },
+          lineStyle: {
+            width: 2.2,
+            color: '#10b981',
+          },
+          data: oeeData,
+        },
+        {
+          name: 'Availability',
+          type: 'line',
+          smooth: true,
+          symbol: 'circle',
+          symbolSize: 6,
+          itemStyle: {
+            color: '#00c0fa',
+          },
+          lineStyle: {
+            width: 2,
+            color: '#00c0fa',
+          },
+          data: availData,
+        },
+        {
+          name: 'Performance',
+          type: 'line',
+          smooth: true,
+          symbol: 'circle',
+          symbolSize: 6,
+          itemStyle: {
+            color: '#f59e0b',
+          },
+          lineStyle: {
+            width: 2,
+            color: '#f59e0b',
+          },
+          data: perfData,
+        },
+        {
+          name: 'Quality',
+          type: 'line',
+          smooth: true,
+          symbol: 'circle',
+          symbolSize: 6,
+          itemStyle: {
+            color: '#a855f7',
+          },
+          lineStyle: {
+            width: 2,
+            color: '#a855f7',
+          },
+          data: qualData,
+        },
+      ],
+    };
+
+    chartInstance.setOption(option);
+
+    const ro = new ResizeObserver(() => {
+      chartInstance.resize();
+    });
+    ro.observe(chartRef.current);
+
+    return () => {
+      ro.disconnect();
+      chartInstance.dispose();
+    };
+  }, [hourlyTrends, isDark]);
+
+  return (
+    <div className={`rounded-xl p-3 shadow-lg flex flex-col h-full border ${
+      isDark ? 'bg-[#0b1528] border-[#162744]' : 'bg-white border-slate-200 shadow-sm'
+    }`}>
+      {/* Header with Title & Legend matching image.png */}
+      <div className="flex items-center justify-between mb-1 pb-1">
+        <h3 className={`font-bold text-xs sm:text-sm tracking-wide ${isDark ? 'text-white' : 'text-slate-900'}`}>
+          OEE Trend <span className={`font-normal text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>(Last 8 Hours)</span>
+        </h3>
+        <div className="flex items-center gap-2.5 sm:gap-3 text-[10px] sm:text-xs">
+          <span className={`flex items-center gap-1 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+            <span className="w-2 h-2 rounded-full bg-[#10b981]"></span> OEE
+          </span>
+          <span className={`flex items-center gap-1 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+            <span className="w-2 h-2 rounded-full bg-[#00c0fa]"></span> Availability
+          </span>
+          <span className={`flex items-center gap-1 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+            <span className="w-2 h-2 rounded-full bg-[#f59e0b]"></span> Performance
+          </span>
+          <span className={`flex items-center gap-1 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+            <span className="w-2 h-2 rounded-full bg-[#a855f7]"></span> Quality
+          </span>
+        </div>
+      </div>
+
+      {/* Chart Canvas */}
+      <div className="flex-1 w-full min-h-[140px]" ref={chartRef} />
+    </div>
+  );
+};
