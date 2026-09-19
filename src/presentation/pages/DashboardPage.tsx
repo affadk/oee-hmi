@@ -33,58 +33,60 @@ export const DashboardPage: React.FC = () => {
         isDark ? 'bg-[#070d1a] text-slate-100' : 'bg-slate-100 text-slate-900'
       }`}
     >
-      {/* Floating View & Theme Mode Switcher */}
-      <div
-        id="floating-view-switcher"
-        className={`fixed bottom-3 left-1/2 -translate-x-1/2 z-40 backdrop-blur-md rounded-full px-2.5 py-1.5 flex items-center gap-1.5 shadow-2xl border transition-colors ${
-          isDark
-            ? 'bg-[#0b1528]/90 border-[#1e3a5f] text-slate-300'
-            : 'bg-white/95 border-slate-300 text-slate-700'
-        }`}
-      >
-        <button
-          id="btn-switch-fullscreen-view"
-          onClick={() => dashboard.setViewMode('FULLSCREEN_IMAGE')}
-          className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
-            dashboard.viewMode === 'FULLSCREEN_IMAGE'
-              ? 'bg-blue-600 text-white shadow-md'
-              : isDark ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-900'
-          }`}
-        >
-          <Tv className="w-3.5 h-3.5" />
-          <span>Single-Screen View (image.png)</span>
-        </button>
-
-        <button
-          id="btn-switch-audit-view"
-          onClick={() => dashboard.setViewMode('DETAILED_AUDIT')}
-          className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
-            dashboard.viewMode === 'DETAILED_AUDIT'
-              ? 'bg-blue-600 text-white shadow-md'
-              : isDark ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-900'
-          }`}
-        >
-          <LayoutDashboard className="w-3.5 h-3.5" />
-          <span>Detailed Audit Dashboard</span>
-        </button>
-
-        <span className={`w-[1px] h-4 ${isDark ? 'bg-slate-700' : 'bg-slate-300'}`}></span>
-
-        {/* Quick Theme Switcher Button */}
-        <button
-          id="btn-quick-toggle-theme"
-          onClick={toggleTheme}
-          title={isDark ? 'Switch to Light theme' : 'Switch to Dark theme'}
-          className={`px-2.5 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+      {/* Floating View & Theme Mode Switcher (hidden in fullscreen mode) */}
+      {!dashboard.isFullscreen && (
+        <div
+          id="floating-view-switcher"
+          className={`fixed bottom-3 left-1/2 -translate-x-1/2 z-40 backdrop-blur-md rounded-full px-2.5 py-1.5 flex items-center gap-1.5 shadow-2xl border transition-colors ${
             isDark
-              ? 'hover:bg-slate-800 text-amber-300'
-              : 'hover:bg-slate-200 text-slate-700'
+              ? 'bg-[#0b1528]/90 border-[#1e3a5f] text-slate-300'
+              : 'bg-white/95 border-slate-300 text-slate-700'
           }`}
         >
-          {isDark ? <Sun className="w-3.5 h-3.5 text-amber-400" /> : <Moon className="w-3.5 h-3.5 text-slate-700" />}
-          <span>{isDark ? 'Light' : 'Dark'}</span>
-        </button>
-      </div>
+          <button
+            id="btn-switch-fullscreen-view"
+            onClick={() => dashboard.setViewMode('FULLSCREEN_IMAGE')}
+            className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+              dashboard.viewMode === 'FULLSCREEN_IMAGE'
+                ? 'bg-blue-600 text-white shadow-md'
+                : isDark ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-900'
+            }`}
+          >
+            <Tv className="w-3.5 h-3.5" />
+            <span>Single-Screen View (image.png)</span>
+          </button>
+
+          <button
+            id="btn-switch-audit-view"
+            onClick={() => dashboard.setViewMode('DETAILED_AUDIT')}
+            className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+              dashboard.viewMode === 'DETAILED_AUDIT'
+                ? 'bg-blue-600 text-white shadow-md'
+                : isDark ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-900'
+            }`}
+          >
+            <LayoutDashboard className="w-3.5 h-3.5" />
+            <span>Detailed Audit Dashboard</span>
+          </button>
+
+          <span className={`w-[1px] h-4 ${isDark ? 'bg-slate-700' : 'bg-slate-300'}`}></span>
+
+          {/* Quick Theme Switcher Button */}
+          <button
+            id="btn-quick-toggle-theme"
+            onClick={toggleTheme}
+            title={isDark ? 'Switch to Light theme' : 'Switch to Dark theme'}
+            className={`px-2.5 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+              isDark
+                ? 'hover:bg-slate-800 text-amber-300'
+                : 'hover:bg-slate-200 text-slate-700'
+            }`}
+          >
+            {isDark ? <Sun className="w-3.5 h-3.5 text-amber-400" /> : <Moon className="w-3.5 h-3.5 text-slate-700" />}
+            <span>{isDark ? 'Light' : 'Dark'}</span>
+          </button>
+        </div>
+      )}
 
       {dashboard.viewMode === 'FULLSCREEN_IMAGE' ? (
         /* FULLSCREEN SINGLE-SCREEN VIEW (Industrial reference layout) */
