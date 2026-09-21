@@ -1,6 +1,7 @@
 // /src/domain/ports/IMachineRepository.ts
 
-import { MachineConfig, MachineStatus, DowntimeReasonItem, RejectReasonItem } from '../entities/Machine';
+import { MachineConfig, MachineStatus } from '../entities/Machine';
+import { MqttJobConfigPayload, MqttTelemetryPayload } from '../entities/MqttContracts';
 
 export interface IMachineRepository {
   /**
@@ -19,23 +20,6 @@ export interface IMachineRepository {
   updateMachineStatus(id: string, status: MachineStatus, statusSince: string): Promise<MachineConfig>;
 
   /**
-   * Appends a new downtime event and updates total downtime.
-   */
-  addDowntimeEvent(
-    machineId: string,
-    event: Omit<DowntimeReasonItem, 'id' | 'equivalentLossPcs'>
-  ): Promise<MachineConfig>;
-
-  /**
-   * Appends reject counts and recalculates Pareto distribution percentages.
-   */
-  addRejectEvent(
-    machineId: string,
-    reasonLabel: string,
-    count: number
-  ): Promise<MachineConfig>;
-
-  /**
    * Updates pulse count, good/reject count, and actual cycle time (sensor simulation).
    */
   updateProductionCounts(
@@ -48,6 +32,11 @@ export interface IMachineRepository {
   ): Promise<MachineConfig>;
 
   /**
+   * Updates live MQTT telemetry frame.
+   */
+  updateTelemetry(machineId: string, telemetry: Partial<MqttTelemetryPayload>): Promise<MachineConfig>;
+
+  /**
    * Resets production counters (e.g. at start of new shift or job).
    */
   resetCounters(machineId: string): Promise<MachineConfig>;
@@ -55,5 +44,6 @@ export interface IMachineRepository {
   /**
    * Applies job configuration (Work order, product recipe, target count).
    */
-  setJobConfig(machineId: string, product: string, targetCount: number): Promise<MachineConfig>;
+  setJobConfig(machineId: string, jobConfig: MqttJobConfigPayload): Promise<MachineConfig>;
 }
+

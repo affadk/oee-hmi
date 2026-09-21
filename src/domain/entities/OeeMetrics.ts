@@ -10,6 +10,12 @@ export interface CalculatedOeeMetrics {
   qualityPct: number;
   oeePct: number;
 
+  // Convenient aliases
+  oee?: number;
+  availability?: number;
+  performance?: number;
+  quality?: number;
+
   oeeGap: number; // Actual - Target
   availabilityGap: number;
   performanceGap: number;
@@ -30,3 +36,4 @@ export interface CalculatedOeeMetrics {
   teepPct: number;
   calendarUtilizationPct: number;
 }
+

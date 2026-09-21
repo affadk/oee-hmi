@@ -1,21 +1,23 @@
 // /src/domain/entities/Machine.ts
 
+import { MqttTelemetryPayload, MqttJobConfigPayload, MqttHealthPayload } from './MqttContracts';
+
 export type MachineStatus = 'RUNNING' | 'IDLE' | 'DOWN' | 'SETUP' | 'PLANNED_STOP';
 
 export interface DowntimeReasonItem {
   id: string;
-  category: 'Breakdown' | 'Material' | 'Changeover' | 'Adjustment' | 'Other';
   label: string;
+  category: string;
   durationMinutes: number;
-  equivalentLossPcs: number;
-  occurrences: number;
+  equivalentLossPcs?: number;
+  type?: 'PLANNED' | 'UNPLANNED';
 }
 
 export interface RejectReasonItem {
   id: string;
   label: string;
   count: number;
-  percentage: number;
+  percentage?: number;
 }
 
 export interface HourlyDataPoint {
@@ -29,42 +31,69 @@ export interface HourlyDataPoint {
   performance: number;
   quality: number;
   status: MachineStatus;
+  isBuffered?: boolean;
 }
 
 export interface MachineConfig {
-  id: string;
-  name: string;
-  line: string;
-  plant: string;
-  area: string;
-  status: MachineStatus;
-  statusSince: string;
-  currentProduct: string;
-  productDescription: string;
-  idealCycleTimeSec: number; // e.g. 10.0 sec/pcs
-  actualCycleTimeSec: number; // e.g. 10.8 sec/pcs
-  targetHourlyRate: number; // e.g. 360 pcs/h
-  actualHourlyRate: number; // e.g. 333 pcs/h
+  id: string; // e.g. 'STM32-OEE-01' or 'MC-01'
+  name: string; // Machine device description
+  deviceId: string; // STM32 MQTT wire topic device ID e.g. 'STM32-OEE-01'
+  connectionStatus: 'ONLINE' | 'OFFLINE';
+  lastTelemetryTs: number; // Unix epoch seconds
 
-  // Time inputs (in minutes)
-  shiftDurationMinutes: number; // e.g. 480 min (8h)
-  plannedDowntimeMinutes: number; // e.g. 60 min (breaks/cleaning)
-  unplannedDowntimeMinutes: number; // e.g. 42 min
+  // Active Job Configuration (SET_JOB_CONFIG)
+  jobConfig: {
+    workOrder: string;
+    productName: string;
+    productId: string;
+    operatorName: string;
+    operatorId: string;
+    standardCycleTimeSec: number;
+    targetQuantity: number;
+    shiftStart: string; // e.g. "06:00"
+    shiftEnd: string;   // e.g. "14:00"
+    breakTimeWindow?: string; // e.g. "12:00 - 13:00"
+    plannedBreakMin: number; // e.g. 60
+    plannedOperatingSec: number; // e.g. 25200 (420 min)
+  };
 
-  // Output Counts (in pieces)
-  targetCount: number; // e.g. 1000
-  totalCount: number; // e.g. 945
-  goodCount: number; // e.g. 904
-  rejectCount: number; // e.g. 41
+  // Live MQTT Telemetry State (Direct payload fields)
+  telemetry: MqttTelemetryPayload;
 
-  // Targets for KPIs (%)
-  targetOee: number; // e.g. 85.0%
-  targetAvailability: number; // e.g. 90.0%
-  targetPerformance: number; // e.g. 95.0%
-  targetQuality: number; // e.g. 99.0%
+  // Edge Health Telemetry (From oee/device/{id}/health)
+  health: MqttHealthPayload;
 
-  // Breakdown details
-  downtimeReasons: DowntimeReasonItem[];
-  rejectReasons: RejectReasonItem[];
+  // Time-series trend buffer
   hourlyTrends: HourlyDataPoint[];
+
+  // Targets & Metadata
+  targetOee: number;
+  targetAvailability: number;
+  targetPerformance: number;
+  targetQuality: number;
+  plant?: string;
+  line?: string;
+  area?: string;
+  statusSince?: string;
+  productDescription?: string;
+  actualHourlyRate?: number;
+
+  // Reasons breakdown
+  downtimeReasons?: DowntimeReasonItem[];
+  rejectReasons?: RejectReasonItem[];
+
+  // Compatibility getters / properties
+  status: MachineStatus;
+  currentProduct: string;
+  idealCycleTimeSec: number;
+  actualCycleTimeSec: number;
+  shiftDurationMinutes: number;
+  plannedDowntimeMinutes: number;
+  unplannedDowntimeMinutes: number;
+  targetCount: number;
+  totalCount: number;
+  goodCount: number;
+  rejectCount: number;
 }
+
+

@@ -1,14 +1,19 @@
+// /src/presentation/components/fullscreen/FullscreenHeader.tsx
+
 import React from 'react';
 import { 
   Factory, 
-  Settings, 
+  Cpu, 
   Box, 
   Clock, 
-  Calendar, 
+  User, 
   Maximize, 
   Minimize, 
   Radio, 
-  RefreshCw
+  RefreshCw,
+  FileText,
+  Activity,
+  CheckCircle2
 } from 'lucide-react';
 import { MachineConfig } from '../../types';
 import { useTheme } from '../../context/ThemeContext';
@@ -37,6 +42,22 @@ export const FullscreenHeader: React.FC<FullscreenHeaderProps> = ({
   const { theme } = useTheme();
   const isDark = theme === 'dark';
 
+  const workOrder = machine.jobConfig?.workOrder || 'WO-2026-0920-01';
+  const productName = machine.jobConfig?.productName || machine.currentProduct || 'Sodium Tablets 500mg';
+  const operatorName = machine.jobConfig?.operatorName || 'Budi Santoso';
+  const shiftStart = machine.jobConfig?.shiftStart || '22:00';
+  const shiftEnd = machine.jobConfig?.shiftEnd || '08:00';
+  const shiftLabel = shiftStart === '22:00' || shiftStart === '23:00' ? 'Shift 3' : shiftStart === '15:00' ? 'Shift 2' : 'Shift 1';
+  const deviceId = machine.deviceId || machine.id || 'SODIUM-CP400';
+
+  const health = machine.health || {
+    tasks_healthy: 6,
+    tasks_total: 6,
+    heap_free: 184320,
+    stale_count: 0,
+  };
+  const isHealthy = (health.stale_count ?? 0) === 0 && (health.tasks_healthy ?? 6) === (health.tasks_total ?? 6);
+
   return (
     <header className={`px-4 py-2.5 flex items-center justify-between shrink-0 select-none border-b transition-colors ${
       isDark ? 'bg-[#0b1528] border-[#162744]' : 'bg-white border-slate-200'
@@ -51,100 +72,125 @@ export const FullscreenHeader: React.FC<FullscreenHeaderProps> = ({
           <Factory className="w-5 h-5" />
         </div>
         <div>
-          <h1 className={`font-bold text-lg sm:text-xl tracking-tight leading-none ${
-            isDark ? 'text-white' : 'text-slate-900'
-          }`}>
-            OEE Dashboard
-          </h1>
+          <div className="flex items-center gap-2">
+            <h1 className={`font-bold text-lg sm:text-xl tracking-tight leading-none ${
+              isDark ? 'text-white' : 'text-slate-900'
+            }`}>
+              OEE Dashboard
+            </h1>
+            <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded font-medium ${
+              isDark ? 'bg-blue-950/80 text-blue-400 border border-blue-800/60' : 'bg-blue-50 text-blue-700 border border-blue-200'
+            }`}>
+              ISO 22400
+            </span>
+          </div>
           <p className={`text-[11px] font-normal mt-0.5 ${
             isDark ? 'text-slate-400' : 'text-slate-500'
           }`}>
-            Overall Equipment Effectiveness
+            Real-Time Edge Telemetry &amp; Line Effectiveness
           </p>
         </div>
       </div>
 
-      {/* Center: Context Metadata Chips matching image.png */}
-      <div className="hidden lg:flex items-center gap-6 xl:gap-8">
-        {/* Plant */}
-        <div className="flex flex-col">
-          <span className={`text-[10px] leading-none ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Plant</span>
-          <span className={`text-xs sm:text-sm font-semibold mt-0.5 ${isDark ? 'text-white' : 'text-slate-900'}`}>
-            {machine.plant}
-          </span>
-        </div>
-
-        {/* Line */}
-        <div className="flex flex-col">
-          <span className={`text-[10px] leading-none ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Line</span>
-          <span className={`text-xs sm:text-sm font-semibold mt-0.5 ${isDark ? 'text-white' : 'text-slate-900'}`}>
-            {machine.line}
-          </span>
-        </div>
-
-        {/* Machine */}
-        <div className="flex items-center gap-2">
-          <Settings className={`w-4 h-4 shrink-0 ${isDark ? 'text-slate-400' : 'text-slate-500'}`} />
+      {/* Center: Context Metadata Chips (Device, WO, Product, Operator, Shift, Edge Health) */}
+      <div className="hidden lg:flex items-center gap-5 xl:gap-7">
+        {/* Device Selector */}
+        <div className="flex items-center gap-1.5">
+          <Cpu className={`w-4 h-4 shrink-0 ${isDark ? 'text-blue-400' : 'text-blue-600'}`} />
           <div className="flex flex-col">
-            <span className={`text-[10px] leading-none ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Machine</span>
+            <span className={`text-[10px] leading-none font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Device ID</span>
             <select
               value={machine.id}
               onChange={(e) => onSwitchMachine(e.target.value)}
-              className={`bg-transparent text-xs sm:text-sm font-semibold cursor-pointer hover:text-blue-500 transition-colors focus:outline-none -ml-1 py-0 ${
+              className={`bg-transparent text-xs sm:text-sm font-bold font-mono cursor-pointer hover:text-blue-500 transition-colors focus:outline-none -ml-1 py-0 ${
                 isDark ? 'text-white' : 'text-slate-900'
               }`}
             >
               {allMachines.map((m) => (
                 <option key={m.id} value={m.id} className={isDark ? 'bg-slate-900 text-white' : 'bg-white text-slate-900'}>
-                  {m.id} ({m.name})
+                  {m.deviceId || m.id}
                 </option>
               ))}
             </select>
           </div>
         </div>
 
+        {/* Work Order */}
+        <div className="flex items-center gap-1.5">
+          <FileText className={`w-4 h-4 shrink-0 ${isDark ? 'text-slate-400' : 'text-slate-500'}`} />
+          <div className="flex flex-col">
+            <span className={`text-[10px] leading-none font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Work Order</span>
+            <span className={`text-xs sm:text-sm font-semibold font-mono mt-0.5 ${isDark ? 'text-white' : 'text-slate-900'}`}>
+              {workOrder}
+            </span>
+          </div>
+        </div>
+
         {/* Product */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
           <Box className={`w-4 h-4 shrink-0 ${isDark ? 'text-slate-400' : 'text-slate-500'}`} />
           <div className="flex flex-col">
-            <span className={`text-[10px] leading-none ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Product</span>
+            <span className={`text-[10px] leading-none font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Product</span>
             <span className={`text-xs sm:text-sm font-semibold mt-0.5 ${isDark ? 'text-white' : 'text-slate-900'}`}>
-              {machine.currentProduct}
+              {productName}
             </span>
           </div>
         </div>
 
-        {/* Shift */}
-        <div className="flex items-center gap-2">
+        {/* Operator */}
+        <div className="flex items-center gap-1.5">
+          <User className={`w-4 h-4 shrink-0 ${isDark ? 'text-slate-400' : 'text-slate-500'}`} />
+          <div className="flex flex-col">
+            <span className={`text-[10px] leading-none font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Operator</span>
+            <span className={`text-xs sm:text-sm font-semibold mt-0.5 ${isDark ? 'text-white' : 'text-slate-900'}`}>
+              {operatorName}
+            </span>
+          </div>
+        </div>
+
+        {/* Shift Plan with Dynamic Label & Metadata Time */}
+        <div className="flex items-center gap-1.5">
           <Clock className={`w-4 h-4 shrink-0 ${isDark ? 'text-slate-400' : 'text-slate-500'}`} />
           <div className="flex flex-col">
-            <span className={`text-[10px] leading-none ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Shift</span>
+            <span className={`text-[10px] leading-none font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Shift Plan · Live: 01:25</span>
             <span className={`text-xs sm:text-sm font-semibold mt-0.5 ${isDark ? 'text-white' : 'text-slate-900'}`}>
-              Shift 1 <span className={`text-[11px] font-normal ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>(08:00 - 16:00)</span>
+              {shiftStart} - {shiftEnd} <span className={`text-[11px] font-normal ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>({shiftLabel})</span>
             </span>
           </div>
         </div>
 
-        {/* Date */}
-        <div className="flex items-center gap-2">
-          <Calendar className={`w-4 h-4 shrink-0 ${isDark ? 'text-slate-400' : 'text-slate-500'}`} />
-          <div className="flex flex-col">
-            <span className={`text-[10px] leading-none ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Date</span>
-            <div className={`text-xs sm:text-sm font-semibold mt-0.5 flex items-center gap-1.5 ${isDark ? 'text-white' : 'text-slate-900'}`}>
-              <span>18 Sep 2026</span>
-              <span className={`text-[11px] font-normal ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>14:32</span>
-            </div>
-          </div>
+        {/* Edge Health status badge */}
+        <div 
+          onClick={onOpenMqttModal}
+          title={`Heap Free: ${(health.heap_free / 1024).toFixed(0)} KB | Tasks: ${health.tasks_healthy}/${health.tasks_total}`}
+          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border cursor-pointer hover:opacity-80 transition-opacity ${
+            isHealthy
+              ? isDark
+                ? 'bg-emerald-950/40 border-emerald-800/60 text-emerald-400'
+                : 'bg-emerald-50 border-emerald-200 text-emerald-700'
+              : isDark
+                ? 'bg-amber-950/40 border-amber-800/60 text-amber-400'
+                : 'bg-amber-50 border-amber-200 text-amber-700'
+          }`}
+        >
+          {isHealthy ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Activity className="w-3.5 h-3.5" />}
+          <span className="text-[11px] font-semibold">
+            {isHealthy ? `Edge Healthy (${health.tasks_healthy}/${health.tasks_total})` : 'Degraded Tasks'}
+          </span>
         </div>
 
-        {/* Status indicator */}
+        {/* Telemetry connection status */}
         <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border ${
-          isDark
-            ? 'bg-emerald-950/40 border-emerald-800/60'
-            : 'bg-emerald-50 border-emerald-200'
+          machine.connectionStatus === 'ONLINE'
+            ? isDark
+              ? 'bg-emerald-950/40 border-emerald-800/60 text-emerald-400'
+              : 'bg-emerald-50 border-emerald-200 text-emerald-700'
+            : isDark
+              ? 'bg-rose-950/40 border-rose-800/60 text-rose-400'
+              : 'bg-rose-50 border-rose-200 text-rose-700'
         }`}>
-          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-          <span className={`text-xs font-semibold ${isDark ? 'text-emerald-400' : 'text-emerald-700'}`}>Online</span>
+          <span className={`w-2 h-2 rounded-full ${machine.connectionStatus === 'ONLINE' ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'}`}></span>
+          <span className="text-xs font-semibold">{machine.connectionStatus || 'ONLINE'}</span>
         </div>
       </div>
 
@@ -161,7 +207,7 @@ export const FullscreenHeader: React.FC<FullscreenHeaderProps> = ({
           }`}
         >
           <Radio className={`w-3.5 h-3.5 ${isDark ? 'text-blue-400' : 'text-blue-600'}`} />
-          <span className="hidden sm:inline">MQTT Edge</span>
+          <span className="hidden sm:inline">Edge Telemetry</span>
         </button>
 
         {/* Simulation toggle */}
@@ -189,9 +235,10 @@ export const FullscreenHeader: React.FC<FullscreenHeaderProps> = ({
           title={isFullscreen ? 'Exit Fullscreen (Esc)' : 'Enter Video Fullscreen Mode (F)'}
         >
           {isFullscreen ? <Minimize className="w-3.5 h-3.5" /> : <Maximize className="w-3.5 h-3.5" />}
-          <span>{isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}</span>
+          <span>{isFullscreen ? 'Exit' : 'Fullscreen'}</span>
         </button>
       </div>
     </header>
   );
 };
+

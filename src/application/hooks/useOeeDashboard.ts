@@ -47,7 +47,13 @@ export interface UseOeeDashboardReturn {
   acknowledgeAlarm: (alarmId: string) => Promise<void>;
   resolveAlarm: (alarmId: string) => Promise<void>;
   dispatchMqttCommand: (command: 'RESET_COUNTER' | 'PAUSE' | 'RESUME') => Promise<void>;
-  dispatchMqttJobConfig: (wo: string, product: string, operator: string, target: number) => Promise<void>;
+  dispatchMqttJobConfig: (
+    wo: string,
+    product: string,
+    operator: string,
+    target: number,
+    cycleTimeSec?: number
+  ) => Promise<void>;
   openFormulaModal: (metricName: string) => void;
   closeFormulaModal: () => void;
   openLogModal: () => void;
@@ -61,7 +67,7 @@ export function useOeeDashboard(): UseOeeDashboardReturn {
 
   // State initialized with repository values
   const [machines, setMachines] = useState<MachineConfig[]>(INITIAL_MACHINES);
-  const [currentMachineId, setCurrentMachineId] = useState<string>('MC-01');
+  const [currentMachineId, setCurrentMachineId] = useState<string>('MC-SODIUM');
   const [selectedPlant] = useState<string>('Plant 1');
   const [selectedLine, setSelectedLine] = useState<string>('Line 1');
   const [selectedShift, setSelectedShift] = useState<string>('Shift 1');
@@ -175,7 +181,7 @@ export function useOeeDashboard(): UseOeeDashboardReturn {
   const selectMachine = useCallback((machineId: string) => {
     setCurrentMachineId(machineId);
     const target = machines.find((m) => m.id === machineId);
-    if (target) {
+    if (target?.line) {
       setSelectedLine(target.line);
     }
   }, [machines]);
@@ -245,8 +251,14 @@ export function useOeeDashboard(): UseOeeDashboardReturn {
     wo: string,
     product: string,
     operator: string,
-    target: number
+    target: number,
+    cycleTimeSec?: number
   ) => {
+    const stdCycleSec = cycleTimeSec ?? currentMachine.idealCycleTimeSec ?? currentMachine.jobConfig?.standardCycleTimeSec ?? 9.0;
+    const theoreticalRate = stdCycleSec > 0 ? Math.round(3600 / stdCycleSec) : 400;
+    // Scale actual rate based on current speed efficiency (~50.7%)
+    const newActualRate = Math.round(theoreticalRate * 0.5075);
+
     const payload = {
       command: 'SET_JOB_CONFIG' as const,
       transaction_id: `tx-${Date.now()}`,
@@ -254,7 +266,7 @@ export function useOeeDashboard(): UseOeeDashboardReturn {
       product: {
         id: `PRD-${product.replace(/\s+/g, '-').toUpperCase()}`,
         name: product,
-        std_cycle_time_sec: currentMachine.idealCycleTimeSec,
+        std_cycle_time_sec: stdCycleSec,
       },
       operator: {
         id: 'OP-EDGE',
@@ -274,7 +286,17 @@ export function useOeeDashboard(): UseOeeDashboardReturn {
       payload
     );
 
-    setMachines((prev) => prev.map((m) => (m.id === currentMachineId ? updatedMachine : m)));
+    const syncedMachine: MachineConfig = {
+      ...updatedMachine,
+      idealCycleTimeSec: stdCycleSec,
+      actualHourlyRate: newActualRate,
+      jobConfig: {
+        ...updatedMachine.jobConfig,
+        standardCycleTimeSec: stdCycleSec,
+      },
+    };
+
+    setMachines((prev) => prev.map((m) => (m.id === currentMachineId ? syncedMachine : m)));
     setIsMqttModalOpen(false);
   }, [container, currentMachineId, currentMachine]);
 

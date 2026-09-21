@@ -2,81 +2,220 @@ import { MachineConfig, MachineAlarmEvent } from '../types';
 
 export const INITIAL_MACHINES: MachineConfig[] = [
   {
-    id: 'MC-01',
-    name: 'Stamping Press MC-01',
-    line: 'Line 1',
-    plant: 'Plant 1',
-    area: 'Press & Stamping Shop',
+    id: 'MC-SODIUM',
+    deviceId: 'SODIUM-CP400',
+    name: 'Mesin Blister (CP400)',
+    connectionStatus: 'ONLINE',
+    lastTelemetryTs: 1790065537, // 21 Sep 2026 01:25:37
     status: 'RUNNING',
-    statusSince: '08:00 AM (Running 6h 32m)',
-    currentProduct: 'Product A',
-    productDescription: 'Standard Automotive Stamping Component',
-    idealCycleTimeSec: 10.0,
-    actualCycleTimeSec: 10.8,
-    targetHourlyRate: 360,
-    actualHourlyRate: 333,
+    currentProduct: 'Sodium Tablets 500mg',
+    idealCycleTimeSec: 9.0,
+    actualCycleTimeSec: 9.2,
+    shiftDurationMinutes: 600, // 10h shift (22:00 - 08:00)
+    plannedDowntimeMinutes: 60,
+    unplannedDowntimeMinutes: 42,
+    targetCount: 12500,
+    totalCount: 8721,
+    goodCount: 8520,
+    rejectCount: 201,
 
-    // Time inputs (min) - matching reference image
-    shiftDurationMinutes: 480, // 480 min
-    plannedDowntimeMinutes: 60, // 60 min (Planned Stop)
-    unplannedDowntimeMinutes: 42, // 42 min (Downtime)
+    // Targets & Meta
+    targetOee: 85.0,
+    targetAvailability: 90.0,
+    targetPerformance: 95.0,
+    targetQuality: 98.0,
+    plant: 'Mediseal Pharma Plant',
+    line: 'Line Mediseal 01',
+    area: 'Packaging Suite 04',
+    statusSince: '22:00 (3h 25m)',
+    productDescription: 'Sodium Tablets 500mg Blister Packaging',
+    actualHourlyRate: 203,
 
-    // Output counts (pcs) - matching reference image
-    targetCount: 1000,
-    totalCount: 945,
-    goodCount: 904,
-    rejectCount: 41,
+    // Breakdown & Losses
+    downtimeReasons: [
+      { id: 'dt-s1', category: 'Breakdown', label: 'Feeder Breakdown (Event Key 0295837182)', durationMinutes: 28, equivalentLossPcs: 187, type: 'UNPLANNED' },
+      { id: 'dt-s2', category: 'Waiting', label: 'Waiting for Material Supply', durationMinutes: 14, equivalentLossPcs: 93, type: 'UNPLANNED' },
+      { id: 'dt-s3', category: 'Changeover', label: 'Batch Foil Changeover', durationMinutes: 108, equivalentLossPcs: 720, type: 'UNPLANNED' },
+      { id: 'dt-sp1', category: 'Planned', label: 'Staff Meal Break', durationMinutes: 60, equivalentLossPcs: 400, type: 'PLANNED' },
+    ],
+    rejectReasons: [
+      { id: 'rej-s1', label: 'Blister Seal Leakage', count: 125, percentage: 62.2 },
+      { id: 'rej-s2', label: 'Missing Tablet Sensor', count: 76, percentage: 37.8 },
+    ],
 
-    // Target KPIs - matching reference image
+    // Active Job Configuration matching user's custom production fields
+    jobConfig: {
+      workOrder: 'WO-2026-0920-01',
+      productName: 'Sodium Tablets 500mg',
+      productId: 'PRD-SODIUM-500',
+      operatorName: 'Budi Santoso',
+      operatorId: 'OP-104',
+      standardCycleTimeSec: 9.0,
+      targetQuantity: 12500,
+      shiftStart: '22:00',
+      shiftEnd: '08:00',
+      breakTimeWindow: '02:00 - 03:00',
+      plannedBreakMin: 60,
+      plannedOperatingSec: 32400,
+    },
+
+    // Telemetry payload representing exact values in image.png
+    telemetry: {
+      ts: 1790065537,
+      st: 2, // RUNNING / Active
+      tot: 8721, // Actual Quantity
+      rej: 201,
+      cyc: 920, // 9.20s
+      run: 12300, // Active: 03:25 (3h 25m running)
+      dt: 2520,  // Breakdown 00:28 + Waiting 00:14 = 42 min
+      oee: 6500, // 65.0% OEE
+      a: 6500,   // 65.0% AVA
+      p: 7200,   // 72.0% PER
+      q: 9800,   // 98.0% QUA
+      alm: 0,
+      rpm: 1200,
+      tmp: 382,
+      di: 0x07,
+      is_buffered: false,
+    },
+
+    health: {
+      timestamp: 1790065537,
+      heap_free: 198400,
+      tasks_healthy: 6,
+      tasks_total: 6,
+      stale_tasks: [],
+      stale_count: 0,
+      event_flags: 0x0001,
+    },
+
+    // Hourly trends matching the 22:00 to 08:00 shift (current live hour: 01:00 / 01:25)
+    hourlyTrends: [
+      { hour: '22:00', target: 1250, actual: 980, good: 960, reject: 20, oee: 62.5, availability: 68.0, performance: 70.5, quality: 97.9, status: 'RUNNING', isBuffered: false },
+      { hour: '23:00', target: 1250, actual: 1020, good: 998, reject: 22, oee: 64.0, availability: 67.0, performance: 71.0, quality: 97.8, status: 'RUNNING', isBuffered: false },
+      { hour: '00:00', target: 1250, actual: 780, good: 760, reject: 20, oee: 58.2, availability: 61.0, performance: 68.0, quality: 97.4, status: 'RUNNING', isBuffered: false },
+      { hour: '01:00', target: 1250, actual: 640, good: 625, reject: 15, oee: 52.0, availability: 54.0, performance: 65.0, quality: 97.6, status: 'RUNNING', isBuffered: false },
+      { hour: '02:00', target: 1250, actual: 950, good: 932, reject: 18, oee: 63.8, availability: 64.0, performance: 72.0, quality: 98.1, status: 'RUNNING', isBuffered: false },
+      { hour: '03:00', target: 1250, actual: 1120, good: 1098, reject: 22, oee: 67.4, availability: 68.0, performance: 73.5, quality: 98.0, status: 'RUNNING', isBuffered: false },
+      { hour: '04:00', target: 1250, actual: 910, good: 890, reject: 20, oee: 60.5, availability: 62.0, performance: 70.0, quality: 97.8, status: 'RUNNING', isBuffered: false },
+      { hour: '05:00', target: 1250, actual: 1180, good: 1158, reject: 22, oee: 69.2, availability: 70.0, performance: 74.0, quality: 98.1, status: 'RUNNING', isBuffered: false },
+      { hour: '06:00', target: 1250, actual: 1141, good: 1119, reject: 22, oee: 68.0, availability: 69.0, performance: 73.0, quality: 98.0, status: 'RUNNING', isBuffered: false },
+      { hour: '07:00', target: 1250, actual: 0, good: 0, reject: 0, oee: 0, availability: 0, performance: 0, quality: 100, status: 'RUNNING', isBuffered: false },
+    ],
+  },
+  {
+    id: 'STM32-OEE-01',
+    deviceId: 'STM32-OEE-01',
+    name: 'CNC Milling Mazak VCN-530C',
+    connectionStatus: 'ONLINE',
+    lastTelemetryTs: 1790065537, // 21 Sep 2026 01:25:37
+    status: 'RUNNING',
+    currentProduct: 'Flange Housing B-20',
+    idealCycleTimeSec: 45.0,
+    actualCycleTimeSec: 46.2,
+    shiftDurationMinutes: 480,
+    plannedDowntimeMinutes: 60,
+    unplannedDowntimeMinutes: 42,
+    targetCount: 560,
+    totalCount: 532,
+    goodCount: 521,
+    rejectCount: 11,
+
+    // Targets & Meta
     targetOee: 85.0,
     targetAvailability: 92.0,
     targetPerformance: 95.0,
     targetQuality: 98.0,
+    plant: 'Cikarang Plant 1',
+    line: 'Machining Line 2',
+    area: 'Machining & Turning',
+    statusSince: '22:00 (3h 25m)',
+    productDescription: 'Flange Housing B-20 CNC Machined',
+    actualHourlyRate: 76,
 
-    // Downtime breakdown (Top 5 Downtime Reasons from image.png)
+    // Breakdown
     downtimeReasons: [
-      { id: 'dt-1', category: 'Breakdown', label: 'Breakdown', durationMinutes: 21, equivalentLossPcs: 126, occurrences: 1 },
-      { id: 'dt-2', category: 'Material', label: 'Material Shortage', durationMinutes: 12, equivalentLossPcs: 72, occurrences: 2 },
-      { id: 'dt-3', category: 'Changeover', label: 'Changeover', durationMinutes: 9, equivalentLossPcs: 54, occurrences: 1 },
-      { id: 'dt-4', category: 'Adjustment', label: 'Adjustment', durationMinutes: 3, equivalentLossPcs: 18, occurrences: 1 },
-      { id: 'dt-5', category: 'Other', label: 'Other', durationMinutes: 2, equivalentLossPcs: 12, occurrences: 1 },
+      { id: 'dt-1', category: 'Sensor', label: 'Sensor Fault', durationMinutes: 18, equivalentLossPcs: 24, type: 'UNPLANNED' },
+      { id: 'dt-2', category: 'Mechanical', label: 'Feeder Jam', durationMinutes: 12, equivalentLossPcs: 16, type: 'UNPLANNED' },
+      { id: 'dt-3', category: 'Material', label: 'Material Shortage', durationMinutes: 8, equivalentLossPcs: 10, type: 'UNPLANNED' },
+      { id: 'dt-4', category: 'Setup', label: 'Die Calibration', durationMinutes: 4, equivalentLossPcs: 5, type: 'UNPLANNED' },
+      { id: 'dt-p1', category: 'Planned', label: 'Meal & Rest Break', durationMinutes: 60, equivalentLossPcs: 80, type: 'PLANNED' },
     ],
-
-    // Quality reject breakdown - matching reference image (Dimension Error 18, Surface Defect 12, Assembly Error 7, Other 4)
     rejectReasons: [
-      { id: 'rj-1', label: 'Dimension Error', count: 18, percentage: 44 },
-      { id: 'rj-2', label: 'Surface Defect', count: 12, percentage: 29 },
-      { id: 'rj-3', label: 'Assembly Error', count: 7, percentage: 17 },
-      { id: 'rj-4', label: 'Other', count: 4, percentage: 10 },
+      { id: 'rej-1', label: 'Push Button Reject', count: 11, percentage: 100 },
     ],
 
-    // Hourly trend (matching image.png 06:00 to 14:00)
+    // Active MQTT Job Configuration (SET_JOB_CONFIG)
+    jobConfig: {
+      workOrder: 'WO-2026-0920-01',
+      productName: 'Flange Housing B-20',
+      productId: 'PRD-FLANGE-B20',
+      operatorName: 'Budi Santoso',
+      operatorId: 'OP-4021',
+      standardCycleTimeSec: 45.0,
+      targetQuantity: 560,
+      shiftStart: '22:00',
+      shiftEnd: '08:00',
+      breakTimeWindow: '02:00 - 03:00',
+      plannedBreakMin: 60,
+      plannedOperatingSec: 25200, // 420 min * 60
+    },
+
+    // Live MQTT Telemetry Payload (Direct wire fields)
+    telemetry: {
+      ts: 1790065537,
+      st: 2, // RUNNING
+      tot: 532,
+      rej: 11,
+      cyc: 4620, // 46.20s
+      run: 22680, // 378 min in seconds
+      dt: 2520,  // 42 min in seconds
+      oee: 8240, // 82.40%
+      a: 9120,   // 91.20%
+      p: 9450,   // 94.50%
+      q: 9560,   // 95.60%
+      alm: 0,
+      rpm: 1450,
+      tmp: 423,  // 42.3 C
+      di: 0x03,
+      is_buffered: false,
+    },
+
+    // Edge Health Payload (oee/device/{id}/health)
+    health: {
+      timestamp: 1790065537,
+      heap_free: 184320,
+      tasks_healthy: 6,
+      tasks_total: 6,
+      stale_tasks: [],
+      stale_count: 0,
+      event_flags: 0x0001,
+    },
+
+    // Contract-driven hourly time-series (22:00 to 05:00 - shift in progress, current: 01:25)
+    // Target per hour: 560 pcs / 8 hours = 70 pcs/hr
+    // Actual sum: 65+68+72+70+58+66+71+62 = 532 pcs
     hourlyTrends: [
-      { hour: '06:00', target: 1000, actual: 910, good: 875, reject: 35, oee: 78.5, availability: 88.0, performance: 91.0, quality: 96.0, status: 'RUNNING' },
-      { hour: '07:00', target: 1000, actual: 925, good: 890, reject: 35, oee: 80.0, availability: 89.5, performance: 92.0, quality: 96.2, status: 'RUNNING' },
-      { hour: '08:00', target: 1000, actual: 820, good: 780, reject: 40, oee: 81.2, availability: 90.0, performance: 93.0, quality: 95.8, status: 'RUNNING' },
-      { hour: '09:00', target: 1000, actual: 880, good: 840, reject: 40, oee: 83.0, availability: 91.0, performance: 94.0, quality: 96.0, status: 'RUNNING' },
-      { hour: '10:00', target: 1000, actual: 950, good: 915, reject: 35, oee: 86.5, availability: 93.5, performance: 95.5, quality: 96.8, status: 'RUNNING' },
-      { hour: '11:00', target: 1000, actual: 850, good: 810, reject: 40, oee: 92.4, availability: 96.0, performance: 97.5, quality: 98.2, status: 'RUNNING' },
-      { hour: '12:00', target: 1000, actual: 830, good: 790, reject: 40, oee: 84.0, availability: 92.0, performance: 94.2, quality: 96.0, status: 'RUNNING' },
-      { hour: '13:00', target: 1000, actual: 880, good: 842, reject: 38, oee: 83.5, availability: 91.8, performance: 94.0, quality: 96.0, status: 'RUNNING' },
-      { hour: '14:00', target: 1000, actual: 890, good: 850, reject: 40, oee: 79.2, availability: 89.0, performance: 92.5, quality: 95.6, status: 'RUNNING' },
+      { hour: '22:00', target: 70, actual: 65, good: 64, reject: 1, oee: 79.5, availability: 89.0, performance: 92.5, quality: 98.5, status: 'RUNNING', isBuffered: false },
+      { hour: '23:00', target: 70, actual: 68, good: 67, reject: 1, oee: 81.2, availability: 90.0, performance: 93.0, quality: 98.5, status: 'RUNNING', isBuffered: false },
+      { hour: '00:00', target: 70, actual: 72, good: 70, reject: 2, oee: 83.0, availability: 91.0, performance: 94.0, quality: 97.2, status: 'RUNNING', isBuffered: false },
+      { hour: '01:00', target: 70, actual: 70, good: 69, reject: 1, oee: 86.5, availability: 93.5, performance: 95.5, quality: 98.6, status: 'RUNNING', isBuffered: false },
+      { hour: '02:00', target: 70, actual: 58, good: 56, reject: 2, oee: 75.8, availability: 84.0, performance: 93.0, quality: 96.6, status: 'RUNNING', isBuffered: false },
+      { hour: '03:00', target: 70, actual: 66, good: 65, reject: 1, oee: 82.0, availability: 91.0, performance: 93.5, quality: 98.5, status: 'RUNNING', isBuffered: false },
+      { hour: '04:00', target: 70, actual: 71, good: 70, reject: 1, oee: 85.5, availability: 93.0, performance: 95.0, quality: 98.6, status: 'RUNNING', isBuffered: false },
+      { hour: '05:00', target: 70, actual: 62, good: 60, reject: 2, oee: 82.4, availability: 91.2, performance: 94.5, quality: 96.8, status: 'RUNNING', isBuffered: false },
     ],
   },
   {
-    id: 'MC-02',
-    name: 'Hydraulic Press MC-02',
-    line: 'LINE-01',
-    plant: 'Plant 1 - Cikarang',
-    area: 'Press & Stamping Shop',
+    id: 'STM32-OEE-02',
+    deviceId: 'STM32-OEE-02',
+    name: 'STM32 Edge Controller (Hydraulic Press)',
+    connectionStatus: 'ONLINE',
+    lastTelemetryTs: 1790065537,
     status: 'DOWN',
-    statusSince: '11:20 AM (Down 1h 45m)',
-    currentProduct: 'PRD-AUTO-02 (Heavy Subframe Crossmember)',
-    productDescription: 'Forged reinforced bracket',
+    currentProduct: 'Product B (Bracket)',
     idealCycleTimeSec: 30.0,
     actualCycleTimeSec: 36.0,
-    targetHourlyRate: 120,
-    actualHourlyRate: 68,
     shiftDurationMinutes: 480,
     plannedDowntimeMinutes: 60,
     unplannedDowntimeMinutes: 145,
@@ -84,119 +223,89 @@ export const INITIAL_MACHINES: MachineConfig[] = [
     totalCount: 476,
     goodCount: 448,
     rejectCount: 28,
-    targetOee: 85.0,
+
+    // Targets & Meta
+    targetOee: 80.0,
     targetAvailability: 90.0,
-    targetPerformance: 95.0,
-    targetQuality: 98.5,
+    targetPerformance: 92.0,
+    targetQuality: 96.0,
+    plant: 'Cikarang Plant 1',
+    line: 'Press Line 01',
+    area: 'Hydraulic Press Stamping',
+    statusSince: '00:15 (1h 10m)',
+    productDescription: 'Heavy Duty Structural Bracket',
+    actualHourlyRate: 85,
+
+    // Breakdown
     downtimeReasons: [
-      { id: 'dt-21', category: 'Breakdown', label: 'Main Hydraulic Pump Pressure Drop', durationMinutes: 105, equivalentLossPcs: 210, occurrences: 1 },
-      { id: 'dt-22', category: 'Material', label: 'Waiting Heavy Blank Pallet', durationMinutes: 25, equivalentLossPcs: 50, occurrences: 2 },
-      { id: 'dt-23', category: 'Adjustment', label: 'Pressure Valve Seal Tuning', durationMinutes: 15, equivalentLossPcs: 30, occurrences: 1 },
+      { id: 'dt-201', category: 'Breakdown', label: 'Main Hydraulic Pump Low Pressure', durationMinutes: 105, equivalentLossPcs: 210, type: 'UNPLANNED' },
+      { id: 'dt-202', category: 'Material', label: 'Raw Steel Coil Reel Delay', durationMinutes: 40, equivalentLossPcs: 80, type: 'UNPLANNED' },
+      { id: 'dt-203', category: 'Planned', label: 'Scheduled Maintenance & Filter Wash', durationMinutes: 60, equivalentLossPcs: 120, type: 'PLANNED' },
     ],
     rejectReasons: [
-      { id: 'rj-21', label: 'Insufficient Press Depth', count: 16, percentage: 57.1 },
-      { id: 'rj-22', label: 'Surface Scuffing', count: 8, percentage: 28.6 },
-      { id: 'rj-23', label: 'Trim Burrs', count: 4, percentage: 14.3 },
+      { id: 'rej-201', label: 'Forming Crack', count: 18, percentage: 64.3 },
+      { id: 'rej-202', label: 'Dimensional Offset', count: 10, percentage: 35.7 },
     ],
+
+    jobConfig: {
+      workOrder: 'WO-2026-0920-02',
+      productName: 'Product B (Bracket)',
+      productId: 'PRD-AUTO-02',
+      operatorName: 'Rian K.',
+      operatorId: 'OP-EDGE-02',
+      standardCycleTimeSec: 30.0,
+      targetQuantity: 840,
+      shiftStart: '22:00',
+      shiftEnd: '08:00',
+      breakTimeWindow: '02:00 - 03:00',
+      plannedBreakMin: 60,
+      plannedOperatingSec: 25200,
+    },
+
+    telemetry: {
+      ts: 1790065537,
+      st: 4, // UNPLANNED_DT
+      tot: 476,
+      rej: 28,
+      cyc: 3600,
+      run: 14100,
+      dt: 8700,
+      oee: 4600,
+      a: 5000,
+      p: 9400,
+      q: 9800,
+      alm: 104, // Hydraulic low pressure
+      rpm: 0,
+      tmp: 584,
+      di: 0x01,
+      is_buffered: false,
+    },
+
+    health: {
+      timestamp: 1790065537,
+      heap_free: 176128,
+      tasks_healthy: 5,
+      tasks_total: 6,
+      stale_tasks: [{ name: 'MODBUS_POLL', age_ms: 6200, alive: 0 }],
+      stale_count: 1,
+      event_flags: 0x0002,
+    },
+
+    // Hourly time-series (22:00 to 05:00)
+    // Target per hour: 840 pcs / 8 hours = 105 pcs/hr
+    // Sum of targets: 8 x 105 = 840 pcs (Target Plan)
+    // Sum of actuals: 50+98+92+86+45+0+55+50 = 476 pcs (Actual Total)
+    // Sum of goods: 49+94+88+80+40+0+50+47 = 448 pcs (Good Output)
+    // Sum of rejects: 1+4+4+6+5+0+5+3 = 28 pcs (Reject Output)
     hourlyTrends: [
-      { hour: '08:00', target: 105, actual: 98, good: 94, reject: 4, oee: 78.2, availability: 89.0, performance: 92.0, quality: 95.9, status: 'RUNNING' },
-      { hour: '09:00', target: 105, actual: 92, good: 88, reject: 4, oee: 72.0, availability: 84.0, performance: 90.0, quality: 95.7, status: 'RUNNING' },
-      { hour: '10:00', target: 105, actual: 86, good: 80, reject: 6, oee: 65.4, availability: 76.0, performance: 93.0, quality: 93.0, status: 'IDLE' },
-      { hour: '11:00', target: 105, actual: 45, good: 40, reject: 5, oee: 34.0, availability: 40.0, performance: 91.0, quality: 88.9, status: 'DOWN' },
-      { hour: '12:00', target: 105, actual: 0, good: 0, reject: 0, oee: 0.0, availability: 0.0, performance: 0.0, quality: 100.0, status: 'DOWN' },
-      { hour: '13:00', target: 105, actual: 55, good: 50, reject: 5, oee: 41.5, availability: 48.0, performance: 92.0, quality: 90.9, status: 'DOWN' },
-      { hour: '14:00', target: 105, actual: 50, good: 47, reject: 3, oee: 43.1, availability: 49.0, performance: 93.5, quality: 94.0, status: 'DOWN' },
-      { hour: '15:00', target: 105, actual: 50, good: 49, reject: 1, oee: 46.0, availability: 50.0, performance: 94.0, quality: 98.0, status: 'DOWN' },
-    ],
-  },
-  {
-    id: 'MC-03',
-    name: 'CNC 5-Axis Milling MC-03',
-    line: 'LINE-02',
-    plant: 'Plant 1 - Cikarang',
-    area: 'Precision Machining Cell',
-    status: 'RUNNING',
-    statusSince: '07:30 AM (Running 4h 30m)',
-    currentProduct: 'PRD-AERO-08 (Precision Turbo Impeller)',
-    productDescription: 'Aerospace aluminum alloy 7075 blade ring',
-    idealCycleTimeSec: 45.0,
-    actualCycleTimeSec: 46.2,
-    targetHourlyRate: 80,
-    actualHourlyRate: 78,
-    shiftDurationMinutes: 480,
-    plannedDowntimeMinutes: 60,
-    unplannedDowntimeMinutes: 18,
-    targetCount: 560,
-    totalCount: 542,
-    goodCount: 536,
-    rejectCount: 6,
-    targetOee: 88.0,
-    targetAvailability: 92.0,
-    targetPerformance: 96.0,
-    targetQuality: 99.0,
-    downtimeReasons: [
-      { id: 'dt-31', category: 'Changeover', label: 'Carbide Insert Preset Check', durationMinutes: 10, equivalentLossPcs: 13, occurrences: 1 },
-      { id: 'dt-32', category: 'Material', label: 'Coolant Refill & Filter Flush', durationMinutes: 8, equivalentLossPcs: 10, occurrences: 1 },
-    ],
-    rejectReasons: [
-      { id: 'rj-31', label: 'Surface Roughness Ra Exceeded', count: 4, percentage: 66.7 },
-      { id: 'rj-32', label: 'Bore Diameter Deviation', count: 2, percentage: 33.3 },
-    ],
-    hourlyTrends: [
-      { hour: '08:00', target: 70, actual: 68, good: 67, reject: 1, oee: 90.2, availability: 95.0, performance: 96.5, quality: 98.5, status: 'RUNNING' },
-      { hour: '09:00', target: 70, actual: 69, good: 69, reject: 0, oee: 92.8, availability: 96.0, performance: 97.0, quality: 100.0, status: 'RUNNING' },
-      { hour: '10:00', target: 70, actual: 67, good: 66, reject: 1, oee: 89.5, availability: 94.0, performance: 96.2, quality: 98.5, status: 'RUNNING' },
-      { hour: '11:00', target: 70, actual: 70, good: 70, reject: 0, oee: 94.1, availability: 97.0, performance: 97.0, quality: 100.0, status: 'RUNNING' },
-      { hour: '12:00', target: 70, actual: 64, good: 63, reject: 1, oee: 87.0, availability: 91.0, performance: 97.2, quality: 98.4, status: 'RUNNING' },
-      { hour: '13:00', target: 70, actual: 69, good: 68, reject: 1, oee: 91.3, availability: 96.0, performance: 96.6, quality: 98.6, status: 'RUNNING' },
-      { hour: '14:00', target: 70, actual: 68, good: 67, reject: 1, oee: 90.5, availability: 95.0, performance: 97.0, quality: 98.5, status: 'RUNNING' },
-      { hour: '15:00', target: 70, actual: 67, good: 66, reject: 1, oee: 89.8, availability: 95.0, performance: 96.0, quality: 98.5, status: 'RUNNING' },
-    ],
-  },
-  {
-    id: 'MC-04',
-    name: 'Packaging & Cartoning MC-04',
-    line: 'LINE-01',
-    plant: 'Plant 1 - Cikarang',
-    area: 'Final Assembly & Packing',
-    status: 'SETUP',
-    statusSince: '10:45 AM (Setup 35m)',
-    currentProduct: 'PRD-PKG-04 (Bulk Export Pallet Carton)',
-    productDescription: 'Automatic strapping and stretch wrapper',
-    idealCycleTimeSec: 8.0,
-    actualCycleTimeSec: 9.6,
-    targetHourlyRate: 450,
-    actualHourlyRate: 360,
-    shiftDurationMinutes: 480,
-    plannedDowntimeMinutes: 60,
-    unplannedDowntimeMinutes: 68,
-    targetCount: 3150,
-    totalCount: 2480,
-    goodCount: 2442,
-    rejectCount: 38,
-    targetOee: 85.0,
-    targetAvailability: 90.0,
-    targetPerformance: 95.0,
-    targetQuality: 99.0,
-    downtimeReasons: [
-      { id: 'dt-41', category: 'Changeover', label: 'Carton Magazine Size Changeover', durationMinutes: 42, equivalentLossPcs: 315, occurrences: 2 },
-      { id: 'dt-42', category: 'Material', label: 'Tape Roll & Adhesive Replenish', durationMinutes: 16, equivalentLossPcs: 120, occurrences: 2 },
-      { id: 'dt-43', category: 'Adjustment', label: 'Sealing Temperature Re-tune', durationMinutes: 10, equivalentLossPcs: 75, occurrences: 1 },
-    ],
-    rejectReasons: [
-      { id: 'rj-41', label: 'Tape Seal Misalignment', count: 22, percentage: 57.9 },
-      { id: 'rj-42', label: 'Damaged Corner Flap', count: 11, percentage: 28.9 },
-      { id: 'rj-43', label: 'Barcode Scan Failure', count: 5, percentage: 13.2 },
-    ],
-    hourlyTrends: [
-      { hour: '08:00', target: 390, actual: 360, good: 355, reject: 5, oee: 84.1, availability: 91.0, performance: 93.8, quality: 98.6, status: 'RUNNING' },
-      { hour: '09:00', target: 390, actual: 340, good: 334, reject: 6, oee: 79.5, availability: 87.0, performance: 93.0, quality: 98.2, status: 'RUNNING' },
-      { hour: '10:00', target: 390, actual: 210, good: 202, reject: 8, oee: 52.0, availability: 58.0, performance: 92.0, quality: 96.2, status: 'SETUP' },
-      { hour: '11:00', target: 390, actual: 350, good: 345, reject: 5, oee: 81.2, availability: 89.0, performance: 92.5, quality: 98.6, status: 'RUNNING' },
-      { hour: '12:00', target: 390, actual: 300, good: 295, reject: 5, oee: 72.8, availability: 80.0, performance: 92.6, quality: 98.3, status: 'IDLE' },
-      { hour: '13:00', target: 390, actual: 370, good: 366, reject: 4, oee: 86.4, availability: 93.0, performance: 94.0, quality: 98.9, status: 'RUNNING' },
-      { hour: '14:00', target: 390, actual: 280, good: 275, reject: 5, oee: 68.9, availability: 76.0, performance: 92.2, quality: 98.2, status: 'SETUP' },
-      { hour: '15:00', target: 390, actual: 270, good: 270, reject: 0, oee: 71.0, availability: 77.0, performance: 92.2, quality: 100.0, status: 'RUNNING' },
+      { hour: '22:00', target: 105, actual: 50, good: 49, reject: 1, oee: 45.0, availability: 52.0, performance: 90.0, quality: 98.0, status: 'RUNNING' },
+      { hour: '23:00', target: 105, actual: 98, good: 94, reject: 4, oee: 78.2, availability: 89.0, performance: 92.0, quality: 95.9, status: 'RUNNING' },
+      { hour: '00:00', target: 105, actual: 92, good: 88, reject: 4, oee: 72.0, availability: 84.0, performance: 90.0, quality: 95.7, status: 'RUNNING' },
+      { hour: '01:00', target: 105, actual: 86, good: 80, reject: 6, oee: 65.4, availability: 76.0, performance: 93.0, quality: 93.0, status: 'IDLE' },
+      { hour: '02:00', target: 105, actual: 45, good: 40, reject: 5, oee: 34.0, availability: 40.0, performance: 91.0, quality: 88.9, status: 'DOWN' },
+      { hour: '03:00', target: 105, actual: 0, good: 0, reject: 0, oee: 0.0, availability: 0.0, performance: 0.0, quality: 100.0, status: 'DOWN' },
+      { hour: '04:00', target: 105, actual: 55, good: 50, reject: 5, oee: 41.5, availability: 48.0, performance: 92.0, quality: 90.9, status: 'DOWN' },
+      { hour: '05:00', target: 105, actual: 50, good: 47, reject: 3, oee: 43.1, availability: 49.0, performance: 93.5, quality: 94.0, status: 'DOWN' },
     ],
   },
 ];
@@ -204,52 +313,23 @@ export const INITIAL_MACHINES: MachineConfig[] = [
 export const INITIAL_ALARMS: MachineAlarmEvent[] = [
   {
     id: 'alm-1',
-    timestamp: '14:32:10',
+    timestamp: '01:12:45',
     type: 'Breakdown',
-    machineId: 'MC-01',
+    machineId: 'STM32-OEE-01',
     durationMinutes: 8,
     status: 'Waiting Maintenance',
-    description: 'Hydraulic safety pressure switch trip on Die Clamp #2',
-    operator: 'Bambang S. (Operator-04)',
+    description: 'PLC Alarm Code 0x0000 (Clear) - Edge controller reporting normal IO status',
+    operator: 'Bambang S.',
   },
   {
     id: 'alm-2',
-    timestamp: '13:18:45',
-    type: 'Material',
-    machineId: 'MC-01',
-    durationMinutes: 12,
-    status: 'Resolved',
-    description: 'Coil feeder empty sensor triggered. New coil loaded & aligned.',
-    operator: 'Rian K. (Feeder Lead)',
-  },
-  {
-    id: 'alm-3',
-    timestamp: '11:20:00',
+    timestamp: '00:45:10',
     type: 'Breakdown',
-    machineId: 'MC-02',
+    machineId: 'STM32-OEE-02',
     durationMinutes: 105,
     status: 'In Progress',
-    description: 'Main pump seal rupture. Maintenance team replacement in progress.',
-    operator: 'Maintenance Team A',
-  },
-  {
-    id: 'alm-4',
-    timestamp: '10:45:12',
-    type: 'Speed',
-    machineId: 'MC-04',
-    durationMinutes: 35,
-    status: 'In Progress',
-    description: 'Magazine changeover to PRD-PKG-04 carton width',
-    operator: 'Supriyadi (Shift Supervisor)',
-  },
-  {
-    id: 'alm-5',
-    timestamp: '09:12:30',
-    type: 'Quality',
-    machineId: 'MC-01',
-    durationMinutes: 5,
-    status: 'Resolved',
-    description: 'Consecutive reject alarm (3 punch marks off-center). Tool cleaned.',
-    operator: 'Bambang S. (Operator-04)',
+    description: 'PLC Alarm Code 104: Main Hydraulic Pump Low Pressure Sensor',
+    operator: 'Rian K.',
   },
 ];
+

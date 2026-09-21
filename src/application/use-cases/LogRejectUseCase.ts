@@ -8,9 +8,17 @@ export class LogRejectUseCase {
 
   public async execute(
     machineId: string,
-    reasonLabel: string,
+    _reasonLabel: string,
     count: number
   ): Promise<MachineConfig> {
-    return this.machineRepo.addRejectEvent(machineId, reasonLabel, count);
+    const machine = await this.machineRepo.getMachineById(machineId);
+    const prevRej = machine?.telemetry?.rej ?? 41;
+    const prevTot = machine?.telemetry?.tot ?? 945;
+
+    return this.machineRepo.updateTelemetry(machineId, {
+      rej: prevRej + count,
+      tot: prevTot + count,
+    });
   }
 }
+

@@ -1,3 +1,5 @@
+// /src/presentation/components/echarts/EChartsKpiGauge.tsx
+
 import React, { useRef, useEffect } from 'react';
 import * as echarts from 'echarts';
 import { useTheme } from '../../context/ThemeContext';
@@ -5,8 +7,8 @@ import { useTheme } from '../../context/ThemeContext';
 interface EChartsKpiGaugeProps {
   title: string;
   value: number; // e.g. 82.4
-  target: number; // e.g. 85.0
-  gap: number; // e.g. -2.6
+  subtitle?: string; // e.g. "A × P × Q" or "Run / Planned"
+  ratingBadge?: string; // e.g. "Good", "World Class", "Normal"
   color: string; // e.g. '#10b981'
   onClick?: () => void;
 }
@@ -14,8 +16,8 @@ interface EChartsKpiGaugeProps {
 export const EChartsKpiGauge: React.FC<EChartsKpiGaugeProps> = ({
   title,
   value,
-  target,
-  gap,
+  subtitle,
+  ratingBadge,
   color,
   onClick,
 }) => {
@@ -24,7 +26,6 @@ export const EChartsKpiGauge: React.FC<EChartsKpiGaugeProps> = ({
   const isDark = theme === 'dark';
   const trackColor = isDark ? '#1a2e4c' : '#e2e8f0';
 
-  // Distinct, brighter illuminated background styles per gauge color to focus viewer attention
   const getThemeStyles = () => {
     if (color.includes('10b981') || color.includes('emerald') || color.includes('green')) {
       return {
@@ -73,6 +74,9 @@ export const EChartsKpiGauge: React.FC<EChartsKpiGaugeProps> = ({
 
   const themeStyles = getThemeStyles();
 
+  // Determine standard rating if not provided
+  const computedRating = ratingBadge || (value >= 85 ? 'World Class' : value >= 75 ? 'Optimal' : 'Needs Action');
+
   useEffect(() => {
     if (!chartRef.current) return;
     const chartInstance = echarts.init(chartRef.current, undefined, { renderer: 'canvas' });
@@ -90,7 +94,7 @@ export const EChartsKpiGauge: React.FC<EChartsKpiGaugeProps> = ({
           },
           data: [
             {
-              value: value,
+              value: Math.min(100, Math.max(0, value)),
               itemStyle: {
                 color: color,
                 borderRadius: 4,
@@ -123,13 +127,13 @@ export const EChartsKpiGauge: React.FC<EChartsKpiGaugeProps> = ({
   return (
     <div
       onClick={onClick}
-      className={`rounded-xl p-3 flex items-center justify-between transition-all duration-200 cursor-pointer select-none flex-1 min-w-[200px] border ${themeStyles.card}`}
+      className={`rounded-xl p-3.5 flex items-center justify-between transition-all duration-200 cursor-pointer select-none flex-1 min-w-[200px] border ${themeStyles.card}`}
     >
       {/* Donut Gauge with Center Value */}
       <div className="relative w-20 h-20 sm:w-24 sm:h-24 shrink-0 flex items-center justify-center">
         <div ref={chartRef} className="w-full h-full" />
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <span className={`font-sans font-bold text-base sm:text-lg tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
+          <span className={`font-mono font-bold text-base sm:text-xl tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
             {value.toFixed(1)}%
           </span>
         </div>
@@ -141,16 +145,20 @@ export const EChartsKpiGauge: React.FC<EChartsKpiGaugeProps> = ({
           <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: color }} />
           <span>{title}</span>
         </div>
-        <div className={`text-xs font-medium flex items-center gap-1.5 mb-1.5 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
-          <span>Target</span>
-          <span className={`font-semibold ${isDark ? 'text-white' : 'text-slate-900'}`}>{target.toFixed(1)}%</span>
-        </div>
-        <div className="flex items-center gap-1 text-xs font-semibold text-rose-500">
-          <span>▼</span>
-          <span>{gap > 0 ? `+${gap.toFixed(1)}%` : `${gap.toFixed(1)}%`}</span>
-          <span className={`font-normal ml-0.5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>vs Target</span>
+        
+        {subtitle && (
+          <div className={`text-[11px] font-mono mb-1.5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+            {subtitle}
+          </div>
+        )}
+
+        <div className="flex items-center gap-1.5 mt-1">
+          <span className={`text-[10px] uppercase tracking-wider font-semibold px-2 py-0.5 rounded-full border ${themeStyles.badge}`}>
+            {computedRating}
+          </span>
         </div>
       </div>
     </div>
   );
 };
+

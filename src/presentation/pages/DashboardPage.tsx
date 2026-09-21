@@ -31,7 +31,7 @@ export const DashboardPage: React.FC = () => {
       id="dashboard-root-layout"
       className={`font-sans selection:bg-blue-600 selection:text-white transition-colors ${
         isDark ? 'bg-[#070d1a] text-slate-100' : 'bg-slate-100 text-slate-900'
-      }`}
+      } ${dashboard.viewMode === 'FULLSCREEN_IMAGE' ? 'h-screen max-h-screen overflow-hidden flex flex-col' : 'min-h-screen'}`}
     >
       {/* Floating View & Theme Mode Switcher (hidden in fullscreen mode) */}
       {!dashboard.isFullscreen && (
@@ -53,7 +53,7 @@ export const DashboardPage: React.FC = () => {
             }`}
           >
             <Tv className="w-3.5 h-3.5" />
-            <span>Single-Screen View (image.png)</span>
+            <span>OEE Shift Overview</span>
           </button>
 
           <button
@@ -102,6 +102,10 @@ export const DashboardPage: React.FC = () => {
           onSwitchMachine={dashboard.selectMachine}
           onOpenFormula={dashboard.openFormulaModal}
           onViewAllEvents={() => dashboard.setViewMode('DETAILED_AUDIT')}
+          onUpdateMachineStatus={dashboard.updateMachineStatus}
+          onLogReject={dashboard.logReject}
+          onDispatchMqttCommand={dashboard.dispatchMqttCommand}
+          onApplyJobConfig={dashboard.dispatchMqttJobConfig}
         />
       ) : (
         /* DETAILED AUDIT DASHBOARD VIEW */
@@ -160,6 +164,8 @@ export const DashboardPage: React.FC = () => {
             <TrendZone
               hourlyTrends={dashboard.currentMachine.hourlyTrends}
               targetOee={dashboard.currentMachine.targetOee}
+              totalTargetQty={dashboard.currentMachine.jobConfig?.targetQuantity ?? dashboard.currentMachine.targetCount}
+              totalCount={dashboard.currentMachine.telemetry?.tot ?? dashboard.currentMachine.totalCount}
             />
 
             <AlarmsZone

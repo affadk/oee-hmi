@@ -41,8 +41,7 @@ export class MqttEdgeCommandUseCase {
     const result = await this.mqttGateway.sendJobConfig(payload);
     const updatedMachine = await this.machineRepo.setJobConfig(
       machineId,
-      payload.product.name,
-      payload.shift_plan.target_qty
+      payload
     );
 
     return {

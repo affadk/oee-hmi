@@ -41,7 +41,6 @@ export const LogEventModal: React.FC<LogEventModalProps> = ({
       category: dtCategory,
       label: dtLabel.trim(),
       durationMinutes: Number(dtDuration),
-      occurrences: 1,
     });
     setDtLabel('');
     onClose();

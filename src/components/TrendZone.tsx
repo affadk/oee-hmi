@@ -9,13 +9,29 @@ import { useTheme } from '../context/ThemeContext';
 interface TrendZoneProps {
   hourlyTrends: HourlyDataPoint[];
   targetOee: number;
+  totalTargetQty?: number;
+  totalCount?: number;
 }
 
-export const TrendZone: React.FC<TrendZoneProps> = ({ hourlyTrends, targetOee }) => {
+export const TrendZone: React.FC<TrendZoneProps> = ({ 
+  hourlyTrends, 
+  targetOee,
+  totalTargetQty,
+  totalCount
+}) => {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   const [activeMetric, setActiveMetric] = useState<'OEE' | 'AVAIL' | 'PERF' | 'QUAL' | 'ALL'>('OEE');
   const [hoveredHour, setHoveredHour] = useState<HourlyDataPoint | null>(null);
+
+  // Dynamic calculations for hourly and shift target
+  const hourlyTarget = hourlyTrends[0]?.target ?? 125;
+  const maxActualItem = hourlyTrends.reduce(
+    (max, cur) => (cur.actual > max.actual ? cur : max),
+    hourlyTrends[0] || { actual: 0, hour: '--' }
+  );
+  const totalActualOutput = totalCount ?? hourlyTrends.reduce((sum, h) => sum + h.actual, 0);
+  const effectiveTotalTarget = totalTargetQty ?? (hourlyTarget * hourlyTrends.length);
 
   // Calculate SVG chart coordinates
   const svgWidth = 600;
@@ -73,7 +89,9 @@ export const TrendZone: React.FC<TrendZoneProps> = ({ hourlyTrends, targetOee })
                 <LineChart className="w-4 h-4 text-blue-500" />
                 OEE & Component Hourly Trend
               </h2>
-              <span className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Shift timeline from 08:00 to 15:00</span>
+              <span className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                Shift timeline from {hourlyTrends.length > 0 ? hourlyTrends[0].hour : '22:00'} to {hourlyTrends.length > 0 ? hourlyTrends[hourlyTrends.length - 1].hour : '08:00'} · Live: 01:25:37 (21 Sep 2026)
+              </span>
             </div>
 
             {/* Filter line toggles */}
@@ -215,12 +233,23 @@ export const TrendZone: React.FC<TrendZoneProps> = ({ hourlyTrends, targetOee })
                       onMouseEnter={() => setHoveredHour(pt)}
                       onMouseLeave={() => setHoveredHour(null)}
                     />
-                    {/* Visual dot */}
+                    {/* Visual dot with live pulse if hour is 01:00 */}
+                    {pt.hour === '01:00' && (
+                      <circle
+                        cx={x}
+                        cy={y}
+                        r="8"
+                        fill="none"
+                        stroke="#f59e0b"
+                        strokeWidth="1.5"
+                        className="animate-ping opacity-75"
+                      />
+                    )}
                     <circle
                       cx={x}
                       cy={y}
-                      r={isHovered ? "5" : "3.5"}
-                      fill={pt.oee >= targetOee ? (isDark ? "#38bdf8" : "#0284c7") : "#f43f5e"}
+                      r={pt.hour === '01:00' ? "5.5" : isHovered ? "5" : "3.5"}
+                      fill={pt.hour === '01:00' ? "#f59e0b" : pt.oee >= targetOee ? (isDark ? "#38bdf8" : "#0284c7") : "#f43f5e"}
                       stroke={isDark ? "#0f172a" : "#ffffff"}
                       strokeWidth="2"
                     />
@@ -228,11 +257,11 @@ export const TrendZone: React.FC<TrendZoneProps> = ({ hourlyTrends, targetOee })
                     <text
                       x={x}
                       y={svgHeight - 8}
-                      fill={isHovered ? (isDark ? "#38bdf8" : "#0284c7") : (isDark ? "#94a3b8" : "#64748b")}
-                      fontSize="10"
+                      fill={pt.hour === '01:00' ? "#f59e0b" : isHovered ? (isDark ? "#38bdf8" : "#0284c7") : (isDark ? "#94a3b8" : "#64748b")}
+                      fontSize={pt.hour === '01:00' ? "11" : "10"}
                       fontFamily="IBM Plex Mono"
                       textAnchor="middle"
-                      fontWeight={isHovered ? "bold" : "normal"}
+                      fontWeight={pt.hour === '01:00' || isHovered ? "bold" : "normal"}
                     >
                       {pt.hour}
                     </text>
@@ -292,7 +321,7 @@ export const TrendZone: React.FC<TrendZoneProps> = ({ hourlyTrends, targetOee })
                 <TrendingUp className="w-4 h-4 text-emerald-500" />
                 Hourly Production: Actual vs Target & Reject
               </h2>
-              <span className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Hourly throughput (pcs/hr)</span>
+              <span className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Hourly throughput (pcs/hr) · Current: 01:25:37</span>
             </div>
 
             <div className="flex items-center gap-3 text-xs">
@@ -306,7 +335,7 @@ export const TrendZone: React.FC<TrendZoneProps> = ({ hourlyTrends, targetOee })
               </span>
               <span className={`flex items-center gap-1 ${isDark ? 'text-amber-300' : 'text-amber-600'}`}>
                 <span className={`w-3 h-0.5 border-t border-dashed ${isDark ? 'border-amber-400' : 'border-amber-600'}`}></span>
-                Target (125)
+                Target ({hourlyTarget}/h)
               </span>
             </div>
           </div>
@@ -314,6 +343,7 @@ export const TrendZone: React.FC<TrendZoneProps> = ({ hourlyTrends, targetOee })
           {/* Bar Chart Container */}
           <div className="h-[180px] flex items-end justify-between gap-1.5 pt-4 pb-2 px-1">
             {hourlyTrends.map((h) => {
+              const isLive = h.hour === '01:00';
               const targetHeight = (h.target / maxProd) * 100;
               const goodHeight = (h.good / maxProd) * 100;
               const rejectHeight = (h.reject / maxProd) * 100;
@@ -324,7 +354,7 @@ export const TrendZone: React.FC<TrendZoneProps> = ({ hourlyTrends, targetOee })
                   <div className={`absolute -top-10 text-[10px] font-mono px-2 py-1 rounded shadow-lg border opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-20 whitespace-nowrap ${
                     isDark ? 'bg-slate-800 text-slate-200 border-slate-700' : 'bg-slate-900 text-white border-slate-800'
                   }`}>
-                    {h.hour}: Act {h.actual} | Good {h.good} | Rej {h.reject}
+                    {h.hour}: Act {h.actual} | Good {h.good} | Rej {h.reject} {isLive ? '(LIVE)' : ''}
                   </div>
 
                   {/* Target reference line indicator */}
@@ -334,7 +364,7 @@ export const TrendZone: React.FC<TrendZoneProps> = ({ hourlyTrends, targetOee })
                   />
 
                   {/* Stacked bar: Good on bottom, Reject on top */}
-                  <div className="w-full max-w-[28px] flex flex-col justify-end h-full">
+                  <div className={`w-full max-w-[28px] flex flex-col justify-end h-full ${isLive ? 'ring-2 ring-amber-400/80 rounded-sm shadow-sm' : ''}`}>
                     {/* Reject portion */}
                     <div 
                       className="w-full bg-rose-500 rounded-t-sm transition-all duration-300 group-hover:brightness-110"
@@ -348,7 +378,11 @@ export const TrendZone: React.FC<TrendZoneProps> = ({ hourlyTrends, targetOee })
                   </div>
 
                   {/* Hour label */}
-                  <span className={`text-[10px] font-mono mt-2 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                  <span className={`text-[10px] font-mono mt-2 transition-colors ${
+                    isLive 
+                      ? 'text-amber-500 dark:text-amber-400 font-bold scale-110' 
+                      : isDark ? 'text-slate-400' : 'text-slate-500'
+                  }`}>
                     {h.hour.split(':')[0]}
                   </span>
                 </div>
@@ -358,11 +392,17 @@ export const TrendZone: React.FC<TrendZoneProps> = ({ hourlyTrends, targetOee })
         </div>
 
         {/* Footer info */}
-        <div className={`mt-2 pt-2 border-t flex items-center justify-between text-xs ${
+        <div className={`mt-2 pt-2 border-t flex flex-wrap items-center justify-between text-xs gap-1.5 ${
           isDark ? 'border-slate-800/80 text-slate-400' : 'border-slate-200 text-slate-600'
         }`}>
-          <span>Target Hourly Rate: <strong className={`font-mono ${isDark ? 'text-amber-400' : 'text-amber-600'}`}>125 pcs/hr</strong></span>
-          <span>Max Actual: <strong className={`font-mono ${isDark ? 'text-emerald-400' : 'text-emerald-600'}`}>130 pcs/hr (13:00)</strong></span>
+          <span>
+            Target Rate: <strong className={`font-mono ${isDark ? 'text-amber-400' : 'text-amber-600'}`}>{hourlyTarget} pcs/hr</strong> 
+            <span className="text-[11px] opacity-80 ml-1 font-mono">(Target Shift: {effectiveTotalTarget.toLocaleString()} pcs)</span>
+          </span>
+          <span>
+            Max Output: <strong className={`font-mono ${isDark ? 'text-emerald-400' : 'text-emerald-600'}`}>{maxActualItem.actual} pcs/hr ({maxActualItem.hour})</strong>
+            <span className="text-[11px] opacity-80 ml-1 font-mono">• Total: {totalActualOutput.toLocaleString()} pcs</span>
+          </span>
         </div>
       </div>
     </section>

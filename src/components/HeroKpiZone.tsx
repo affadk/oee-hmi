@@ -58,8 +58,21 @@ export const HeroKpiZone: React.FC<HeroKpiZoneProps> = ({
   const perfColor = getStatusColor(metrics.performancePct, machine.targetPerformance);
   const qualColor = getStatusColor(metrics.qualityPct, machine.targetQuality);
 
-  // SVG mini gauge renderer
-  const renderGauge = (pct: number, colorStroke: string) => {
+  // Calculation parameters for AVA, QUA, and PER
+  const totalCount = machine.telemetry?.tot ?? machine.totalCount;
+  const rejectCount = machine.telemetry?.rej ?? machine.rejectCount;
+  const goodCount = Math.max(0, totalCount - rejectCount);
+  const runTimeMin = machine.telemetry?.run ? Math.round(machine.telemetry.run / 60) : metrics.runTimeMin;
+  const plannedTimeMin = metrics.plannedProductionTimeMin;
+  const downtimeMin = machine.telemetry?.dt ? Math.round(machine.telemetry.dt / 60) : metrics.downtimeMin;
+  const runTimeSec = machine.telemetry?.run ?? (runTimeMin * 60);
+  const targetCycleTimeSec = machine.idealCycleTimeSec || 9.0;
+  const currentRate = machine.actualHourlyRate || 203;
+  const theoreticalHourlyOutput = targetCycleTimeSec > 0 ? Math.round(3600 / targetCycleTimeSec) : 400;
+  const actualCycleTimeSec = currentRate > 0 ? (3600 / currentRate).toFixed(1) : (targetCycleTimeSec * 1.97).toFixed(1);
+
+  // SVG mini gauge renderer with vertical raw calculation data
+  const renderGauge = (pct: number, colorStroke: string, rawLines?: string[]) => {
     const radius = 32;
     const strokeWidth = 5;
     const circumference = 2 * Math.PI * radius;
@@ -67,34 +80,64 @@ export const HeroKpiZone: React.FC<HeroKpiZoneProps> = ({
     const strokeDashoffset = circumference - (progress / 100) * circumference;
 
     return (
-      <div className="relative w-20 h-20 flex items-center justify-center">
-        <svg className="w-20 h-20 -rotate-90" viewBox="0 0 80 80">
-          {/* Background circle */}
-          <circle
-            cx="40"
-            cy="40"
-            r={radius}
-            stroke={isDark ? '#1e293b' : '#e2e8f0'}
-            strokeWidth={strokeWidth}
-            fill="transparent"
-          />
-          {/* Progress circle */}
-          <circle
-            cx="40"
-            cy="40"
-            r={radius}
-            stroke={colorStroke}
-            strokeWidth={strokeWidth}
-            strokeDasharray={circumference}
-            strokeDashoffset={strokeDashoffset}
-            strokeLinecap="round"
-            fill="transparent"
-            className="transition-all duration-700 ease-out"
-          />
-        </svg>
-        <span className={`absolute font-mono font-bold text-sm ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
-          {pct.toFixed(1)}%
-        </span>
+      <div className="flex flex-col items-center">
+        <div className="relative w-20 h-20 flex items-center justify-center">
+          <svg className="w-20 h-20 -rotate-90" viewBox="0 0 80 80">
+            {/* Background circle */}
+            <circle
+              cx="40"
+              cy="40"
+              r={radius}
+              stroke={isDark ? '#1e293b' : '#e2e8f0'}
+              strokeWidth={strokeWidth}
+              fill="transparent"
+            />
+            {/* Progress circle */}
+            <circle
+              cx="40"
+              cy="40"
+              r={radius}
+              stroke={colorStroke}
+              strokeWidth={strokeWidth}
+              strokeDasharray={circumference}
+              strokeDashoffset={strokeDashoffset}
+              strokeLinecap="round"
+              fill="transparent"
+              className="transition-all duration-700 ease-out"
+            />
+          </svg>
+          <span className={`absolute font-mono font-bold text-sm ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+            {pct.toFixed(1)}%
+          </span>
+        </div>
+        {rawLines && rawLines.length > 0 && (
+          <div className="flex flex-col items-center mt-1 space-y-0.5 font-mono text-[11px] leading-tight text-center">
+            {rawLines.map((line, idx) => {
+              const colonIndex = line.indexOf(':');
+              if (colonIndex !== -1) {
+                const key = line.slice(0, colonIndex).trim();
+                const val = line.slice(colonIndex + 1).trim();
+                return (
+                  <div key={idx} className="flex items-center gap-1">
+                    <span className="text-[10px] font-bold font-mono text-slate-400 dark:text-slate-400">
+                      {key}:
+                    </span>
+                    <span className={`font-semibold ${
+                      isDark ? 'text-slate-200' : 'text-slate-700'
+                    }`}>
+                      {val}
+                    </span>
+                  </div>
+                );
+              }
+              return (
+                <span key={idx} className={isDark ? 'text-slate-300 font-medium' : 'text-slate-600 font-medium'}>
+                  {line}
+                </span>
+              );
+            })}
+          </div>
+        )}
       </div>
     );
   };
@@ -164,7 +207,11 @@ export const HeroKpiZone: React.FC<HeroKpiZoneProps> = ({
               </div>
               <p className={`text-[11px] mt-0.5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Overall Equipment Effectiveness</p>
             </div>
-            {renderGauge(metrics.oeePct, oeeColor.stroke)}
+            {renderGauge(metrics.oeePct, oeeColor.stroke, [
+              `a: ${metrics.availabilityPct.toFixed(1)}%`,
+              `p: ${metrics.performancePct.toFixed(1)}%`,
+              `q: ${metrics.qualityPct.toFixed(1)}%`,
+            ])}
           </div>
 
           <div className={`mt-3 pt-2 border-t flex items-center justify-between text-xs ${
@@ -204,7 +251,11 @@ export const HeroKpiZone: React.FC<HeroKpiZoneProps> = ({
               </div>
               <p className={`text-[11px] mt-0.5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Operating time efficiency</p>
             </div>
-            {renderGauge(metrics.availabilityPct, availColor.stroke)}
+            {renderGauge(metrics.availabilityPct, availColor.stroke, [
+              `run: ${runTimeMin}m`,
+              `plan: ${plannedTimeMin}m`,
+              `dt: ${downtimeMin}m`,
+            ])}
           </div>
 
           <div className={`mt-3 pt-2 border-t flex items-center justify-between text-xs ${
@@ -244,7 +295,11 @@ export const HeroKpiZone: React.FC<HeroKpiZoneProps> = ({
               </div>
               <p className={`text-[11px] mt-0.5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Operating speed vs ideal</p>
             </div>
-            {renderGauge(metrics.performancePct, perfColor.stroke)}
+            {renderGauge(metrics.performancePct, perfColor.stroke, [
+              `act: ${currentRate} pcs/h`,
+              `tgt: ${theoreticalHourlyOutput} pcs/h`,
+              `cyc: ${actualCycleTimeSec}s`,
+            ])}
           </div>
 
           <div className={`mt-3 pt-2 border-t flex items-center justify-between text-xs ${
@@ -284,7 +339,11 @@ export const HeroKpiZone: React.FC<HeroKpiZoneProps> = ({
               </div>
               <p className={`text-[11px] mt-0.5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Good output proportion</p>
             </div>
-            {renderGauge(metrics.qualityPct, qualColor.stroke)}
+            {renderGauge(metrics.qualityPct, qualColor.stroke, [
+              `good: ${goodCount.toLocaleString()} pcs`,
+              `tot: ${totalCount.toLocaleString()} pcs`,
+              `rej: ${rejectCount.toLocaleString()} pcs`,
+            ])}
           </div>
 
           <div className={`mt-3 pt-2 border-t flex items-center justify-between text-xs ${

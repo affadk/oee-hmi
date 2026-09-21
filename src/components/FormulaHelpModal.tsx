@@ -124,21 +124,81 @@ export const FormulaHelpModal: React.FC<FormulaHelpModalProps> = ({
             </div>
           </div>
 
-          {/* Time Cascade Diagram */}
+          {/* Production vs Target Reconciliation Section */}
           <div className={`p-3.5 rounded-lg border ${
             isDark ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'
           }`}>
-            <div className={`font-semibold mb-2 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>Struktur Hirarki Waktu Produksi (Audit OEE):</div>
-            <pre className={`font-mono text-[11px] overflow-x-auto leading-relaxed ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-{`Shift Time (e.g. 480 min / 8 hr)
+            <div className={`font-semibold mb-2 flex items-center justify-between ${isDark ? 'text-emerald-400' : 'text-emerald-700'}`}>
+              <span>Hubungan Konsistensi: Target Per-Jam (Hourly) vs Total Target Qty:</span>
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">Audit-Ready</span>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 font-mono text-[11px]">
+              <div className={`p-2.5 rounded border ${isDark ? 'bg-slate-900/90 border-slate-800 text-slate-300' : 'bg-white border-slate-200 text-slate-700'}`}>
+                <div className="font-bold text-blue-400 mb-1">1. Rumus Target Per-Jam:</div>
+                <div>Target / Jam = Total Target Qty ÷ Jam Kerja Shift</div>
+                <div className="text-[10px] text-slate-500 mt-1">Contoh: 1.000 pcs ÷ 8 jam = 125 pcs/jam (atau 840 pcs ÷ 8 = 105 pcs/jam)</div>
+              </div>
+              <div className={`p-2.5 rounded border ${isDark ? 'bg-slate-900/90 border-slate-800 text-slate-300' : 'bg-white border-slate-200 text-slate-700'}`}>
+                <div className="font-bold text-emerald-400 mb-1">2. Konsistensi Total Akumulasi:</div>
+                <div>Total Actual = ∑ (Output Actual per Jam)</div>
+                <div className="text-[10px] text-slate-500 mt-1">114 + 118 + 122 + 126 + 105 + 115 + 128 + 117 = 945 pcs (94.5%)</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Time Cascade Diagram & Downtime Classification */}
+          <div className={`p-3.5 rounded-lg border ${
+            isDark ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'
+          }`}>
+            <div className={`font-semibold mb-2 flex items-center justify-between ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
+              <span>Klasifikasi Downtime (ISO 22400 / SEMI E10):</span>
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20">Planned vs Unplanned</span>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3 text-[11px]">
+              <div className={`p-2.5 rounded border ${isDark ? 'bg-blue-950/30 border-blue-800/60 text-slate-300' : 'bg-blue-50/70 border-blue-200 text-slate-800'}`}>
+                <div className="font-bold text-blue-400 mb-1 flex items-center justify-between">
+                  <span>1. Planned Downtime (Scheduled)</span>
+                  <span className="text-[9px] px-1.5 py-0.2 rounded bg-blue-500 text-white font-mono">Excluded from OEE</span>
+                </div>
+                <div className="text-slate-400 mb-1">Downtime yang sudah dijadwalkan & disetujui sebelumnya:</div>
+                <ul className="list-disc list-inside space-y-0.5 text-[10px] text-slate-400">
+                  <li>Istirahat makan (Meal break) & shift briefing</li>
+                  <li>Autonomous maintenance (5S cleaning mingguan)</li>
+                  <li>Planned preventive maintenance (PM berkala)</li>
+                </ul>
+                <div className="mt-2 text-[10px] font-mono text-blue-300">
+                  Efek: Planned Prod Time = Total Shift - Planned Downtime
+                </div>
+              </div>
+
+              <div className={`p-2.5 rounded border ${isDark ? 'bg-rose-950/30 border-rose-800/60 text-slate-300' : 'bg-rose-50/70 border-rose-200 text-slate-800'}`}>
+                <div className="font-bold text-rose-400 mb-1 flex items-center justify-between">
+                  <span>2. Unplanned Downtime (Unscheduled)</span>
+                  <span className="text-[9px] px-1.5 py-0.2 rounded bg-rose-500 text-white font-mono">Reduces Availability</span>
+                </div>
+                <div className="text-slate-400 mb-1">Kejadian tak terduga yang menghentikan mesin:</div>
+                <ul className="list-disc list-inside space-y-0.5 text-[10px] text-slate-400">
+                  <li>Kerusakan mesin (Motor trip, sensor fail, pump leak)</li>
+                  <li>Part jam, feeder macet, mold misalignment</li>
+                  <li>Kekurangan material, tunggu operator/teknisi</li>
+                </ul>
+                <div className="mt-2 text-[10px] font-mono text-rose-300">
+                  Efek: Availability % = (Planned Prod Time - Unplanned DT) ÷ Planned Prod Time
+                </div>
+              </div>
+            </div>
+
+            <pre className={`font-mono text-[11px] overflow-x-auto leading-relaxed p-2 rounded ${isDark ? 'bg-slate-900 text-slate-400' : 'bg-white text-slate-600 border border-slate-200'}`}>
+{`Total Shift Time (480 min)
 │
-├── Planned Stop (Meal Break, Handover: 60 min)
+├── [PLANNED DOWNTIME] (Meal & Briefing: 60 min) ──> Dikeluarkan dari denominator OEE
 │
-└── Planned Production Time (420 min)
+└── Planned Production Time (420 min) ──> Denominator Availability
        │
-       ├── Unplanned Downtime (Breakdown, Material Wait: 42 min)
+       ├── [UNPLANNED DOWNTIME] (Sensor Fault, Feeder Jam: 42 min) ──> Kerugian Availability
        │
-       └── Operating Run Time (378 min)`}
+       └── Operating Run Time (378 min) ──> Mesin benar-benar menghasilkan output`}
             </pre>
           </div>
 

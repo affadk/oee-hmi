@@ -6,7 +6,7 @@ const THEME_STORAGE_KEY = 'oee_dashboard_theme';
 
 export class LocalStorageThemeAdapter implements IThemeStoragePort {
   public getTheme(): ThemeMode {
-    if (typeof window === 'undefined') return 'dark';
+    if (typeof window === 'undefined') return 'light';
     try {
       const saved = localStorage.getItem(THEME_STORAGE_KEY);
       if (saved === 'light' || saved === 'dark') {
@@ -15,7 +15,7 @@ export class LocalStorageThemeAdapter implements IThemeStoragePort {
     } catch {
       // Fallback if localStorage access fails
     }
-    return 'dark';
+    return 'light';
   }
 
   public setTheme(theme: ThemeMode): void {
