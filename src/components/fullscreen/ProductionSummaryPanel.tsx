@@ -53,17 +53,17 @@ export const ProductionSummaryPanel: React.FC<ProductionSummaryPanelProps> = ({
 
         {/* Good */}
         <div className="text-left">
-          <span className={`text-[10px] block leading-tight ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Good</span>
-          <div className={`font-sans font-bold text-xs sm:text-sm md:text-base tracking-tight mt-0.5 ${isDark ? 'text-white' : 'text-slate-900'}`}>
-            {good.toLocaleString()} <span className={`text-[10px] font-normal ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>pcs</span>
+          <span className={`text-xs sm:text-sm font-bold block leading-tight ${isDark ? 'text-emerald-400' : 'text-emerald-600'}`}>Good</span>
+          <div className={`font-sans font-black text-lg sm:text-xl md:text-2xl tracking-tight mt-0.5 ${isDark ? 'text-emerald-300' : 'text-emerald-700'}`}>
+            {good.toLocaleString()} <span className={`text-xs font-semibold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>pcs</span>
           </div>
         </div>
 
         {/* Reject */}
         <div className="text-left">
-          <span className={`text-[10px] block leading-tight ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Reject</span>
-          <div className={`font-sans font-bold text-xs sm:text-sm md:text-base tracking-tight mt-0.5 ${isDark ? 'text-white' : 'text-slate-900'}`}>
-            {reject.toLocaleString()} <span className={`text-[10px] font-normal ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>pcs</span>
+          <span className={`text-xs sm:text-sm font-bold block leading-tight ${isDark ? 'text-rose-400' : 'text-rose-600'}`}>Reject</span>
+          <div className={`font-sans font-black text-lg sm:text-xl md:text-2xl tracking-tight mt-0.5 ${isDark ? 'text-rose-300' : 'text-rose-700'}`}>
+            {reject.toLocaleString()} <span className={`text-xs font-semibold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>pcs</span>
           </div>
         </div>
       </div>

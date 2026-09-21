@@ -15,7 +15,6 @@ import {
   Activity,
   CheckCircle2,
   ChevronDown,
-  Cpu,
 } from 'lucide-react';
 import { BatchQrScannerModal } from './BatchQrScannerModal';
 import { FloorPushButtonsPanel } from './FloorPushButtonsPanel';
@@ -123,13 +122,20 @@ export const FullscreenOeeView: React.FC<FullscreenOeeViewProps> = ({
 
   const isRunning = machine.status === 'RUNNING';
 
-  return (
-    <div
-      id="oee-edge-dashboard"
-      className={`min-h-screen w-full flex flex-col font-sans select-none transition-colors ${
+  // Layout: FIT LAYAR — isFullscreen fill 100dvh tanpa celah, normal 100dvh flex
+  const outerShellClass = isFullscreen
+    ? 'h-[100dvh] w-screen overflow-hidden flex flex-col bg-black font-sans select-none'
+    : 'h-[100dvh] max-h-[100dvh] w-full overflow-hidden flex flex-col font-sans select-none transition-colors';
+
+  const innerShellClass = isFullscreen
+    ? `w-screen h-[100dvh] flex flex-col overflow-hidden ${
         isDark ? 'bg-[#080e1a] text-slate-100' : 'bg-[#e9edf4] text-slate-900'
-      }`}
-    >
+      }`
+    : `w-full flex-1 min-h-0 flex flex-col overflow-hidden ${isDark ? 'bg-[#080e1a] text-slate-100' : 'bg-[#e9edf4] text-slate-900'}`;
+
+  return (
+    <div id="oee-edge-dashboard" className={outerShellClass}>
+      <div id="oee-viewport-shell" className={innerShellClass}>
       {/* QR BATCH SCANNER MODAL */}
       <BatchQrScannerModal
         isOpen={isQrModalOpen}
@@ -140,23 +146,23 @@ export const FullscreenOeeView: React.FC<FullscreenOeeViewProps> = ({
         onApplyJobConfig={onApplyJobConfig}
       />
 
-      {/* 1. AUTHENTIC TOP HEADER STRIP (FULL WIDTH) */}
-      <header className="bg-[#1a3464] text-white px-4 sm:px-6 lg:px-8 py-2 flex items-center justify-between text-xs sm:text-sm font-semibold shadow-md shrink-0 w-full">
+      {/* 1. TOP HEADER — shrink-0, padding relatif vh/vw — readability: min 12px */}
+      <header className="bg-[#1a3464] text-white px-[1.2vw] py-[0.8vh] flex items-center justify-between text-[clamp(12px,0.85vw,14px)] font-semibold shadow-md shrink-0 w-full">
         <div className="flex items-center gap-3">
           <span className="font-bold tracking-wide text-sm sm:text-base">OEE Machine Dashboard</span>
-          <span className="hidden md:inline-block text-[10px] font-mono px-2.5 py-0.5 rounded bg-white/15 text-blue-100">
+          <span className="hidden md:inline-block text-xs font-mono px-2.5 py-1 rounded bg-white/15 text-blue-100 leading-none">
             {shiftNumber} · {shiftStart} - {shiftEnd} WIB · 21 Sep 2026 01:25:37
           </span>
         </div>
 
         {/* Action Controls Toolbar */}
         <div className="flex items-center gap-2 sm:gap-2.5">
-          {/* Machine selector dropdown */}
-          <div className="relative inline-block text-slate-900 text-xs">
+          {/* Machine selector dropdown — readability: text-sm min 13px */}
+          <div className="relative inline-block text-slate-900">
             <select
               value={machine.id}
               onChange={(e) => onSwitchMachine(e.target.value)}
-              className="bg-white/95 hover:bg-white text-slate-900 font-bold py-1.5 pl-3 pr-7 rounded text-xs appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-300 shadow-sm"
+              className="bg-white/95 hover:bg-white text-slate-900 font-bold py-1.5 pl-3 pr-7 rounded text-sm appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-300 shadow-sm"
             >
               {allMachines.map((m) => (
                 <option key={m.id} value={m.id}>
@@ -167,14 +173,14 @@ export const FullscreenOeeView: React.FC<FullscreenOeeViewProps> = ({
             <ChevronDown className="w-3.5 h-3.5 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-slate-600" />
           </div>
 
-          {/* QR Scanner Trigger */}
+          {/* QR Scanner Trigger — bumped to text-sm for factory readability */}
           <button
             type="button"
             onClick={() => setIsQrModalOpen(true)}
-            className="px-2.5 py-1.5 rounded bg-blue-500/30 hover:bg-blue-500/50 text-white text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
+            className="px-2.5 py-1.5 rounded bg-blue-500/30 hover:bg-blue-500/50 text-white text-sm font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
             title="Scan QR Code Batch"
           >
-            <QrCode className="w-3.5 h-3.5" />
+            <QrCode className="w-4 h-4" />
             <span className="hidden lg:inline font-mono">Scan QR</span>
           </button>
 
@@ -182,10 +188,10 @@ export const FullscreenOeeView: React.FC<FullscreenOeeViewProps> = ({
           <button
             type="button"
             onClick={onOpenMqttModal}
-            className="px-2.5 py-1.5 rounded bg-white/10 hover:bg-white/20 text-white text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
+            className="px-2.5 py-1.5 rounded bg-white/10 hover:bg-white/20 text-white text-sm font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
             title="Edge Telemetry Hardware Inspector"
           >
-            <Radio className="w-3.5 h-3.5 text-emerald-400" />
+            <Radio className="w-4 h-4 text-emerald-400" />
             <span className="hidden lg:inline font-mono">Edge I/O</span>
           </button>
 
@@ -201,12 +207,12 @@ export const FullscreenOeeView: React.FC<FullscreenOeeViewProps> = ({
             <RefreshCw className={`w-3.5 h-3.5 ${isSimulating ? 'animate-spin' : ''}`} />
           </button>
 
-          {/* Switch to Detailed Audit View */}
+          {/* Switch to Detailed Audit View — text-sm for readability */}
           {onViewAllEvents && (
             <button
               type="button"
               onClick={onViewAllEvents}
-              className="px-2.5 py-1.5 rounded bg-white/10 hover:bg-white/20 text-white text-xs font-semibold transition-all cursor-pointer"
+              className="px-2.5 py-1.5 rounded bg-white/10 hover:bg-white/20 text-white text-sm font-semibold transition-all cursor-pointer"
               title="Open Detailed Audit View"
             >
               Audit View
@@ -233,175 +239,180 @@ export const FullscreenOeeView: React.FC<FullscreenOeeViewProps> = ({
             {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
           </button>
 
-          {/* MQTT Edge Controller - Poin 4: Edge Health */}
+          {/* MQTT Edge Controller - Poin 4: Edge Health — bumped minimal 12px */}
           <button
             type="button"
             onClick={onOpenMqttModal}
-            className={`flex items-center gap-1.5 px-2 py-1 rounded font-mono text-xs transition-all cursor-pointer select-none ml-1 border ${
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded font-mono text-sm transition-all cursor-pointer select-none ml-1 border ${
               isHealthy
                 ? 'bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-200 border-emerald-400/40'
                 : 'bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border-amber-400/40'
             }`}
             title={`Edge Health: ${health.tasks_healthy}/${health.tasks_total} Tasks • Heap ${heapFreeKb} KB`}
           >
-            <span className="relative flex h-2 w-2 shrink-0">
+            <span className="relative flex h-2.5 w-2.5 shrink-0">
               <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
                 isHealthy ? 'bg-emerald-400' : 'bg-amber-400'
               }`} />
-              <span className={`relative inline-flex rounded-full h-2 w-2 ${
+              <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${
                 isHealthy ? 'bg-emerald-400' : 'bg-amber-400'
               }`} />
             </span>
-            <span className="font-bold text-xs tracking-tight">
+            <span className="font-bold text-sm tracking-tight">
               Edge: {isHealthy ? 'OK' : 'WARN'}
             </span>
-            <span className="text-[10px] opacity-75 hidden sm:inline">
+            <span className="text-xs opacity-75 hidden sm:inline">
               ({health.tasks_healthy}/{health.tasks_total})
             </span>
           </button>
         </div>
       </header>
 
-      {/* 2. SUB-HEADER: GRID INFORMASI OEE RINGKAS & MELEBAR */}
+      {/* 2. SUB-HEADER — shrink-0, padding & font relatif */}
       <section
-        className={`w-full px-4 sm:px-6 lg:px-8 py-2.5 border-b transition-colors shrink-0 ${
+        className={`w-full px-[1.2vw] py-[1vh] border-b transition-colors shrink-0 ${
           isDark ? 'bg-[#0d1728] border-slate-800' : 'bg-[#e8edf4] border-[#c4cbd5]'
         }`}
       >
-        <div className="w-full flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-          {/* Sisi Kiri: Nama Mesin & Line */}
-          <div className="flex flex-col shrink-0 min-w-[180px]">
-            <h1 className={`text-2xl sm:text-3xl font-black tracking-tight leading-none ${
-              isDark ? 'text-white' : 'text-slate-900'
-            }`}>
-              {machineName}
-            </h1>
-            <span className={`text-xs font-semibold mt-0.5 ${
-              isDark ? 'text-slate-400' : 'text-slate-600'
-            }`}>
-              {machineLine}
-            </span>
+        <div className="w-full flex flex-col xl:flex-row items-start xl:items-center justify-between gap-4 xl:gap-6">
+          {/* Kelompok 1: Header Nama Mesin & Line */}
+          <div className="flex items-center gap-2.5 shrink-0 min-w-[180px]">
+            <div className="flex flex-col">
+              <h1 className={`text-2xl sm:text-3xl font-black tracking-tight leading-none ${
+                isDark ? 'text-white' : 'text-slate-900'
+              }`}>
+                {machineName}
+              </h1>
+              <span className={`text-xs font-semibold mt-0.5 ${
+                isDark ? 'text-slate-400' : 'text-slate-600'
+              }`}>
+                {machineLine}
+              </span>
+            </div>
           </div>
 
-          {/* Bagian Tengah: Grid 2-Baris Melebar & Ringkas */}
-          <div className="flex-1 w-full grid grid-cols-2 sm:grid-cols-4 gap-x-6 sm:gap-x-8 gap-y-2 text-xs">
-            {/* Baris 1: Product */}
-            <div className="flex flex-col">
-              <span className={`text-[11px] ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+          {/* Kelompok 2: Metadata — grid ringkas & rapat (fit content) */}
+          <div className="w-full xl:w-fit grid grid-cols-2 sm:grid-cols-4 gap-x-4 sm:gap-x-6 gap-y-2 text-xs">
+            {/* Product */}
+            <div className="flex flex-col min-w-0">
+              <span className={`text-[11px] leading-none font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                 Product
               </span>
-              <strong className={`text-xs sm:text-sm font-bold truncate ${isDark ? 'text-slate-100' : 'text-slate-900'}`} title={productName}>
+              <strong className={`text-xs sm:text-sm font-bold truncate mt-0.5 ${isDark ? 'text-slate-100' : 'text-slate-900'}`} title={productName}>
                 {productName}
               </strong>
             </div>
 
-            {/* Baris 1: Target CT */}
-            <div className="flex flex-col">
-              <span className={`text-[11px] ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+            {/* Cycle Time */}
+            <div className="flex flex-col min-w-0">
+              <span className={`text-[11px] leading-none font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                 Cycle Time
               </span>
-              <strong className={`font-mono text-xs sm:text-sm font-bold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+              <strong className={`font-mono text-xs sm:text-sm font-bold mt-0.5 ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
                 {targetCycleTimeSec}s
               </strong>
             </div>
 
-            {/* Baris 1: Operator */}
-            <div className="flex flex-col">
-              <span className={`text-[11px] ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+            {/* Operator */}
+            <div className="flex flex-col min-w-0">
+              <span className={`text-[11px] leading-none font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                 Operator
               </span>
-              <strong className={`text-xs sm:text-sm font-bold truncate ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+              <strong className={`text-xs sm:text-sm font-bold truncate mt-0.5 ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
                 {operatorName}
               </strong>
             </div>
 
-            {/* Baris 1: Shift */}
-            <div className="flex flex-col">
-              <span className={`text-[11px] ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+            {/* Shift */}
+            <div className="flex flex-col min-w-0">
+              <span className={`text-[11px] leading-none font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                 Shift
               </span>
-              <strong className={`font-mono text-xs sm:text-sm font-bold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
-                {operatorId} · Shift 1
+              <strong className={`font-mono text-xs sm:text-sm font-bold mt-0.5 ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+                {operatorId} · {shiftNumber}
               </strong>
             </div>
 
-            {/* Baris 2: Start */}
-            <div className="flex flex-col">
-              <span className={`text-[11px] ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+            {/* Mulai */}
+            <div className="flex flex-col min-w-0">
+              <span className={`text-[11px] leading-none font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                 Mulai
               </span>
-              <strong className={`font-mono text-xs sm:text-sm font-bold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+              <strong className={`font-mono text-xs sm:text-sm font-bold mt-0.5 ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
                 {shiftStart}
               </strong>
             </div>
 
-            {/* Baris 2: End */}
-            <div className="flex flex-col">
-              <span className={`text-[11px] ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+            {/* Selesai */}
+            <div className="flex flex-col min-w-0">
+              <span className={`text-[11px] leading-none font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                 Selesai
               </span>
-              <strong className={`font-mono text-xs sm:text-sm font-bold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+              <strong className={`font-mono text-xs sm:text-sm font-bold mt-0.5 ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
                 {shiftEnd}
               </strong>
             </div>
 
-            {/* Baris 2: Istirahat */}
-            <div className="flex flex-col">
-              <span className={`text-[11px] ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+            {/* Istirahat */}
+            <div className="flex flex-col min-w-0">
+              <span className={`text-[11px] leading-none font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                 Istirahat
               </span>
-              <strong className={`font-mono text-xs sm:text-sm font-bold text-amber-600 dark:text-amber-400`} title={`Jam Istirahat: ${breakTimeWindow} (${plannedBreakMin} menit)`}>
+              <strong className={`font-mono text-xs sm:text-sm font-bold mt-0.5 text-amber-600 dark:text-amber-400`} title={`Jam Istirahat: ${breakTimeWindow} (${plannedBreakMin} menit)`}>
                 {breakTimeWindow ? `${breakTimeWindow} (${plannedBreakMin}m)` : `${plannedBreakMin}m`}
               </strong>
             </div>
 
-            {/* Baris 2: Target Rate */}
-            <div className="flex flex-col">
-              <span className={`text-[11px] ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+            {/* Target Rate */}
+            <div className="flex flex-col min-w-0">
+              <span className={`text-[11px] leading-none font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                 Target Rate
               </span>
-              <strong className={`font-mono text-xs sm:text-sm font-bold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+              <strong className={`font-mono text-xs sm:text-sm font-bold mt-0.5 ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
                 {theoreticalHourlyOutput} pcs/h
               </strong>
             </div>
           </div>
 
-          {/* Sisi Kanan: Status Mesin Kotak (Persis layout asli referensi) */}
-          <div
-            onClick={() => onUpdateMachineStatus(isRunning ? 'DOWN' : 'RUNNING')}
-            className={`px-5 py-2 rounded-md shadow-sm flex flex-col items-center justify-center cursor-pointer transition-transform hover:scale-102 shrink-0 select-none ${
-              isRunning
-                ? 'bg-[#48a43f] text-white'
-                : 'bg-rose-600 text-white'
-            }`}
-            title={`Status: ${isRunning ? 'Active / Running' : 'Down / Stopped'}. Klik untuk mengubah status.`}
-          >
-            <span className="text-base sm:text-lg font-black leading-tight tracking-wide">
-              {isRunning ? 'Active' : 'Down'}
-            </span>
-            <span className="text-[11px] font-medium leading-none opacity-90">
-              {isRunning ? 'Active' : 'Stopped'}
-            </span>
+          {/* Kelompok 3: Status Mesin */}
+          <div className="flex items-center gap-2 shrink-0">
+            <div
+              onClick={() => onUpdateMachineStatus(isRunning ? 'DOWN' : 'RUNNING')}
+              className={`px-4 py-2 rounded-md shadow-sm flex flex-col items-center justify-center cursor-pointer transition-transform hover:scale-102 shrink-0 select-none ${
+                isRunning
+                  ? 'bg-[#48a43f] text-white'
+                  : 'bg-rose-600 text-white'
+              }`}
+              title={`Status: ${isRunning ? 'Active / Running' : 'Down / Stopped'}. Klik untuk mengubah status.`}
+            >
+              <span className="text-base sm:text-lg font-black leading-tight tracking-wide">
+                {isRunning ? 'Active' : 'Down'}
+              </span>
+              <span className="text-[11px] font-medium leading-none opacity-90">
+                {isRunning ? 'Active' : 'Stopped'}
+              </span>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* 3. MAIN CONTENT: FULL VIEWPORT WIDTH LAYOUT (w-full px-4 sm:px-6 lg:px-8) */}
-      <main className="flex-1 w-full px-4 sm:px-6 lg:px-8 py-4 space-y-4 pb-14">
-        <div className="w-full grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
+      {/* 3. MAIN CONTENT — proporsional relatif vh/vw, semua panel min-h-0 agar tidak terpotong */}
+      <main className="flex-1 min-h-0 w-full flex flex-col gap-[1vh] px-[1vw] py-[1vh] overflow-hidden">
+        {/* Upper grid: 12 cols, gap relatif vh */}
+        <div className="flex-1 min-h-0 w-full grid grid-cols-1 lg:grid-cols-12 gap-[1vh] lg:gap-[0.9vw] overflow-hidden">
           {/* ======================================================== */}
           {/* LEFT COLUMN: OEE KPI & TREND (8 of 12 cols — dilebarkan) */}
           {/* ======================================================== */}
-          <div className="lg:col-span-8 flex flex-col justify-between gap-4">
-            {/* CARD 1: KEY PERFORMANCE INDICATORS & PRODUCT QUANTITY (FILL HEIGHT) */}
+          <div className="lg:col-span-8 flex flex-col gap-[1vh] min-h-0 h-full overflow-hidden">
+            {/* CARD 1: KPI & Quantity — flex proporsional, padding relatif */}
             <div
               id="kpi-card-fullheight"
-              className={`p-4 sm:p-5 rounded-xl border shadow-sm transition-colors flex-1 flex flex-col justify-between ${
+              className={`p-[clamp(8px,1vh,14px)] rounded-xl border shadow-sm transition-colors flex-[1.35] min-h-0 flex flex-col justify-between overflow-hidden ${
                 isDark ? 'bg-[#0f1b2e] border-slate-800' : 'bg-white border-[#c9d3df]'
               }`}
             >
-              {/* Header: Key performance indicators — keterangan warna simplify di header */}
-              <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-200 dark:border-slate-800 mb-2">
+              {/* Header KPI — gap & padding relatif */}
+              <div className="flex flex-wrap items-center justify-between gap-[0.8vw] pb-[1vh] border-b border-slate-200 dark:border-slate-800 mb-[0.6vh] shrink-0">
                 <div className="flex flex-wrap items-center gap-3">
                   <h2 className={`text-base font-bold tracking-tight ${
                     isDark ? 'text-slate-100' : 'text-slate-900'
@@ -431,8 +442,8 @@ export const FullscreenOeeView: React.FC<FullscreenOeeViewProps> = ({
                 </button>
               </div>
 
-              {/* Gauges Row: 4 Donuts OEE + AVA + PER + QUA — siklus A→P→Q + dimensi konsisten (semua medium 92) */}
-              <div className="flex-1 flex flex-wrap items-center justify-around gap-4 sm:gap-6 py-2 sm:py-3 my-auto">
+              {/* Gauges Row — gap & padding relatif vh, semua gauge skala relatif */}
+              <div className="flex-1 min-h-0 flex flex-wrap items-center justify-around gap-[0.8vw] py-[0.6vh] my-auto overflow-hidden">
                 {/* OEE — konsisten dimensi medium sama dengan A/P/Q */}
                 <PasXDonutGauge
                   label="OEE"
@@ -488,10 +499,10 @@ export const FullscreenOeeView: React.FC<FullscreenOeeViewProps> = ({
                 </div>
               </div>
 
-              {/* Sub-Section: Progress Bar di Atas, Angka (Actual, Good, Reject, Target) di Bawah (Anchored at Bottom) */}
-              <div className="mt-auto pt-3.5 border-t border-slate-200 dark:border-slate-800 space-y-2.5">
-                {/* 1. Progress Bar di Atas */}
-                <div className="w-full h-4 sm:h-5 rounded-md overflow-hidden flex bg-[#dce3ec] dark:bg-slate-800 shadow-inner relative">
+              {/* Progress Bar + Angka — spacing relatif vh, shrink-0 agar tidak hilang */}
+              <div className="mt-auto pt-[1vh] border-t border-slate-200 dark:border-slate-800 space-y-[0.8vh] shrink-0">
+                {/* Progress Bar — tinggi relatif vh */}
+                <div className="w-full h-[1.7vh] min-h-[10px] max-h-[18px] rounded-md overflow-hidden flex bg-[#dce3ec] dark:bg-slate-800 shadow-inner relative shrink-0">
                   {/* Segment Good (Hijau) */}
                   <div
                     style={{ width: `${targetPcs > 0 ? Math.min(100, (goodPcs / targetPcs) * 100) : 0}%` }}
@@ -512,78 +523,52 @@ export const FullscreenOeeView: React.FC<FullscreenOeeViewProps> = ({
                   </div>
                 </div>
 
-                {/* 2. Angka di Bawah dalam Satu Baris Teratur */}
-                <div className="flex flex-wrap items-baseline justify-between gap-3 sm:gap-6">
-                  {/* Actual Quantity */}
-                  <div className="flex items-baseline gap-2">
-                    <span className={`text-2xl sm:text-3xl font-black font-sans leading-none ${
-                      isDark ? 'text-white' : 'text-slate-900'
-                    }`}>
+                {/* Angka — font relatif clamp terhadap vw/vh */}
+                <div className="flex flex-wrap items-baseline justify-between gap-[0.8vw]">
+                  {/* Actual */}
+                  <div className="flex items-baseline gap-[0.5vw]">
+                    <span className={`text-[clamp(14px,1.6vw,26px)] font-black font-sans leading-none ${isDark ? 'text-white' : 'text-slate-900'}`}>
                       {actualPcs.toLocaleString()}
                     </span>
-                    <span className={`text-xs font-semibold ${
-                      isDark ? 'text-slate-400' : 'text-slate-600'
-                    }`}>
-                      Actual Quantity
-                    </span>
+                    <span className={`text-[clamp(9px,0.7vw,11px)] font-semibold ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Actual</span>
                   </div>
-
-                  {/* Good & Reject Pieces */}
-                  <div className="flex items-center gap-4 text-xs font-mono">
-                    <div className="flex items-baseline gap-1.5">
-                      <span className={`text-[11px] font-sans font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                        Good:
-                      </span>
-                      <strong className="text-emerald-600 dark:text-emerald-400 text-sm sm:text-base font-black">
-                        {goodPcs.toLocaleString()}
-                      </strong>
+                  {/* Good & Reject — diperbesar tapi relatif */}
+                  <div className="flex items-center gap-[1vw] text-xs font-mono">
+                    <div className="flex items-baseline gap-[0.4vw]">
+                      <span className={`text-[clamp(9px,0.75vw,12px)] font-sans font-bold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Good:</span>
+                      <strong className="text-emerald-600 dark:text-emerald-400 text-[clamp(16px,1.5vw,28px)] font-black">{goodPcs.toLocaleString()}</strong>
                     </div>
-                    <div className="flex items-baseline gap-1.5">
-                      <span className={`text-[11px] font-sans font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                        Reject:
-                      </span>
-                      <strong className="text-rose-600 dark:text-rose-400 text-sm sm:text-base font-black">
-                        {rejectPcs.toLocaleString()}
-                      </strong>
+                    <div className="flex items-baseline gap-[0.4vw]">
+                      <span className={`text-[clamp(9px,0.75vw,12px)] font-sans font-bold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Reject:</span>
+                      <strong className="text-rose-600 dark:text-rose-400 text-[clamp(16px,1.5vw,28px)] font-black">{rejectPcs.toLocaleString()}</strong>
                     </div>
                   </div>
-
-                  {/* Target Quantity */}
-                  <div className="flex items-baseline gap-2">
-                    <span className={`text-2xl sm:text-3xl font-black font-sans leading-none ${
-                      isDark ? 'text-white' : 'text-slate-900'
-                    }`}>
+                  {/* Target */}
+                  <div className="flex items-baseline gap-[0.5vw]">
+                    <span className={`text-[clamp(14px,1.6vw,26px)] font-black font-sans leading-none ${isDark ? 'text-white' : 'text-slate-900'}`}>
                       {targetPcs.toLocaleString()}
                     </span>
-                    <span className={`text-xs font-semibold ${
-                      isDark ? 'text-slate-400' : 'text-slate-600'
-                    }`}>
-                      Target Quantity
-                    </span>
+                    <span className={`text-[clamp(9px,0.7vw,11px)] font-semibold ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Target</span>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* CARD 2: GRAFIK OEE SHIFT TREND */}
+            {/* CARD 2: GRAFIK OEE SHIFT TREND — padding & font relatif */}
             <div
-              className={`p-4 sm:p-5 rounded-xl border shadow-sm transition-colors flex-none ${
+              className={`p-[clamp(8px,1vh,14px)] rounded-xl border shadow-sm transition-colors flex-1 min-h-0 flex flex-col overflow-hidden ${
                 isDark ? 'bg-[#0f1b2e] border-slate-800' : 'bg-white border-[#c9d3df]'
               }`}
             >
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <Activity className="w-4 h-4 text-emerald-500" />
-                  <h3 className={`text-sm font-bold tracking-tight ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
-                    Grafik OEE Shift Trend
-                  </h3>
+              <div className="flex items-center justify-between mb-[0.6vh] shrink-0">
+                <div className="flex items-center gap-[0.5vw]">
+                  <Activity className="w-[clamp(12px,1vw,16px)] h-[clamp(12px,1vw,16px)] text-emerald-500" />
+                  <h3 className={`text-[clamp(11px,0.9vw,13px)] font-bold tracking-tight ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>Grafik OEE Shift Trend</h3>
                 </div>
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                  Target Benchmark 85%
-                </span>
+                <span className="text-[clamp(8px,0.65vw,10px)] font-mono px-[0.6vw] py-[0.3vh] rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">Target Benchmark 85%</span>
               </div>
 
-              <div className="w-full h-52 sm:h-56">
+              <div className="flex-1 min-h-0 w-full overflow-hidden">
                 <EChartsOeeTrend
                   hourlyTrends={machine.hourlyTrends}
                   isBuffered={machine.telemetry?.is_buffered}
@@ -594,81 +579,47 @@ export const FullscreenOeeView: React.FC<FullscreenOeeViewProps> = ({
             </div>
           </div>
 
-          {/* ======================================================== */}
-          {/* RIGHT COLUMN: DISUSUTKAN (4 of 12 cols) — Time Summary, Production Rate, Floor Push */}
-          {/* ======================================================== */}
-          <div id="oee-right-grid-group" className="lg:col-span-4 flex flex-col justify-between gap-4">
-            {/* SUB-CARD 1: TIME SUMMARY */}
-            <TimeSummaryPanel metrics={metrics} />
+          {/* RIGHT COLUMN — semua panel flex-1 proporsional relatif */}
+          <div id="oee-right-grid-group" className="lg:col-span-4 flex flex-col gap-[1vh] min-h-0 h-full overflow-hidden">
+            {/* Time Summary — flex-1 relatif */}
+            <div className="flex-[1.1] min-h-0 overflow-hidden">
+              <TimeSummaryPanel metrics={metrics} />
+            </div>
 
-            {/* SUB-CARD 2: PRODUCTION RATE (SYNCHRONIZED WITH METADATA CYCLE TIME) */}
+            {/* Production Rate — flex-1 relatif */}
             <div
               id="production-rate-card"
-              className={`p-4 rounded-xl border shadow-sm transition-colors ${
+              className={`p-[clamp(8px,1vh,12px)] rounded-xl border shadow-sm transition-colors flex-1 min-h-0 overflow-hidden flex flex-col ${
                 isDark ? 'bg-[#0f1b2e] border-slate-800' : 'bg-white border-[#c9d3df]'
               }`}
             >
-              <div className="flex items-center justify-between mb-2">
-                <h3 className={`text-sm font-bold tracking-tight ${
-                  isDark ? 'text-slate-100' : 'text-slate-900'
-                }`}>
-                  Production Rate
-                </h3>
-                <span className={`text-[10px] font-mono font-semibold px-2 py-0.5 rounded border ${
-                  isDark ? 'bg-slate-800 text-slate-300 border-slate-700' : 'bg-slate-100 text-slate-700 border-slate-200'
-                }`}>
-                  CT: {targetCycleTimeSec}s · Target: {targetRate} pcs/h
-                </span>
+              <div className="flex items-center justify-between mb-[0.6vh] shrink-0">
+                <h3 className={`text-[clamp(11px,0.9vw,13px)] font-bold tracking-tight ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>Production Rate</h3>
+                <span className={`text-[clamp(8px,0.65vw,10px)] font-mono font-semibold px-[0.6vw] py-[0.3vh] rounded border ${isDark ? 'bg-slate-800 text-slate-300 border-slate-700' : 'bg-slate-100 text-slate-700 border-slate-200'}`}>CT: {targetCycleTimeSec}s · Target: {targetRate} pcs/h</span>
               </div>
 
-              {/* Numbers: Current Rate on left, Target Rate on right with synchronized Cycle Times */}
-              <div className="flex items-baseline justify-between mb-2 px-2">
+              {/* Numbers — font clamp */}
+              <div className="flex items-baseline justify-between mb-[0.6vh] px-[0.5vw] shrink-0">
                 <div className="flex flex-col">
-                  <span className={`text-2xl sm:text-3xl font-black font-sans leading-none ${
-                    isDark ? 'text-white' : 'text-slate-900'
-                  }`}>
-                    {currentRate}
-                  </span>
-                  <span className={`text-[11px] font-semibold mt-0.5 ${
-                    isDark ? 'text-slate-400' : 'text-slate-600'
-                  }`}>
-                    Current Rate (pcs/h)
-                  </span>
-                  <span className={`text-[10px] font-mono mt-0.5 ${
-                    isDark ? 'text-slate-400' : 'text-slate-500'
-                  }`}>
-                    Actual: {actualCycleTimeSec}s/pcs
-                  </span>
+                  <span className={`text-[clamp(18px,1.8vw,26px)] font-black font-sans leading-none ${isDark ? 'text-white' : 'text-slate-900'}`}>{currentRate}</span>
+                  <span className={`text-[clamp(9px,0.7vw,11px)] font-semibold mt-[0.3vh] ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Current Rate (pcs/h)</span>
+                  <span className={`text-[clamp(8px,0.65vw,10px)] font-mono mt-[0.2vh] ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Actual: {actualCycleTimeSec}s/pcs</span>
                 </div>
-
                 <div className="flex flex-col items-end">
-                  <span className={`text-2xl sm:text-3xl font-black font-sans leading-none ${
-                    isDark ? 'text-white' : 'text-slate-900'
-                  }`}>
-                    {targetRate}
-                  </span>
-                  <span className={`text-[11px] font-semibold mt-0.5 ${
-                    isDark ? 'text-slate-400' : 'text-slate-600'
-                  }`}>
-                    Target Rate (pcs/h)
-                  </span>
-                  <span className={`text-[10px] font-mono mt-0.5 ${
-                    isDark ? 'text-slate-400' : 'text-slate-500'
-                  }`}>
-                    Ideal: {targetCycleTimeSec}s/pcs
-                  </span>
+                  <span className={`text-[clamp(18px,1.8vw,26px)] font-black font-sans leading-none ${isDark ? 'text-white' : 'text-slate-900'}`}>{targetRate}</span>
+                  <span className={`text-[clamp(9px,0.7vw,11px)] font-semibold mt-[0.3vh] ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Target Rate (pcs/h)</span>
+                  <span className={`text-[clamp(8px,0.65vw,10px)] font-mono mt-[0.2vh] ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Ideal: {targetCycleTimeSec}s/pcs</span>
                 </div>
               </div>
 
-              {/* Semi-circular Tachometer Gauge — diperbesar */}
-              <div className="py-2 flex justify-center scale-[1.02]">
-                <PasXTachometerGauge
-                  currentRate={currentRate}
-                  targetRate={targetRate}
-                />
+              {/* Tachometer — skala relatif vh */}
+              <div className="flex-1 min-h-0 flex items-center justify-center py-[0.5vh] overflow-hidden">
+                <div className="scale-[clamp(0.75,0.9vh,1)] origin-center">
+                  <PasXTachometerGauge currentRate={currentRate} targetRate={targetRate} />
+                </div>
               </div>
 
-              <div className="flex items-center justify-between text-[10px] font-mono mt-1 pt-1.5 border-t border-slate-100 dark:border-slate-800">
+              <div className="flex items-center justify-between text-[clamp(8px,0.65vw,10px)] font-mono mt-[0.4vh] pt-[0.6vh] border-t border-slate-100 dark:border-slate-800 shrink-0">
                 <span className={isDark ? 'text-slate-400' : 'text-slate-500'}>
                   3600 / {targetCycleTimeSec}s = {targetRate} pcs/h
                 </span>
@@ -694,17 +645,15 @@ export const FullscreenOeeView: React.FC<FullscreenOeeViewProps> = ({
           </div>
         </div>
 
-        {/* ======================================================== */}
-        {/* LOWER SECTION: PROGRESS (FULL WIDTH LAYAR)               */}
-        {/* ======================================================== */}
-        <div id="shift-progress-fullwidth" className="w-full">
+        {/* LOWER: Progress & Shift Timeline — horizontal grid, tinggi relatif vh, tetap proporsional */}
+        <div id="shift-progress-fullwidth" className="shrink-0 h-[clamp(110px,16vh,190px)] min-h-0 w-full overflow-hidden">
           <PasXProgressStrip machine={machine} metrics={metrics} />
         </div>
       </main>
 
-      {/* 4. FOOTER: SYSTEM & HARDWARE STATUS (FULL WIDTH) */}
+      {/* 4. FOOTER — shrink-0, padding relatif */}
       <footer
-        className={`w-full px-4 sm:px-6 lg:px-8 py-2.5 border-t text-xs font-mono transition-colors shrink-0 ${
+        className={`w-full px-[1.2vw] py-[0.8vh] border-t text-[clamp(9px,0.7vw,11px)] font-mono transition-colors shrink-0 overflow-hidden ${
           isDark ? 'bg-[#0d1728] border-slate-800 text-slate-400' : 'bg-[#e2e8f0] border-[#c4cbd5] text-slate-600'
         }`}
       >
@@ -728,6 +677,7 @@ export const FullscreenOeeView: React.FC<FullscreenOeeViewProps> = ({
           </div>
         </div>
       </footer>
+      </div>
     </div>
   );
 };

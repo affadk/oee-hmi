@@ -160,25 +160,22 @@ export const HeaderZone: React.FC<HeaderZoneProps> = ({
           </div>
         </div>
 
-        {/* Tier 2: Manufacturing Context & Hierarchy Filter Strip (ISA-95 Enterprise > Line > Machine > Shift) */}
-        <div className={`rounded-xl border p-2 flex flex-wrap items-center justify-between gap-2.5 text-xs transition-colors ${
+        {/* Tier 2: Metadata — dikelompokkan rapat: [Identitas Mesin] | [Metadata Shift/Waktu] | [Status Produksi] */}
+        <div className={`rounded-lg border p-1 flex flex-wrap items-center gap-1 text-xs transition-colors ${
           isDark ? 'bg-slate-800/60 border-slate-800' : 'bg-slate-50 border-slate-200'
         }`}>
-          {/* Hierarchy Selectors Group */}
-          <div className="flex flex-wrap items-center gap-2">
-            {/* Plant */}
-            <div className={`rounded-lg px-2.5 py-1 flex items-center gap-1.5 border ${
-              isDark ? 'bg-slate-900/80 border-slate-700 text-slate-300' : 'bg-white border-slate-200 text-slate-700'
+          {/* Kelompok 1: Identitas — header nama mesin + lokasi */}
+          <div className={`flex flex-wrap items-center gap-1 rounded-md px-1 py-0.5 ${isDark ? 'bg-slate-900/60' : 'bg-white/70'}`}>
+            <span className={`text-[10px] font-bold uppercase tracking-wider px-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>MESIN</span>
+            <div className={`rounded px-2 py-1 flex items-center gap-1 border text-[11px] ${
+              isDark ? 'bg-slate-900 border-slate-700 text-slate-300' : 'bg-white border-slate-200 text-slate-700'
             }`}>
               <span className={isDark ? 'text-slate-500' : 'text-slate-400'}>Plant:</span>
               <span className={`font-semibold ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>{selectedPlant}</span>
             </div>
-
-            <span className={`hidden sm:inline text-xs ${isDark ? 'text-slate-600' : 'text-slate-300'}`}>/</span>
-
-            {/* Line Filter */}
-            <div className={`rounded-lg px-2.5 py-1 flex items-center gap-1.5 border ${
-              isDark ? 'bg-slate-900/80 border-slate-700' : 'bg-white border-slate-200'
+            <span className={`hidden sm:inline text-[10px] ${isDark ? 'text-slate-600' : 'text-slate-300'}`}>›</span>
+            <div className={`rounded px-2 py-1 flex items-center gap-1 border text-[11px] ${
+              isDark ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'
             }`}>
               <span className={isDark ? 'text-slate-500' : 'text-slate-400'}>Line:</span>
               <select
@@ -194,12 +191,9 @@ export const HeaderZone: React.FC<HeaderZoneProps> = ({
                 <option value="LINE-02" className={isDark ? 'bg-slate-800 text-white' : 'bg-white text-slate-800'}>LINE-02 (Precision Milling)</option>
               </select>
             </div>
-
-            <span className={`hidden sm:inline text-xs ${isDark ? 'text-slate-600' : 'text-slate-300'}`}>/</span>
-
-            {/* Machine Filter */}
-            <div className={`rounded-lg px-2.5 py-1 flex items-center gap-1.5 border ${
-              isDark ? 'bg-slate-900/80 border-slate-700' : 'bg-white border-slate-200'
+            <span className={`hidden sm:inline text-[10px] ${isDark ? 'text-slate-600' : 'text-slate-300'}`}>›</span>
+            <div className={`rounded px-2 py-1 flex items-center gap-1 border text-[11px] ${
+              isDark ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'
             }`}>
               <span className={isDark ? 'text-slate-500' : 'text-slate-400'}>Machine:</span>
               <select
@@ -218,14 +212,17 @@ export const HeaderZone: React.FC<HeaderZoneProps> = ({
                 ))}
               </select>
             </div>
+          </div>
 
-            <span className={`hidden sm:inline text-xs ${isDark ? 'text-slate-600' : 'text-slate-300'}`}>/</span>
+          <span className={`hidden lg:inline w-px h-6 self-center ${isDark ? 'bg-slate-700' : 'bg-slate-300'}`} />
 
-            {/* Shift */}
-            <div className={`rounded-lg px-2.5 py-1 flex items-center gap-1.5 border ${
-              isDark ? 'bg-slate-900/80 border-slate-700' : 'bg-white border-slate-200'
+          {/* Kelompok 2: Metadata — Shift & Waktu */}
+          <div className={`flex flex-wrap items-center gap-1 rounded-md px-1 py-0.5 ${isDark ? 'bg-slate-900/60' : 'bg-white/70'}`}>
+            <span className={`text-[10px] font-bold uppercase tracking-wider px-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>JADWAL</span>
+            <div className={`rounded px-2 py-1 flex items-center gap-1 border text-[11px] ${
+              isDark ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'
             }`}>
-              <Clock className={`w-3.5 h-3.5 ${isDark ? 'text-slate-500' : 'text-slate-400'}`} />
+              <Clock className={`w-3 h-3 ${isDark ? 'text-slate-500' : 'text-slate-400'}`} />
               <span className={isDark ? 'text-slate-500' : 'text-slate-400'}>Shift:</span>
               <select
                 id="shift-select"
@@ -241,26 +238,27 @@ export const HeaderZone: React.FC<HeaderZoneProps> = ({
                 <option value="Shift 3" className={isDark ? 'bg-slate-800 text-white' : 'bg-white text-slate-800'}>Shift 3 (23:00 - 07:00)</option>
               </select>
             </div>
-
-            {/* Date */}
-            <div className={`rounded-lg px-2.5 py-1 flex items-center gap-1.5 border ${
-              isDark ? 'bg-slate-900/80 border-slate-700 text-slate-300' : 'bg-white border-slate-200 text-slate-700'
+            <div className={`rounded px-2 py-1 flex items-center gap-1 border text-[11px] ${
+              isDark ? 'bg-slate-900 border-slate-700 text-slate-300' : 'bg-white border-slate-200 text-slate-700'
             }`}>
-              <Calendar className={`w-3.5 h-3.5 ${isDark ? 'text-slate-500' : 'text-slate-400'}`} />
+              <Calendar className={`w-3 h-3 ${isDark ? 'text-slate-500' : 'text-slate-400'}`} />
               <span className={`font-mono ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>{selectedDate}</span>
             </div>
           </div>
 
-          {/* Active Work Order & Product Context Preview */}
-          <div className="flex items-center gap-3 text-xs ml-auto">
-            <div className="flex items-center gap-1.5">
+          <span className={`hidden lg:inline w-px h-6 self-center ${isDark ? 'bg-slate-700' : 'bg-slate-300'}`} />
+
+          {/* Kelompok 3: Status — Product & Target */}
+          <div className={`flex flex-wrap items-center gap-1 rounded-md px-1 py-0.5 ml-auto ${isDark ? 'bg-slate-900/60' : 'bg-white/70'}`}>
+            <span className={`text-[10px] font-bold uppercase tracking-wider px-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>STATUS</span>
+            <div className="flex items-center gap-1 text-[11px]">
               <span className={isDark ? 'text-slate-400' : 'text-slate-500'}>Product:</span>
-              <span className={`font-semibold truncate max-w-[200px] ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
+              <span className={`font-semibold truncate max-w-[160px] ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
                 {currentMachine.currentProduct}
               </span>
             </div>
-            <span className={`hidden md:inline ${isDark ? 'text-slate-600' : 'text-slate-300'}`}>•</span>
-            <div className="hidden md:flex items-center gap-1">
+            <span className={`hidden sm:inline text-[10px] ${isDark ? 'text-slate-600' : 'text-slate-300'}`}>•</span>
+            <div className="flex items-center gap-1 text-[11px]">
               <span className={isDark ? 'text-slate-400' : 'text-slate-500'}>Target OEE:</span>
               <span className={`font-mono font-bold ${isDark ? 'text-amber-400' : 'text-amber-600'}`}>
                 {currentMachine.targetOee}%

@@ -93,12 +93,12 @@ export const ProductionZone: React.FC<ProductionZoneProps> = ({ metrics, machine
             <span>Good Output</span>
           </div>
           <div className="mt-1 flex items-baseline gap-1">
-            <span className={`text-2xl font-bold font-mono ${isDark ? 'text-emerald-300' : 'text-emerald-700'}`}>
+            <span className={`text-4xl font-black font-mono ${isDark ? 'text-emerald-300' : 'text-emerald-700'}`}>
               {formatNumber(machine.goodCount)}
             </span>
-            <span className={`text-xs ${isDark ? 'text-emerald-400/70' : 'text-emerald-600'}`}>pcs</span>
+            <span className={`text-sm font-semibold ${isDark ? 'text-emerald-400/70' : 'text-emerald-600'}`}>pcs</span>
           </div>
-          <div className={`text-[11px] font-mono mt-1 ${isDark ? 'text-emerald-400/80' : 'text-emerald-700'}`}>
+          <div className={`text-xs font-mono font-semibold mt-1 ${isDark ? 'text-emerald-400/80' : 'text-emerald-700'}`}>
             {goodRatio.toFixed(1)}% of total
           </div>
         </div>
@@ -114,12 +114,12 @@ export const ProductionZone: React.FC<ProductionZoneProps> = ({ metrics, machine
             <span>Reject / Defect</span>
           </div>
           <div className="mt-1 flex items-baseline gap-1">
-            <span className={`text-2xl font-bold font-mono ${isDark ? 'text-rose-300' : 'text-rose-700'}`}>
+            <span className={`text-4xl font-black font-mono ${isDark ? 'text-rose-300' : 'text-rose-700'}`}>
               {formatNumber(machine.rejectCount)}
             </span>
-            <span className={`text-xs ${isDark ? 'text-rose-400/70' : 'text-rose-600'}`}>pcs</span>
+            <span className={`text-sm font-semibold ${isDark ? 'text-rose-400/70' : 'text-rose-600'}`}>pcs</span>
           </div>
-          <div className={`text-[11px] font-mono mt-1 ${isDark ? 'text-rose-400/80' : 'text-rose-700'}`}>
+          <div className={`text-xs font-mono font-semibold mt-1 ${isDark ? 'text-rose-400/80' : 'text-rose-700'}`}>
             {rejectRatio.toFixed(1)}% reject rate
           </div>
         </div>

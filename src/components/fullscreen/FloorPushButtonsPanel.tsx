@@ -119,7 +119,7 @@ export const FloorPushButtonsPanel: React.FC<FloorPushButtonsPanelProps> = ({
 
   return (
     <div
-      className={`p-4 rounded-xl border shadow-sm transition-colors flex flex-col justify-between ${
+      className={`p-[clamp(8px,1vh,12px)] rounded-xl border shadow-sm transition-colors flex flex-col justify-between overflow-hidden min-h-0 shrink-0 ${
         isDark ? 'bg-[#0f1b2e] border-slate-800' : 'bg-white border-[#c9d3df]'
       }`}
     >

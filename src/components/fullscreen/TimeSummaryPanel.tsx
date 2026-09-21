@@ -100,45 +100,27 @@ export const TimeSummaryPanel: React.FC<TimeSummaryPanelProps> = ({
   return (
     <div
       id="time-summary-panel"
-      className={`p-4 sm:p-4.5 rounded-xl border shadow-sm flex flex-col justify-between transition-colors ${
+      className={`p-[clamp(8px,1vh,12px)] rounded-xl border shadow-sm flex flex-col justify-between overflow-hidden min-h-0 h-full transition-colors ${
         isDark ? 'bg-[#0f1b2e] border-slate-800' : 'bg-white border-[#c9d3df]'
       }`}
     >
-      {/* Header */}
-      <div className="flex items-center gap-2.5 pb-2.5 mb-1">
-        <Clock className={`w-5 h-5 stroke-[2.2] ${isDark ? 'text-slate-200' : 'text-[#1e293b]'}`} />
-        <h3 className={`text-sm sm:text-base font-bold tracking-tight ${isDark ? 'text-slate-100' : 'text-[#0f172a]'}`}>
-          Time Summary
-        </h3>
+      {/* Header — gap & font relatif */}
+      <div className="flex items-center gap-[0.6vw] pb-[0.8vh] mb-[0.4vh] shrink-0">
+        <Clock className={`w-[clamp(14px,1.1vw,18px)] h-[clamp(14px,1.1vw,18px)] stroke-[2.2] ${isDark ? 'text-slate-200' : 'text-[#1e293b]'}`} />
+        <h3 className={`text-[clamp(11px,0.9vw,14px)] font-bold tracking-tight ${isDark ? 'text-slate-100' : 'text-[#0f172a]'}`}>Time Summary</h3>
       </div>
 
-      {/* Rows matching image.png */}
-      <div className="flex-1 flex flex-col justify-between divide-y divide-slate-100 dark:divide-slate-800/80">
+      {/* Rows — padding & font relatif vh/vw, flex-1 */}
+      <div className="flex-1 min-h-0 flex flex-col justify-between divide-y divide-slate-100 dark:divide-slate-800/80 overflow-hidden">
         {rows.map((row) => (
-          <div
-            key={row.id}
-            className="flex items-center justify-between py-2 sm:py-2.5 first:pt-1 last:pb-1"
-          >
-            {/* Left: Icon & Label */}
-            <div className="flex items-center gap-3">
-              {row.icon}
-              <span className={`text-xs sm:text-[13px] font-medium tracking-tight ${
-                isDark ? 'text-slate-300' : 'text-slate-600'
-              }`}>
-                {row.label}
-              </span>
+          <div key={row.id} className="flex items-center justify-between py-[0.7vh] first:pt-[0.3vh] last:pb-[0.3vh] min-h-0">
+            <div className="flex items-center gap-[0.6vw] min-w-0">
+              <span className="scale-[clamp(0.8,0.9vw,1)] origin-left shrink-0">{row.icon}</span>
+              <span className={`text-[clamp(10px,0.75vw,12px)] font-medium tracking-tight truncate ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>{row.label}</span>
             </div>
-
-            {/* Right: Value & Unit */}
-            <div className="flex items-baseline gap-1 font-sans">
-              <span className={`text-sm sm:text-base font-bold leading-none ${
-                isDark ? 'text-white' : 'text-slate-900'
-              }`}>
-                {row.value}
-              </span>
-              <span className="text-xs font-normal text-slate-400 dark:text-slate-500">
-                {row.unit}
-              </span>
+            <div className="flex items-baseline gap-[0.3vw] font-sans shrink-0">
+              <span className={`text-[clamp(12px,0.95vw,15px)] font-bold leading-none ${isDark ? 'text-white' : 'text-slate-900'}`}>{row.value}</span>
+              <span className="text-[clamp(9px,0.65vw,11px)] font-normal text-slate-400 dark:text-slate-500">{row.unit}</span>
             </div>
           </div>
         ))}

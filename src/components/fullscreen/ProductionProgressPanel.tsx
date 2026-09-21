@@ -91,16 +91,16 @@ export const ProductionProgressPanel: React.FC<ProductionProgressPanelProps> = (
       {/* Secondary Quick Metrics (Good vs Reject) */}
       <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800/20 dark:border-slate-700/40 text-xs">
         <div className="flex items-center gap-1.5">
-          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-          <span className={isDark ? 'text-slate-300' : 'text-slate-600'}>Good:</span>
-          <span className="font-mono font-bold text-emerald-400">{goodCount.toLocaleString()}</span>
-          <span className="text-[10px] text-slate-400 font-mono">({goodPct.toFixed(1)}%)</span>
+          <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+          <span className={`text-xs sm:text-sm font-bold ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>Good:</span>
+          <span className="font-mono font-black text-lg sm:text-xl text-emerald-400">{goodCount.toLocaleString()}</span>
+          <span className="text-xs text-slate-400 font-mono font-semibold">({goodPct.toFixed(1)}%)</span>
         </div>
         <div className="flex items-center gap-1.5 justify-end">
-          <AlertOctagon className="w-3.5 h-3.5 text-rose-500 shrink-0" />
-          <span className={isDark ? 'text-slate-300' : 'text-slate-600'}>Reject:</span>
-          <span className="font-mono font-bold text-rose-400">{rejectCount.toLocaleString()}</span>
-          <span className="text-[10px] text-slate-400 font-mono">({(100 - goodPct).toFixed(1)}%)</span>
+          <AlertOctagon className="w-4 h-4 text-rose-500 shrink-0" />
+          <span className={`text-xs sm:text-sm font-bold ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>Reject:</span>
+          <span className="font-mono font-black text-lg sm:text-xl text-rose-400">{rejectCount.toLocaleString()}</span>
+          <span className="text-xs text-slate-400 font-mono font-semibold">({(100 - goodPct).toFixed(1)}%)</span>
         </div>
       </div>
     </div>
