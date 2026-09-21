@@ -160,7 +160,7 @@ export const FloorPushButtonsPanel: React.FC<FloorPushButtonsPanelProps> = ({
                 }`}>
                   <Icon className="w-4 h-4" />
                 </div>
-                <div className="font-extrabold text-xs sm:text-sm leading-tight tracking-tight">
+                <div className="font-extrabold text-sm leading-tight tracking-tight">
                   {b.label}
                 </div>
               </div>

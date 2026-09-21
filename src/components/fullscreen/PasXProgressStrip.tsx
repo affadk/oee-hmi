@@ -63,28 +63,28 @@ export const PasXProgressStrip: React.FC<PasXProgressStripProps> = () => {
         isDark ? 'bg-[#0f1b2e] border-slate-800' : 'bg-white border-[#c9d3df]'
       }`}
     >
-      {/* Header — padding & font relatif vh/vw */}
-      <div className="shrink-0 flex flex-wrap items-center justify-between gap-[0.8vw] pb-[0.8vh] border-b border-slate-200 dark:border-slate-800">
-        <div className="flex items-center gap-[0.6vw]">
-          <h4 className={`text-[clamp(11px,0.9vw,13px)] font-bold tracking-tight ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>Progress & Shift Timeline</h4>
-          <span className="text-[clamp(8px,0.6vw,10px)] font-mono px-[0.5vw] py-[0.3vh] rounded bg-blue-500/10 text-blue-600 dark:text-blue-400 font-semibold border border-blue-500/20">Shift 3 (22:00 - 08:00) · 21 Sep 2026 01:25:37</span>
+      {/* Header — padding & font relatif vh/vw — min 12px */}
+      <div className="shrink-0 flex flex-wrap items-center justify-between gap-2 pb-[0.8vh] border-b border-slate-200 dark:border-slate-800">
+        <div className="flex items-center gap-2">
+          <h4 className={`text-sm font-bold tracking-tight ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>Progress & Shift Timeline</h4>
+          <span className="text-xs font-mono px-2 py-0.5 rounded bg-blue-500/10 text-blue-600 dark:text-blue-400 font-semibold border border-blue-500/20">Shift 3 (22:00 - 08:00) · 21 Sep 2026 01:25:37</span>
         </div>
-        <div className="flex items-center gap-[0.8vw] text-[clamp(9px,0.7vw,11px)] font-medium shrink-0">
-          <div className="flex items-center gap-[0.4vw]"><span className="w-[0.7vw] h-[0.7vw] min-w-[8px] min-h-[8px] rounded-xs bg-[#48a43f]" /><span className={isDark ? 'text-slate-300' : 'text-slate-600'}>Active</span></div>
-          <div className="flex items-center gap-[0.4vw]"><span className="w-[0.7vw] h-[0.7vw] min-w-[8px] min-h-[8px] rounded-xs bg-[#eab308]" /><span className={isDark ? 'text-slate-300' : 'text-slate-600'}>Changeover</span></div>
-          <div className="flex items-center gap-[0.4vw]"><span className="w-[0.7vw] h-[0.7vw] min-w-[8px] min-h-[8px] rounded-xs bg-[#dc2626]" /><span className={isDark ? 'text-slate-300' : 'text-slate-600'}>Breakdown</span></div>
+        <div className="flex items-center gap-2 text-xs font-semibold shrink-0">
+          <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 min-w-[10px] min-h-[10px] rounded-xs bg-[#48a43f]" /><span className={isDark ? 'text-slate-300' : 'text-slate-600'}>Active</span></div>
+          <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 min-w-[10px] min-h-[10px] rounded-xs bg-[#eab308]" /><span className={isDark ? 'text-slate-300' : 'text-slate-600'}>Changeover</span></div>
+          <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 min-w-[10px] min-h-[10px] rounded-xs bg-[#dc2626]" /><span className={isDark ? 'text-slate-300' : 'text-slate-600'}>Breakdown</span></div>
         </div>
       </div>
 
       {/* Horizontal grid — detail dibuat kompak proporsional dengan grafik */}
       <div className="flex-1 min-h-0 grid grid-cols-12 gap-[0.8vw] pt-[0.6vh] overflow-hidden items-center">
-        {/* LEFT: Detail — disederhanakan: 1 baris kompak, tinggi auto sejajar timeline */}
+        {/* LEFT: Detail — disederhanakan: min 12px */}
         <div className="col-span-12 lg:col-span-4 min-h-0 flex items-center overflow-hidden self-center">
-          <div className={`border rounded-md px-[0.6vw] py-[0.5vh] flex items-center gap-[0.6vw] shadow-sm transition-all duration-200 w-full overflow-hidden ${selectedTheme.bannerBg} ${selectedTheme.bannerBorder}`}>
-            <span className={`${selectedTheme.badgeBg} ${selectedTheme.badgeText} px-[0.5vw] py-[0.3vh] font-bold rounded text-[clamp(8px,0.6vw,10px)] uppercase tracking-wide shadow-xs shrink-0 leading-none`}>{selectedEvent.type}</span>
-            <div className="min-w-0 flex-1 flex flex-col gap-[0.15vh] overflow-hidden">
-              <span className="font-bold text-slate-900 dark:text-slate-100 text-[clamp(10px,0.8vw,12px)] leading-none truncate">{selectedEvent.label}</span>
-              <span className="font-mono text-[clamp(8px,0.6vw,10px)] leading-none truncate text-slate-600 dark:text-slate-300">
+          <div className={`border rounded-md px-2.5 py-1.5 flex items-center gap-2 shadow-sm transition-all duration-200 w-full overflow-hidden ${selectedTheme.bannerBg} ${selectedTheme.bannerBorder}`}>
+            <span className={`${selectedTheme.badgeBg} ${selectedTheme.badgeText} px-2 py-1 font-bold rounded text-xs uppercase tracking-wide shadow-xs shrink-0 leading-none`}>{selectedEvent.type}</span>
+            <div className="min-w-0 flex-1 flex flex-col gap-0.5 overflow-hidden">
+              <span className="font-bold text-slate-900 dark:text-slate-100 text-sm leading-none truncate">{selectedEvent.label}</span>
+              <span className="font-mono text-xs leading-none truncate text-slate-600 dark:text-slate-300">
                 {selectedEvent.startTime.split(' - ')[1] || selectedEvent.startTime} — {selectedEvent.endTime.split(' - ')[1] || selectedEvent.endTime} · {selectedEvent.duration}
               </span>
             </div>
@@ -132,8 +132,8 @@ export const PasXProgressStrip: React.FC<PasXProgressStripProps> = () => {
             </div>
           </div>
 
-          {/* Hour ticks — font relatif */}
-          <div className="flex justify-between text-[clamp(8px,0.65vw,11px)] font-mono text-slate-600 dark:text-slate-400 px-[0.3vw] shrink-0">
+          {/* Hour ticks — min 11px */}
+          <div className="flex justify-between text-xs font-mono font-semibold text-slate-600 dark:text-slate-400 px-1 shrink-0">
             {hours.map((hr, idx) => {
               const isLiveHour = hr === '01:00';
               return (

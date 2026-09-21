@@ -78,7 +78,7 @@ export const FullscreenHeader: React.FC<FullscreenHeaderProps> = ({
             }`}>
               OEE Dashboard
             </h1>
-            <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded font-medium ${
+            <span className={`text-xs font-mono px-1.5 py-0.5 rounded font-medium ${
               isDark ? 'bg-blue-950/80 text-blue-400 border border-blue-800/60' : 'bg-blue-50 text-blue-700 border border-blue-200'
             }`}>
               ISO 22400
@@ -98,7 +98,7 @@ export const FullscreenHeader: React.FC<FullscreenHeaderProps> = ({
         <div className="flex items-center gap-1.5">
           <Cpu className={`w-4 h-4 shrink-0 ${isDark ? 'text-blue-400' : 'text-blue-600'}`} />
           <div className="flex flex-col">
-            <span className={`text-[10px] leading-none font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Device ID</span>
+            <span className={`text-xs leading-none font-semibold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Device ID</span>
             <select
               value={machine.id}
               onChange={(e) => onSwitchMachine(e.target.value)}
@@ -119,8 +119,8 @@ export const FullscreenHeader: React.FC<FullscreenHeaderProps> = ({
         <div className="flex items-center gap-1.5">
           <FileText className={`w-4 h-4 shrink-0 ${isDark ? 'text-slate-400' : 'text-slate-500'}`} />
           <div className="flex flex-col">
-            <span className={`text-[10px] leading-none font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Work Order</span>
-            <span className={`text-xs sm:text-sm font-semibold font-mono mt-0.5 ${isDark ? 'text-white' : 'text-slate-900'}`}>
+            <span className={`text-xs leading-none font-semibold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Work Order</span>
+            <span className={`text-sm font-semibold font-mono mt-0.5 ${isDark ? 'text-white' : 'text-slate-900'}`}>
               {workOrder}
             </span>
           </div>
@@ -130,8 +130,8 @@ export const FullscreenHeader: React.FC<FullscreenHeaderProps> = ({
         <div className="flex items-center gap-1.5">
           <Box className={`w-4 h-4 shrink-0 ${isDark ? 'text-slate-400' : 'text-slate-500'}`} />
           <div className="flex flex-col">
-            <span className={`text-[10px] leading-none font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Product</span>
-            <span className={`text-xs sm:text-sm font-semibold mt-0.5 ${isDark ? 'text-white' : 'text-slate-900'}`}>
+            <span className={`text-xs leading-none font-semibold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Product</span>
+            <span className={`text-sm font-semibold mt-0.5 ${isDark ? 'text-white' : 'text-slate-900'}`}>
               {productName}
             </span>
           </div>
@@ -141,8 +141,8 @@ export const FullscreenHeader: React.FC<FullscreenHeaderProps> = ({
         <div className="flex items-center gap-1.5">
           <User className={`w-4 h-4 shrink-0 ${isDark ? 'text-slate-400' : 'text-slate-500'}`} />
           <div className="flex flex-col">
-            <span className={`text-[10px] leading-none font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Operator</span>
-            <span className={`text-xs sm:text-sm font-semibold mt-0.5 ${isDark ? 'text-white' : 'text-slate-900'}`}>
+            <span className={`text-xs leading-none font-semibold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Operator</span>
+            <span className={`text-sm font-semibold mt-0.5 ${isDark ? 'text-white' : 'text-slate-900'}`}>
               {operatorName}
             </span>
           </div>
@@ -152,7 +152,7 @@ export const FullscreenHeader: React.FC<FullscreenHeaderProps> = ({
         <div className="flex items-center gap-1.5">
           <Clock className={`w-4 h-4 shrink-0 ${isDark ? 'text-slate-400' : 'text-slate-500'}`} />
           <div className="flex flex-col">
-            <span className={`text-[10px] leading-none font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Shift Plan · Live: 01:25</span>
+            <span className={`text-xs leading-none font-semibold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Shift Plan · Live: 01:25</span>
             <span className={`text-xs sm:text-sm font-semibold mt-0.5 ${isDark ? 'text-white' : 'text-slate-900'}`}>
               {shiftStart} - {shiftEnd} <span className={`text-[11px] font-normal ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>({shiftLabel})</span>
             </span>

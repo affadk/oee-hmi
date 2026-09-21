@@ -93,7 +93,7 @@ export const PasXDonutGauge: React.FC<PasXDonutGaugeProps> = ({
         </div>
       </div>
       {rawLines && rawLines.length > 0 ? (
-        <div className="flex flex-col items-center mt-2 space-y-0.5 font-mono text-xs leading-tight">
+        <div className="flex flex-col items-center mt-2 space-y-0.5 font-mono text-xs leading-relaxed">
           {rawLines.map((line, idx) => {
             const colonIndex = line.indexOf(':');
             if (colonIndex !== -1) {
@@ -101,10 +101,10 @@ export const PasXDonutGauge: React.FC<PasXDonutGaugeProps> = ({
               const val = line.slice(colonIndex + 1).trim();
               return (
                 <div key={idx} className="flex items-center gap-1">
-                  <span className="text-[11px] font-bold font-mono text-slate-400 dark:text-slate-400">
+                  <span className="text-xs font-bold font-mono text-slate-400 dark:text-slate-400">
                     {key}:
                   </span>
-                  <span className={`font-semibold ${
+                  <span className={`text-xs font-semibold ${
                     isDark ? 'text-slate-200' : 'text-slate-700'
                   }`}>
                     {val}
@@ -115,7 +115,7 @@ export const PasXDonutGauge: React.FC<PasXDonutGaugeProps> = ({
             return (
               <span
                 key={idx}
-                className={isDark ? 'text-slate-300 font-medium' : 'text-slate-600 font-medium'}
+                className={`text-xs ${isDark ? 'text-slate-300 font-medium' : 'text-slate-600 font-medium'}`}
               >
                 {line}
               </span>
@@ -123,7 +123,7 @@ export const PasXDonutGauge: React.FC<PasXDonutGaugeProps> = ({
           })}
         </div>
       ) : subtitle ? (
-        <span className={`text-[10px] sm:text-[11px] font-mono font-medium mt-1 text-center whitespace-nowrap ${
+        <span className={`text-xs font-mono font-medium mt-1 text-center whitespace-nowrap ${
           isDark ? 'text-slate-400' : 'text-slate-600'
         }`}>
           {subtitle}
