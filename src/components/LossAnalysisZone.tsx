@@ -235,7 +235,7 @@ export const LossAnalysisZone: React.FC<LossAnalysisZoneProps> = ({ machine, met
           </div>
         </div>
 
-        {/* Pillar 2: Performance Loss (Speed & Small Stops) */}
+        {/* Pillar 2: Performance Loss (Speed & Small Stops) — A×P×Q urutan benar */}
         <div className={`border rounded-xl p-3.5 flex flex-col justify-between ${
           isDark ? 'bg-slate-800/50 border-slate-700/70' : 'bg-amber-50/40 border-amber-200'
         }`}>
@@ -279,7 +279,7 @@ export const LossAnalysisZone: React.FC<LossAnalysisZoneProps> = ({ machine, met
           </div>
         </div>
 
-        {/* Pillar 3: Quality Loss (Defects & Scrap) */}
+        {/* Pillar 3: Quality Loss (Defects & Scrap) — A×P×Q urutan benar */}
         <div className={`border rounded-xl p-3.5 flex flex-col justify-between ${
           isDark ? 'bg-slate-800/50 border-slate-700/70' : 'bg-purple-50/40 border-purple-200'
         }`}>

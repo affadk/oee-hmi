@@ -26,8 +26,8 @@ export const PasXDonutGauge: React.FC<PasXDonutGaugeProps> = ({
   const isDark = theme === 'dark';
 
   const isLarge = size === 'large';
-  const diameter = isLarge ? 140 : 92;
-  const strokeWidth = isLarge ? 15 : 10;
+  const diameter = isLarge ? 140 : 176;
+  const strokeWidth = isLarge ? 15 : 16;
   const radius = (diameter - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
   const clampedValue = Math.min(100, Math.max(0, value));
@@ -76,15 +76,15 @@ export const PasXDonutGauge: React.FC<PasXDonutGaugeProps> = ({
         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
           <span
             className={`font-sans font-extrabold leading-none tracking-tight ${
-              isLarge ? 'text-4xl sm:text-5xl' : 'text-xl sm:text-2xl'
+              isLarge ? 'text-4xl sm:text-5xl' : 'text-[26px] sm:text-[30px]'
             }`}
             style={{ color }}
           >
             {Math.round(value)}%
           </span>
           <span
-            className={`font-sans font-bold uppercase tracking-wider mt-0.5 ${
-              isLarge ? 'text-sm sm:text-base' : 'text-[11px] sm:text-xs'
+            className={`font-sans font-bold uppercase tracking-wider mt-1 ${
+              isLarge ? 'text-sm sm:text-base' : 'text-xs sm:text-sm'
             }`}
             style={{ color }}
           >
@@ -93,7 +93,7 @@ export const PasXDonutGauge: React.FC<PasXDonutGaugeProps> = ({
         </div>
       </div>
       {rawLines && rawLines.length > 0 ? (
-        <div className="flex flex-col items-center mt-1.5 space-y-0.5 font-mono text-[11px] leading-tight">
+        <div className="flex flex-col items-center mt-2 space-y-0.5 font-mono text-xs leading-tight">
           {rawLines.map((line, idx) => {
             const colonIndex = line.indexOf(':');
             if (colonIndex !== -1) {
@@ -101,7 +101,7 @@ export const PasXDonutGauge: React.FC<PasXDonutGaugeProps> = ({
               const val = line.slice(colonIndex + 1).trim();
               return (
                 <div key={idx} className="flex items-center gap-1">
-                  <span className="text-[10px] font-bold font-mono text-slate-400 dark:text-slate-400">
+                  <span className="text-[11px] font-bold font-mono text-slate-400 dark:text-slate-400">
                     {key}:
                   </span>
                   <span className={`font-semibold ${
@@ -146,10 +146,10 @@ export const PasXTachometerGauge: React.FC<PasXTachometerGaugeProps> = ({
   const { theme } = useTheme();
   const isDark = theme === 'dark';
 
-  const width = 150;
-  const height = 82;
-  const strokeWidth = 16;
-  const radius = 58;
+  const width = 196;
+  const height = 108;
+  const strokeWidth = 18;
+  const radius = 76;
   const cx = width / 2;
   const cy = height - 4;
 

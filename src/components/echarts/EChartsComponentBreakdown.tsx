@@ -86,10 +86,10 @@ export const EChartsComponentBreakdown: React.FC<EChartsComponentBreakdownProps>
         </h3>
       </div>
 
-      {/* Donut Chart & Legend Side by Side */}
-      <div className="flex-1 flex items-center justify-between gap-2">
+      {/* Donut Chart & Legend Side by Side — proporsional */}
+      <div className="flex-1 flex items-center justify-between gap-3">
         {/* Donut with Center Text */}
-        <div className="relative w-28 h-28 sm:w-32 sm:h-32 shrink-0">
+        <div className="relative w-24 h-24 sm:w-28 sm:h-28 shrink-0">
           <div ref={chartRef} className="w-full h-full" />
           <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
             <span className={`font-bold text-sm sm:text-base leading-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>

@@ -71,22 +71,24 @@ export const HeroKpiZone: React.FC<HeroKpiZoneProps> = ({
   const theoreticalHourlyOutput = targetCycleTimeSec > 0 ? Math.round(3600 / targetCycleTimeSec) : 400;
   const actualCycleTimeSec = currentRate > 0 ? (3600 / currentRate).toFixed(1) : (targetCycleTimeSec * 1.97).toFixed(1);
 
-  // SVG mini gauge renderer with vertical raw calculation data
+  // SVG mini gauge renderer — diperbesar lagi 132px → 148px beserta teks
   const renderGauge = (pct: number, colorStroke: string, rawLines?: string[]) => {
-    const radius = 32;
-    const strokeWidth = 5;
+    const size = 148;
+    const radius = 61;
+    const strokeWidth = 10;
+    const center = size / 2;
     const circumference = 2 * Math.PI * radius;
     const progress = Math.min(100, Math.max(0, pct));
     const strokeDashoffset = circumference - (progress / 100) * circumference;
 
     return (
-      <div className="flex flex-col items-center">
-        <div className="relative w-20 h-20 flex items-center justify-center">
-          <svg className="w-20 h-20 -rotate-90" viewBox="0 0 80 80">
+      <div className="flex flex-col items-center shrink-0">
+        <div className="relative flex items-center justify-center" style={{ width: size, height: size }}>
+          <svg width={size} height={size} className="-rotate-90 overflow-visible" viewBox={`0 0 ${size} ${size}`}>
             {/* Background circle */}
             <circle
-              cx="40"
-              cy="40"
+              cx={center}
+              cy={center}
               r={radius}
               stroke={isDark ? '#1e293b' : '#e2e8f0'}
               strokeWidth={strokeWidth}
@@ -94,8 +96,8 @@ export const HeroKpiZone: React.FC<HeroKpiZoneProps> = ({
             />
             {/* Progress circle */}
             <circle
-              cx="40"
-              cy="40"
+              cx={center}
+              cy={center}
               r={radius}
               stroke={colorStroke}
               strokeWidth={strokeWidth}
@@ -106,12 +108,12 @@ export const HeroKpiZone: React.FC<HeroKpiZoneProps> = ({
               className="transition-all duration-700 ease-out"
             />
           </svg>
-          <span className={`absolute font-mono font-bold text-sm ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+          <span className={`absolute font-mono font-bold text-xl leading-none ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
             {pct.toFixed(1)}%
           </span>
         </div>
         {rawLines && rawLines.length > 0 && (
-          <div className="flex flex-col items-center mt-1 space-y-0.5 font-mono text-[11px] leading-tight text-center">
+          <div className="flex flex-col items-center mt-2 space-y-0.5 font-mono text-[11px] leading-[1.35] text-center">
             {rawLines.map((line, idx) => {
               const colonIndex = line.indexOf(':');
               if (colonIndex !== -1) {
@@ -119,10 +121,10 @@ export const HeroKpiZone: React.FC<HeroKpiZoneProps> = ({
                 const val = line.slice(colonIndex + 1).trim();
                 return (
                   <div key={idx} className="flex items-center gap-1">
-                    <span className="text-[10px] font-bold font-mono text-slate-400 dark:text-slate-400">
+                    <span className="text-[10px] font-bold font-mono text-slate-400 dark:text-slate-400 uppercase tracking-wide">
                       {key}:
                     </span>
-                    <span className={`font-semibold ${
+                    <span className={`font-semibold text-xs ${
                       isDark ? 'text-slate-200' : 'text-slate-700'
                     }`}>
                       {val}
@@ -149,18 +151,31 @@ export const HeroKpiZone: React.FC<HeroKpiZoneProps> = ({
         isDark ? 'bg-slate-900/90 border-slate-800 shadow-lg backdrop-blur-sm' : 'bg-white border-slate-200 shadow-sm'
       }`}
     >
-      <div className={`flex flex-col sm:flex-row items-start sm:items-center justify-between pb-3 mb-3 border-b gap-2 ${
+      <div className={`flex flex-wrap items-center justify-between pb-3 mb-3 border-b gap-3 ${
         isDark ? 'border-slate-800/80' : 'border-slate-200'
       }`}>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-3">
           <h2 className={`text-sm font-bold uppercase tracking-wider flex items-center gap-1.5 ${
             isDark ? 'text-slate-200' : 'text-slate-800'
           }`}>
             <Gauge className="w-4 h-4 text-blue-500" />
             Core OEE & Primary Components
           </h2>
-          <span className={`text-xs font-mono hidden md:inline ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-            [Availability × Performance × Quality]
+          <span className={`hidden lg:inline text-[10px] font-mono ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+            A × P × Q
+          </span>
+          {/* Keterangan warna — simplify, di header, fokus */}
+          <span className={`inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-[10px] leading-none ${
+            isDark ? 'bg-slate-800/70 border-slate-700/60' : 'bg-slate-50 border-slate-200'
+          }`}>
+            <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+            <span className={isDark ? 'text-slate-300' : 'text-slate-600'}>Target</span>
+            <span className={`w-px h-3 ${isDark ? 'bg-slate-600' : 'bg-slate-300'}`} />
+            <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
+            <span className={isDark ? 'text-slate-300' : 'text-slate-600'}>−5%</span>
+            <span className={`w-px h-3 ${isDark ? 'bg-slate-600' : 'bg-slate-300'}`} />
+            <span className="w-2 h-2 rounded-full bg-rose-500 shrink-0" />
+            <span className={isDark ? 'text-slate-300' : 'text-slate-600'}>Kritis</span>
           </span>
         </div>
 
@@ -186,17 +201,17 @@ export const HeroKpiZone: React.FC<HeroKpiZoneProps> = ({
         </div>
       </div>
 
-      {/* Grid of 4 Hero KPIs */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+      {/* Grid of 4 Hero KPIs — proporsional: gap & padding diselaraskan, kartu tinggi konsisten */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
         {/* 1. OEE Card */}
         <div 
           id="kpi-card-oee"
-          className={`relative p-4 rounded-xl border ${oeeColor.border} ${oeeColor.bg} flex flex-col justify-between transition-all hover:shadow-md group`}
+          className={`relative p-3.5 rounded-xl border ${oeeColor.border} ${oeeColor.bg} flex flex-col justify-between min-h-[158px] transition-all hover:shadow-md group`}
         >
-          <div className="flex items-start justify-between">
-            <div>
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1.5">
-                <span className={`text-xs font-bold uppercase tracking-wider ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>Overall OEE</span>
+                <span className={`text-sm font-bold uppercase tracking-wider ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>Overall OEE</span>
                 <button
                   onClick={() => onOpenFormula('OEE')}
                   className={`${isDark ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-900'}`}
@@ -205,7 +220,7 @@ export const HeroKpiZone: React.FC<HeroKpiZoneProps> = ({
                   <Info className="w-3.5 h-3.5" />
                 </button>
               </div>
-              <p className={`text-[11px] mt-0.5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Overall Equipment Effectiveness</p>
+              <p className={`text-xs mt-0.5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Overall Equipment Effectiveness</p>
             </div>
             {renderGauge(metrics.oeePct, oeeColor.stroke, [
               `a: ${metrics.availabilityPct.toFixed(1)}%`,
@@ -234,13 +249,13 @@ export const HeroKpiZone: React.FC<HeroKpiZoneProps> = ({
         {/* 2. Availability Card */}
         <div 
           id="kpi-card-availability"
-          className={`relative p-4 rounded-xl border ${availColor.border} ${availColor.bg} flex flex-col justify-between transition-all hover:shadow-md group`}
+          className={`relative p-3.5 rounded-xl border ${availColor.border} ${availColor.bg} flex flex-col justify-between min-h-[158px] transition-all hover:shadow-md group`}
         >
-          <div className="flex items-start justify-between">
-            <div>
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1.5">
-                <Timer className="w-4 h-4 text-blue-500" />
-                <span className={`text-xs font-bold uppercase tracking-wider ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>Availability</span>
+                <Timer className="w-4 h-4 text-blue-500 shrink-0" />
+                <span className={`text-sm font-bold uppercase tracking-wider ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>Availability</span>
                 <button
                   onClick={() => onOpenFormula('Availability')}
                   className={`${isDark ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-900'}`}
@@ -275,16 +290,16 @@ export const HeroKpiZone: React.FC<HeroKpiZoneProps> = ({
           </div>
         </div>
 
-        {/* 3. Performance Card */}
+        {/* 3. Performance Card — A × P × Q urutan benar */}
         <div 
           id="kpi-card-performance"
-          className={`relative p-4 rounded-xl border ${perfColor.border} ${perfColor.bg} flex flex-col justify-between transition-all hover:shadow-md group`}
+          className={`relative p-3.5 rounded-xl border ${perfColor.border} ${perfColor.bg} flex flex-col justify-between min-h-[158px] transition-all hover:shadow-md group`}
         >
-          <div className="flex items-start justify-between">
-            <div>
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1.5">
-                <Zap className="w-4 h-4 text-amber-500" />
-                <span className={`text-xs font-bold uppercase tracking-wider ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>Performance</span>
+                <Zap className="w-4 h-4 text-amber-500 shrink-0" />
+                <span className={`text-sm font-bold uppercase tracking-wider ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>Performance</span>
                 <button
                   onClick={() => onOpenFormula('Performance')}
                   className={`${isDark ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-900'}`}
@@ -319,16 +334,16 @@ export const HeroKpiZone: React.FC<HeroKpiZoneProps> = ({
           </div>
         </div>
 
-        {/* 4. Quality Card */}
+        {/* 4. Quality Card — A × P × Q urutan benar */}
         <div 
           id="kpi-card-quality"
-          className={`relative p-4 rounded-xl border ${qualColor.border} ${qualColor.bg} flex flex-col justify-between transition-all hover:shadow-md group`}
+          className={`relative p-3.5 rounded-xl border ${qualColor.border} ${qualColor.bg} flex flex-col justify-between min-h-[158px] transition-all hover:shadow-md group`}
         >
-          <div className="flex items-start justify-between">
-            <div>
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1.5">
-                <ShieldCheck className="w-4 h-4 text-purple-500" />
-                <span className={`text-xs font-bold uppercase tracking-wider ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>Quality</span>
+                <ShieldCheck className="w-4 h-4 text-purple-500 shrink-0" />
+                <span className={`text-sm font-bold uppercase tracking-wider ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>Quality</span>
                 <button
                   onClick={() => onOpenFormula('Quality')}
                   className={`${isDark ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-900'}`}

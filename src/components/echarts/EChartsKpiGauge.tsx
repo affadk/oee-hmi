@@ -127,21 +127,21 @@ export const EChartsKpiGauge: React.FC<EChartsKpiGaugeProps> = ({
   return (
     <div
       onClick={onClick}
-      className={`rounded-xl p-3.5 flex items-center justify-between transition-all duration-200 cursor-pointer select-none flex-1 min-w-[200px] border ${themeStyles.card}`}
+      className={`rounded-xl p-3 flex items-center justify-between gap-3 transition-all duration-200 cursor-pointer select-none flex-1 min-w-[180px] max-w-[320px] border aspect-[3.2/1] ${themeStyles.card}`}
     >
-      {/* Donut Gauge with Center Value */}
-      <div className="relative w-20 h-20 sm:w-24 sm:h-24 shrink-0 flex items-center justify-center">
+      {/* Donut Gauge with Center Value — proporsional */}
+      <div className="relative w-16 h-16 sm:w-[72px] sm:h-[72px] shrink-0 flex items-center justify-center">
         <div ref={chartRef} className="w-full h-full" />
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <span className={`font-mono font-bold text-base sm:text-xl tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
+          <span className={`font-mono font-bold text-sm sm:text-base tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
             {value.toFixed(1)}%
           </span>
         </div>
       </div>
 
       {/* Metric Details */}
-      <div className="ml-3 sm:ml-4 flex-1">
-        <div className={`font-bold text-base sm:text-lg tracking-wide mb-1 flex items-center gap-1.5 ${themeStyles.titleText}`}>
+      <div className="flex-1 min-w-0">
+        <div className={`font-bold text-sm sm:text-base tracking-wide mb-0.5 flex items-center gap-1.5 ${themeStyles.titleText}`}>
           <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: color }} />
           <span>{title}</span>
         </div>

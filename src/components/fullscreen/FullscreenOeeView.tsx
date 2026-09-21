@@ -390,9 +390,9 @@ export const FullscreenOeeView: React.FC<FullscreenOeeViewProps> = ({
       <main className="flex-1 w-full px-4 sm:px-6 lg:px-8 py-4 space-y-4 pb-14">
         <div className="w-full grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
           {/* ======================================================== */}
-          {/* LEFT COLUMN: OEE KPI & TREND (7 of 12 cols on lg)       */}
+          {/* LEFT COLUMN: OEE KPI & TREND (8 of 12 cols — dilebarkan) */}
           {/* ======================================================== */}
-          <div className="lg:col-span-7 flex flex-col justify-between gap-4">
+          <div className="lg:col-span-8 flex flex-col justify-between gap-4">
             {/* CARD 1: KEY PERFORMANCE INDICATORS & PRODUCT QUANTITY (FILL HEIGHT) */}
             <div
               id="kpi-card-fullheight"
@@ -400,13 +400,27 @@ export const FullscreenOeeView: React.FC<FullscreenOeeViewProps> = ({
                 isDark ? 'bg-[#0f1b2e] border-slate-800' : 'bg-white border-[#c9d3df]'
               }`}
             >
-              {/* Header: Key performance indicators */}
-              <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800 mb-2">
-                <h2 className={`text-base font-bold tracking-tight ${
-                  isDark ? 'text-slate-100' : 'text-slate-900'
-                }`}>
-                  Key performance indicators
-                </h2>
+              {/* Header: Key performance indicators — keterangan warna simplify di header */}
+              <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-200 dark:border-slate-800 mb-2">
+                <div className="flex flex-wrap items-center gap-3">
+                  <h2 className={`text-base font-bold tracking-tight ${
+                    isDark ? 'text-slate-100' : 'text-slate-900'
+                  }`}>
+                    Key performance indicators
+                  </h2>
+                  <span className={`inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-[10px] leading-none ${
+                    isDark ? 'bg-slate-800/70 border-slate-700/60' : 'bg-slate-50 border-slate-200'
+                  }`}>
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+                    <span className={isDark ? 'text-slate-300' : 'text-slate-600'}>Target</span>
+                    <span className={`w-px h-3 ${isDark ? 'bg-slate-600' : 'bg-slate-300'}`} />
+                    <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
+                    <span className={isDark ? 'text-slate-300' : 'text-slate-600'}>−5%</span>
+                    <span className={`w-px h-3 ${isDark ? 'bg-slate-600' : 'bg-slate-300'}`} />
+                    <span className="w-2 h-2 rounded-full bg-rose-500 shrink-0" />
+                    <span className={isDark ? 'text-slate-300' : 'text-slate-600'}>Kritis</span>
+                  </span>
+                </div>
                 <button
                   type="button"
                   onClick={() => onOpenFormula('OEE')}
@@ -417,13 +431,13 @@ export const FullscreenOeeView: React.FC<FullscreenOeeViewProps> = ({
                 </button>
               </div>
 
-              {/* Gauges Row: 1 Big OEE Donut + 3 Smaller AVA, QUA, PER Gauges (Fills Vertical Space) */}
+              {/* Gauges Row: 4 Donuts OEE + AVA + PER + QUA — siklus A→P→Q + dimensi konsisten (semua medium 92) */}
               <div className="flex-1 flex flex-wrap items-center justify-around gap-4 sm:gap-6 py-2 sm:py-3 my-auto">
-                {/* Big OEE Donut Ring */}
+                {/* OEE — konsisten dimensi medium sama dengan A/P/Q */}
                 <PasXDonutGauge
                   label="OEE"
                   value={oeeValue}
-                  size="large"
+                  size="medium"
                   color="#48a43f"
                   rawLines={[
                     `a: ${availValue.toFixed(1)}%`,
@@ -433,7 +447,7 @@ export const FullscreenOeeView: React.FC<FullscreenOeeViewProps> = ({
                   onClick={() => onOpenFormula('OEE')}
                 />
 
-                {/* 3 Donut Rings with vertical raw calculation data */}
+                {/* 3 Donut Rings — urutan siklus benar A → P → Q */}
                 <div className="flex items-center justify-center gap-4 sm:gap-8 flex-wrap">
                   <PasXDonutGauge
                     label="AVA"
@@ -448,18 +462,6 @@ export const FullscreenOeeView: React.FC<FullscreenOeeViewProps> = ({
                     onClick={() => onOpenFormula('Availability')}
                   />
                   <PasXDonutGauge
-                    label="QUA"
-                    value={qualValue}
-                    size="medium"
-                    color="#48a43f"
-                    rawLines={[
-                      `good: ${goodPcs.toLocaleString()} pcs`,
-                      `tot: ${actualPcs.toLocaleString()} pcs`,
-                      `rej: ${rejectPcs.toLocaleString()} pcs`,
-                    ]}
-                    onClick={() => onOpenFormula('Quality')}
-                  />
-                  <PasXDonutGauge
                     label="PER"
                     value={perfValue}
                     size="medium"
@@ -470,6 +472,18 @@ export const FullscreenOeeView: React.FC<FullscreenOeeViewProps> = ({
                       `cyc: ${actualCycleTimeSec}s`,
                     ]}
                     onClick={() => onOpenFormula('Performance')}
+                  />
+                  <PasXDonutGauge
+                    label="QUA"
+                    value={qualValue}
+                    size="medium"
+                    color="#48a43f"
+                    rawLines={[
+                      `good: ${goodPcs.toLocaleString()} pcs`,
+                      `tot: ${actualPcs.toLocaleString()} pcs`,
+                      `rej: ${rejectPcs.toLocaleString()} pcs`,
+                    ]}
+                    onClick={() => onOpenFormula('Quality')}
                   />
                 </div>
               </div>
@@ -581,10 +595,9 @@ export const FullscreenOeeView: React.FC<FullscreenOeeViewProps> = ({
           </div>
 
           {/* ======================================================== */}
-          {/* RIGHT COLUMN: SATU GRUP GRID DISAMPING KANAN OEE         */}
-          {/* (5 of 12 cols on lg)                                     */}
+          {/* RIGHT COLUMN: DISUSUTKAN (4 of 12 cols) — Time Summary, Production Rate, Floor Push */}
           {/* ======================================================== */}
-          <div id="oee-right-grid-group" className="lg:col-span-5 flex flex-col justify-between gap-4">
+          <div id="oee-right-grid-group" className="lg:col-span-4 flex flex-col justify-between gap-4">
             {/* SUB-CARD 1: TIME SUMMARY */}
             <TimeSummaryPanel metrics={metrics} />
 
@@ -647,8 +660,8 @@ export const FullscreenOeeView: React.FC<FullscreenOeeViewProps> = ({
                 </div>
               </div>
 
-              {/* Semi-circular Tachometer Gauge */}
-              <div className="py-1 flex justify-center">
+              {/* Semi-circular Tachometer Gauge — diperbesar */}
+              <div className="py-2 flex justify-center scale-[1.02]">
                 <PasXTachometerGauge
                   currentRate={currentRate}
                   targetRate={targetRate}
