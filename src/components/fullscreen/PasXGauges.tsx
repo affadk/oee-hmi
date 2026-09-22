@@ -38,7 +38,7 @@ export const PasXDonutGauge: React.FC<PasXDonutGaugeProps> = ({
   const clampedValue = Math.min(100, Math.max(0, value));
   const strokeDashoffset = circumference - (clampedValue / 100) * circumference;
 
-  const trackColor = isDark ? '#1e293b' : '#e2e8f0';
+  const trackColor = isDark ? '#1e293b' : '#cbd5e1';
 
   return (
     <div
@@ -102,7 +102,7 @@ export const PasXDonutGauge: React.FC<PasXDonutGaugeProps> = ({
               const val = line.slice(colonIndex + 1).trim();
               return (
                 <div key={idx} className="flex items-center gap-1 whitespace-nowrap">
-                  <span className="font-bold font-mono text-slate-400 dark:text-slate-400">
+                  <span className={`font-bold font-mono ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                     {key}:
                   </span>
                   <span className={`font-semibold ${
@@ -159,7 +159,7 @@ export const PasXTachometerGauge: React.FC<PasXTachometerGaugeProps> = ({
   const ratio = targetRate > 0 ? Math.min(1, Math.max(0, currentRate / targetRate)) : 0;
   const strokeDashoffset = arcLength - ratio * arcLength;
 
-  const trackColor = isDark ? '#1e293b' : '#e2e8f0';
+  const trackColor = isDark ? '#1e293b' : '#cbd5e1';
   const progressColor = '#eab308'; // Werum PAS-X yellow/amber tachometer arc
   const needleColor = isDark ? '#cbd5e1' : '#334155';
   const pivotFill = isDark ? '#e2e8f0' : '#1e293b';

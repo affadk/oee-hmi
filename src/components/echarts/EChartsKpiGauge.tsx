@@ -24,7 +24,7 @@ export const EChartsKpiGauge: React.FC<EChartsKpiGaugeProps> = ({
   const chartRef = useRef<HTMLDivElement>(null);
   const { theme } = useTheme();
   const isDark = theme === 'dark';
-  const trackColor = isDark ? '#1a2e4c' : '#e2e8f0';
+  const trackColor = isDark ? '#1a2e4c' : '#cbd5e1';
 
   const getThemeStyles = () => {
     if (color.includes('10b981') || color.includes('emerald') || color.includes('green')) {

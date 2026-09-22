@@ -90,7 +90,7 @@ export const HeroKpiZone: React.FC<HeroKpiZoneProps> = ({
               cx={center}
               cy={center}
               r={radius}
-              stroke={isDark ? '#1e293b' : '#e2e8f0'}
+              stroke={isDark ? '#1e293b' : '#cbd5e1'}
               strokeWidth={strokeWidth}
               fill="transparent"
             />
@@ -121,7 +121,7 @@ export const HeroKpiZone: React.FC<HeroKpiZoneProps> = ({
                 const val = line.slice(colonIndex + 1).trim();
                 return (
                   <div key={idx} className="flex items-center gap-1">
-                    <span className="text-[10px] font-bold font-mono text-slate-400 dark:text-slate-400 uppercase tracking-wide">
+                    <span className={`text-[10px] font-bold font-mono uppercase tracking-wide ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
                       {key}:
                     </span>
                     <span className={`font-semibold text-xs ${

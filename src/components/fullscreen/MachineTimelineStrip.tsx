@@ -50,21 +50,21 @@ export const MachineTimelineStrip: React.FC<MachineTimelineStripProps> = ({ mach
     }`}>
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
-          <span className="text-xs font-bold uppercase tracking-wide text-slate-300">
+          <span className={`text-xs font-bold uppercase tracking-wide ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
             Shift Run / Stop Machine Timeline
           </span>
-          <span className="text-[10px] font-mono text-slate-400">
+          <span className={`text-[10px] font-mono ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
             ({operatingRunMin}m Run · {downtimeMin}m Stop · {plannedDowntimeMin}m Break)
           </span>
         </div>
         <div className="flex items-center gap-3 text-[10px] font-mono">
-          <span className="flex items-center gap-1 text-emerald-400">
+          <span className={`flex items-center gap-1 ${isDark ? 'text-emerald-400' : 'text-emerald-700'}`}>
             <span className="w-2 h-2 rounded bg-emerald-500"></span> Run ({runPct}%)
           </span>
-          <span className="flex items-center gap-1 text-rose-400">
+          <span className={`flex items-center gap-1 ${isDark ? 'text-rose-400' : 'text-rose-700'}`}>
             <span className="w-2 h-2 rounded bg-rose-500"></span> Stop ({downPct}%)
           </span>
-          <span className="flex items-center gap-1 text-blue-400">
+          <span className={`flex items-center gap-1 ${isDark ? 'text-blue-400' : 'text-blue-700'}`}>
             <span className="w-2 h-2 rounded bg-blue-600"></span> Break ({breakPct}%)
           </span>
         </div>
@@ -72,7 +72,7 @@ export const MachineTimelineStrip: React.FC<MachineTimelineStripProps> = ({ mach
 
       {/* Multi-segment continuous visual timeline bar with live time cursor */}
       <div className="relative w-full">
-        <div className="w-full h-4 rounded-lg overflow-hidden flex bg-slate-900 border border-slate-800 shadow-inner">
+        <div className={`w-full h-4 rounded-lg overflow-hidden flex shadow-inner border ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-slate-200 border-slate-300'}`}>
           <div style={{ width: `${Math.round(runPct * 0.45)}%` }} className="h-full bg-emerald-500" title="Shift Run" />
           <div style={{ width: `${Math.round(downPct * 0.6)}%` }} className="h-full bg-rose-500" title="Unplanned Stop" />
           <div style={{ width: `${Math.round(runPct * 0.25)}%` }} className="h-full bg-emerald-500" title="Shift Run" />
@@ -94,13 +94,13 @@ export const MachineTimelineStrip: React.FC<MachineTimelineStripProps> = ({ mach
       </div>
 
       {/* Synchronized dynamic time marks */}
-      <div className="flex justify-between items-center text-[10px] font-mono text-slate-400 mt-2">
-        <span className="font-semibold text-slate-300">{shiftStart} (Start)</span>
+      <div className={`flex justify-between items-center text-[10px] font-mono mt-2 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+        <span className={`font-semibold ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>{shiftStart} (Start)</span>
         <span>{formatH(0.25)}</span>
-        <span className="text-amber-400 font-bold">01:25 (Live)</span>
-        <span className="text-blue-400">{breakStart} (Break)</span>
+        <span className={`font-bold ${isDark ? 'text-amber-400' : 'text-amber-700'}`}>01:25 (Live)</span>
+        <span className={isDark ? 'text-blue-400' : 'text-blue-700'}>{breakStart} (Break)</span>
         <span>{formatH(0.75)}</span>
-        <span className="font-semibold text-slate-300">{shiftEnd} (End)</span>
+        <span className={`font-semibold ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>{shiftEnd} (End)</span>
       </div>
     </div>
   );

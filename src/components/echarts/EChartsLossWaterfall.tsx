@@ -108,7 +108,7 @@ export const EChartsLossWaterfall: React.FC<EChartsLossWaterfallProps> = ({
         data: categories,
         axisLine: { lineStyle: { color: isDark ? '#1e3a5f' : '#cbd5e1' } },
         axisLabel: {
-          color: isDark ? '#94a3b8' : '#64748b',
+          color: isDark ? '#94a3b8' : '#475569',
           fontSize: 10,
           fontWeight: 600,
         },
@@ -120,13 +120,13 @@ export const EChartsLossWaterfall: React.FC<EChartsLossWaterfallProps> = ({
         max: 100,
         splitNumber: 4,
         axisLabel: {
-          color: isDark ? '#64748b' : '#94a3b8',
+          color: isDark ? '#94a3b8' : '#475569',
           fontSize: 9,
           formatter: '{value}%',
         },
         splitLine: {
           lineStyle: {
-            color: isDark ? '#162744' : '#f1f5f9',
+            color: isDark ? '#162744' : '#e2e8f0',
             type: 'dashed',
           },
         },
@@ -214,8 +214,8 @@ export const EChartsLossWaterfall: React.FC<EChartsLossWaterfallProps> = ({
           </h3>
         </div>
         <div className="flex items-center gap-1">
-          <span className="text-[10px] text-slate-400 font-medium">Gap:</span>
-          <span className="text-[10px] font-mono font-bold text-rose-400 bg-rose-500/10 px-1.5 py-0.2 rounded border border-rose-500/20">
+          <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">Gap:</span>
+          <span className="text-[10px] font-mono font-bold px-1.5 py-0.2 rounded border bg-rose-50 text-rose-700 border-rose-300 dark:bg-rose-500/10 dark:text-rose-400 dark:border-rose-500/20">
             -{totalLoss}%
           </span>
         </div>

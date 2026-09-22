@@ -80,7 +80,7 @@ export const ProductionProgressPanel: React.FC<ProductionProgressPanelProps> = (
             {Math.max(0, targetQty - totalCount)} pcs remaining
           </span>
         </div>
-        <div className="w-full h-3.5 rounded-full bg-slate-800/40 dark:bg-slate-800 overflow-hidden flex p-0.5 border border-slate-700/50">
+        <div className="w-full h-3.5 rounded-full overflow-hidden flex p-0.5 border bg-slate-300 border-slate-400/40 dark:bg-slate-800 dark:border-slate-700/50">
           <div 
             style={{ width: `${Math.min(100, achievementPct)}%` }} 
             className="h-full bg-gradient-to-r from-blue-500 to-emerald-500 rounded-full transition-all duration-500"

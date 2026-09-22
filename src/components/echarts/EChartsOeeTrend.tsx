@@ -79,7 +79,7 @@ export const EChartsOeeTrend: React.FC<EChartsOeeTrendProps> = ({
           },
         },
         axisLabel: {
-          color: isDark ? '#94a3b8' : '#64748b',
+          color: isDark ? '#94a3b8' : '#475569',
           fontSize: 10,
           fontFamily: 'monospace',
         },
@@ -94,12 +94,12 @@ export const EChartsOeeTrend: React.FC<EChartsOeeTrendProps> = ({
         interval: 20,
         axisLabel: {
           formatter: '{value}%',
-          color: isDark ? '#94a3b8' : '#64748b',
+          color: isDark ? '#94a3b8' : '#475569',
           fontSize: 10,
         },
         splitLine: {
           lineStyle: {
-            color: isDark ? '#162744' : '#f1f5f9',
+            color: isDark ? '#162744' : '#e2e8f0',
             type: 'solid',
           },
         },
@@ -191,10 +191,10 @@ export const EChartsOeeTrend: React.FC<EChartsOeeTrendProps> = ({
           <h3 className={`font-bold text-xs sm:text-sm tracking-wide ${isDark ? 'text-white' : 'text-slate-900'}`}>
             {title} <span className={`font-mono text-xs font-normal ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>({startHour} - {endHour})</span>
           </h3>
-          <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full flex items-center gap-1 font-semibold ${
+          <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full flex items-center gap-1 font-semibold border ${
             isBuffered
-              ? 'bg-amber-950/60 text-amber-400 border border-amber-800/60'
-              : 'bg-emerald-950/60 text-emerald-400 border border-emerald-800/60'
+              ? isDark ? 'bg-amber-950/60 text-amber-400 border-amber-800/60' : 'bg-amber-50 text-amber-700 border-amber-300'
+              : isDark ? 'bg-emerald-950/60 text-emerald-400 border-emerald-800/60' : 'bg-emerald-50 text-emerald-700 border-emerald-300'
           }`}>
             <Radio className="w-2.5 h-2.5" />
             {isBuffered ? 'BUFFERED' : 'LIVE'}

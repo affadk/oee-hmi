@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 /* Factory OEE readability baseline — WCAG 1.4.4 / Tailwind font-size best practice
    - html 16px ensures 1rem = 16px (Tailwind prose DEFAULT)
    - clamp minima dijaga >=12px agar tidak terlalu kecil di jarak pandang 1-3m

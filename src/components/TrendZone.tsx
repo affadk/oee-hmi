@@ -136,13 +136,13 @@ export const TrendZone: React.FC<TrendZoneProps> = ({
                       y1={y}
                       x2={svgWidth - paddingRight}
                       y2={y}
-                      stroke={isDark ? "#1e293b" : "#e2e8f0"}
+                      stroke={isDark ? "#1e293b" : "#cbd5e1"}
                       strokeDasharray="3 3"
                     />
                     <text
                       x={paddingLeft - 8}
                       y={y + 3}
-                      fill={isDark ? "#64748b" : "#94a3b8"}
+                      fill={isDark ? "#94a3b8" : "#475569"}
                       fontSize="9"
                       fontFamily="IBM Plex Mono"
                       textAnchor="end"
@@ -257,7 +257,7 @@ export const TrendZone: React.FC<TrendZoneProps> = ({
                     <text
                       x={x}
                       y={svgHeight - 8}
-                      fill={pt.hour === '01:00' ? "#f59e0b" : isHovered ? (isDark ? "#38bdf8" : "#0284c7") : (isDark ? "#94a3b8" : "#64748b")}
+                      fill={pt.hour === '01:00' ? "#d97706" : isHovered ? (isDark ? "#38bdf8" : "#0284c7") : (isDark ? "#94a3b8" : "#475569")}
                       fontSize={pt.hour === '01:00' ? "11" : "10"}
                       fontFamily="IBM Plex Mono"
                       textAnchor="middle"
@@ -286,7 +286,7 @@ export const TrendZone: React.FC<TrendZoneProps> = ({
               Target ({targetOee}%)
             </span>
             {activeMetric === 'ALL' && (
-              <span className={`hidden sm:inline ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+              <span className={`hidden sm:inline ${isDark ? 'text-slate-500' : 'text-slate-600'}`}>
                 Green: Avail | Yellow: Perf | Purple: Qual
               </span>
             )}
@@ -299,7 +299,7 @@ export const TrendZone: React.FC<TrendZoneProps> = ({
               {hoveredHour.hour} → OEE: <strong className={isDark ? 'text-sky-300' : 'text-sky-700'}>{hoveredHour.oee}%</strong> (A:{hoveredHour.availability}% P:{hoveredHour.performance}% Q:{hoveredHour.quality}%)
             </div>
           ) : (
-            <div className={`text-[10px] font-mono ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+            <div className={`text-[10px] font-mono ${isDark ? 'text-slate-500' : 'text-slate-600'}`}>
               Hover nodes to inspect values
             </div>
           )}
@@ -352,7 +352,7 @@ export const TrendZone: React.FC<TrendZoneProps> = ({
                 <div key={h.hour} className="flex-1 flex flex-col items-center h-full justify-end group relative">
                   {/* Tooltip on hover */}
                   <div className={`absolute -top-10 text-[10px] font-mono px-2 py-1 rounded shadow-lg border opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-20 whitespace-nowrap ${
-                    isDark ? 'bg-slate-800 text-slate-200 border-slate-700' : 'bg-slate-900 text-white border-slate-800'
+                    isDark ? 'bg-slate-800 text-slate-200 border-slate-700' : 'bg-white text-slate-800 border-slate-300'
                   }`}>
                     {h.hour}: Act {h.actual} | Good {h.good} | Rej {h.reject} {isLive ? '(LIVE)' : ''}
                   </div>
@@ -380,8 +380,8 @@ export const TrendZone: React.FC<TrendZoneProps> = ({
                   {/* Hour label */}
                   <span className={`text-[10px] font-mono mt-2 transition-colors ${
                     isLive 
-                      ? 'text-amber-500 dark:text-amber-400 font-bold scale-110' 
-                      : isDark ? 'text-slate-400' : 'text-slate-500'
+                      ? 'text-amber-600 dark:text-amber-400 font-bold scale-110' 
+                      : isDark ? 'text-slate-400' : 'text-slate-600'
                   }`}>
                     {h.hour.split(':')[0]}
                   </span>

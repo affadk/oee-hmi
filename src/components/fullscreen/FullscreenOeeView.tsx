@@ -166,8 +166,9 @@ export const FullscreenOeeView: React.FC<FullscreenOeeViewProps> = ({
   const isRunning = machine.status === 'RUNNING';
 
   // Layout: FIT LAYAR — isFullscreen fill 100dvh tanpa celah, normal 100dvh flex
+  // Outer shell mengikuti tema agar light mode tidak terjebak hitam
   const outerShellClass = isFullscreen
-    ? 'h-[100dvh] w-screen overflow-hidden flex flex-col bg-black font-sans select-none'
+    ? `h-[100dvh] w-screen overflow-hidden flex flex-col font-sans select-none ${isDark ? 'bg-black' : 'bg-[#e9edf4]'}`
     : 'h-[100dvh] max-h-[100dvh] w-full overflow-hidden flex flex-col font-sans select-none transition-colors';
 
   const innerShellClass = isFullscreen
@@ -193,9 +194,6 @@ export const FullscreenOeeView: React.FC<FullscreenOeeViewProps> = ({
       <header className="bg-[#1a3464] text-white px-[1.2vw] py-[0.8vh] flex items-center justify-between text-[clamp(12px,0.85vw,14px)] font-semibold shadow-md shrink-0 w-full">
         <div className="flex items-center gap-3">
           <span className="font-bold tracking-wide text-sm sm:text-base">OEE Machine Dashboard</span>
-          <span className="hidden md:inline-block text-xs font-mono px-2.5 py-1 rounded bg-white/15 text-blue-100 leading-none">
-            {shiftNumber} · {shiftStart} - {shiftEnd} WIB · 21 Sep 2026 01:25:37
-          </span>
         </div>
 
         {/* Action Controls Toolbar */}
@@ -545,25 +543,24 @@ export const FullscreenOeeView: React.FC<FullscreenOeeViewProps> = ({
               {/* Progress Bar + Angka — spacing relatif vh, shrink-0 agar tidak hilang */}
               <div className="mt-auto pt-[1vh] border-t border-slate-200 dark:border-slate-800 space-y-[0.8vh] shrink-0">
                 {/* Progress Bar — tinggi relatif vh */}
-                <div className="w-full h-[1.7vh] min-h-[10px] max-h-[18px] rounded-md overflow-hidden flex bg-[#dce3ec] dark:bg-slate-800 shadow-inner relative shrink-0">
-                  {/* Segment Good (Hijau) */}
-                  <div
-                    style={{ width: `${targetPcs > 0 ? Math.min(100, (goodPcs / targetPcs) * 100) : 0}%` }}
-                    className="h-full bg-[#48a43f] transition-all duration-700 ease-out"
-                    title={`Good: ${goodPcs.toLocaleString()} pcs`}
-                  />
-                  {/* Segment Reject (Merah) */}
-                  <div
-                    style={{ width: `${targetPcs > 0 ? Math.min(100, (rejectPcs / targetPcs) * 100) : 0}%` }}
-                    className="h-full bg-rose-600 transition-all duration-700 ease-out"
-                    title={`Reject: ${rejectPcs.toLocaleString()} pcs`}
-                  />
-                  {/* Persentase Total — min 12px */}
-                  <div className="absolute inset-0 flex items-center justify-end pr-2.5 pointer-events-none">
-                    <span className="text-xs font-mono font-bold text-white drop-shadow-sm">
-                      {targetPcs > 0 ? Math.round((actualPcs / targetPcs) * 100) : 0}%
-                    </span>
+                <div className="w-full flex items-center gap-2.5 shrink-0">
+                  <div className="flex-1 h-[1.7vh] min-h-[10px] max-h-[18px] rounded-md overflow-hidden flex bg-slate-300 dark:bg-slate-800 border border-slate-400/40 dark:border-transparent shadow-inner relative">
+                    {/* Segment Good (Hijau) */}
+                    <div
+                      style={{ width: `${targetPcs > 0 ? Math.min(100, (goodPcs / targetPcs) * 100) : 0}%` }}
+                      className="h-full bg-[#48a43f] transition-all duration-700 ease-out"
+                      title={`Good: ${goodPcs.toLocaleString()} pcs`}
+                    />
+                    {/* Segment Reject (Merah) */}
+                    <div
+                      style={{ width: `${targetPcs > 0 ? Math.min(100, (rejectPcs / targetPcs) * 100) : 0}%` }}
+                      className="h-full bg-rose-600 transition-all duration-700 ease-out"
+                      title={`Reject: ${rejectPcs.toLocaleString()} pcs`}
+                    />
                   </div>
+                  <span className={`text-base sm:text-lg font-mono font-black tabular-nums leading-none shrink-0 ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                    {targetPcs > 0 ? Math.round((actualPcs / targetPcs) * 100) : 0}%
+                  </span>
                 </div>
 
                 {/* Angka — font relatif clamp terhadap vw/vh — min 12px untuk label */}

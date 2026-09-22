@@ -144,7 +144,7 @@ export const EChartsProdVsTarget: React.FC<EChartsProdVsTargetProps> = ({
           },
         },
         axisLabel: {
-          color: isDark ? '#94a3b8' : '#64748b',
+          color: isDark ? '#94a3b8' : '#475569',
           fontSize: 10,
           fontFamily: 'monospace',
         },
@@ -160,12 +160,12 @@ export const EChartsProdVsTarget: React.FC<EChartsProdVsTargetProps> = ({
         },
         axisLabel: {
           formatter: (val: number) => (val === 0 ? '0' : val.toLocaleString()),
-          color: isDark ? '#94a3b8' : '#64748b',
+          color: isDark ? '#94a3b8' : '#475569',
           fontSize: 10,
         },
         splitLine: {
           lineStyle: {
-            color: isDark ? '#162744' : '#f1f5f9',
+            color: isDark ? '#162744' : '#e2e8f0',
             type: 'solid',
           },
         },
