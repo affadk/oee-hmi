@@ -454,7 +454,7 @@ export const FullscreenOeeView: React.FC<FullscreenOeeViewProps> = ({
               </div>
 
               {/* Gauges Row — gap & padding relatif vh, semua gauge skala relatif */}
-              <div className="flex-1 min-h-0 flex flex-wrap items-center justify-around gap-[0.8vw] py-[0.6vh] my-auto overflow-hidden">
+              <div className="flex-1 min-h-0 flex flex-wrap items-center justify-around gap-[0.8vw] py-[0.3vh] my-auto overflow-hidden">
                 {/* OEE — tanpa rincian a/p/q, circle diperbesar relatif terhadap tinggi section */}
                 <PasXDonutGauge
                   label="OEE"
@@ -465,7 +465,7 @@ export const FullscreenOeeView: React.FC<FullscreenOeeViewProps> = ({
                 />
 
                 {/* 3 Donut Rings — urutan siklus benar A → P → Q */}
-                <div className="flex items-center justify-center gap-4 sm:gap-8 flex-wrap">
+                <div className="flex items-center justify-center gap-4 sm:gap-8 flex-wrap h-full max-h-full min-h-0 min-w-0">
                   <PasXDonutGauge
                     label="AVA"
                     value={availValue}
@@ -604,24 +604,27 @@ export const FullscreenOeeView: React.FC<FullscreenOeeViewProps> = ({
                 <span className={`text-xs font-mono font-semibold px-2 py-0.5 rounded border ${isDark ? 'bg-slate-800 text-slate-300 border-slate-700' : 'bg-slate-100 text-slate-700 border-slate-200'}`}>CT: {targetCycleTimeSec}s · Target: {targetRate} pcs/h</span>
               </div>
 
-              {/* Numbers — font clamp — labels min 12px */}
-              <div className="flex items-baseline justify-between mb-[0.6vh] px-[0.5vw] shrink-0">
-                <div className="flex flex-col">
-                  <span className={`text-[clamp(18px,1.8vw,26px)] font-black font-sans leading-none ${isDark ? 'text-white' : 'text-slate-900'}`}>{currentRate}</span>
-                  <span className={`text-xs font-semibold mt-1 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Current Rate (pcs/h)</span>
-                  <span className={`text-xs font-mono mt-0.5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Actual: {actualCycleTimeSec}s/pcs</span>
+              {/* Layered body: chart di belakang, angka di depan — maksimalkan ruang tengah */}
+              <div className="relative flex-1 min-h-0 overflow-hidden">
+                {/* Chart layer (belakang) — tinggi mengikuti container, jangkar bawah tengah */}
+                <div className="absolute inset-0 flex items-end justify-center pb-[0.2vh] pointer-events-none" aria-hidden="true">
+                  <div className="h-full max-h-full" style={{ aspectRatio: '196 / 108', maxWidth: '100%' }}>
+                    <PasXTachometerGauge currentRate={currentRate} targetRate={targetRate} />
+                  </div>
                 </div>
-                <div className="flex flex-col items-end">
-                  <span className={`text-[clamp(18px,1.8vw,26px)] font-black font-sans leading-none ${isDark ? 'text-white' : 'text-slate-900'}`}>{targetRate}</span>
-                  <span className={`text-xs font-semibold mt-1 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Target Rate (pcs/h)</span>
-                  <span className={`text-xs font-mono mt-0.5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Ideal: {targetCycleTimeSec}s/pcs</span>
-                </div>
-              </div>
 
-              {/* Tachometer — skala relatif vh */}
-              <div className="flex-1 min-h-0 flex items-center justify-center py-[0.5vh] overflow-hidden">
-                <div className="scale-[clamp(0.75,0.9vh,1)] origin-center">
-                  <PasXTachometerGauge currentRate={currentRate} targetRate={targetRate} />
+                {/* Numbers layer (depan) — overlay kiri/kanan di atas chart */}
+                <div className="absolute inset-x-0 top-0 z-10 flex items-start justify-between px-[0.5vw] pt-[0.4vh] pointer-events-none">
+                  <div className="flex flex-col drop-shadow-sm">
+                    <span className={`text-[clamp(18px,1.8vw,26px)] font-black font-sans leading-none ${isDark ? 'text-white' : 'text-slate-900'}`}>{currentRate}</span>
+                    <span className={`text-xs font-semibold mt-1 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>Current Rate (pcs/h)</span>
+                    <span className={`text-xs font-mono mt-0.5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Actual: {actualCycleTimeSec}s/pcs</span>
+                  </div>
+                  <div className="flex flex-col items-end drop-shadow-sm text-right">
+                    <span className={`text-[clamp(18px,1.8vw,26px)] font-black font-sans leading-none ${isDark ? 'text-white' : 'text-slate-900'}`}>{targetRate}</span>
+                    <span className={`text-xs font-semibold mt-1 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>Target Rate (pcs/h)</span>
+                    <span className={`text-xs font-mono mt-0.5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Ideal: {targetCycleTimeSec}s/pcs</span>
+                  </div>
                 </div>
               </div>
 
