@@ -71,19 +71,19 @@ export const HeroKpiZone: React.FC<HeroKpiZoneProps> = ({
   const theoreticalHourlyOutput = targetCycleTimeSec > 0 ? Math.round(3600 / targetCycleTimeSec) : 400;
   const actualCycleTimeSec = currentRate > 0 ? (3600 / currentRate).toFixed(1) : (targetCycleTimeSec * 1.97).toFixed(1);
 
-  // SVG mini gauge renderer — diperbesar lagi 132px → 148px beserta teks
-  const renderGauge = (pct: number, colorStroke: string, rawLines?: string[]) => {
-    const size = 148;
-    const radius = 61;
-    const strokeWidth = 10;
+  // SVG mini gauge renderer — ukuran relatif terhadap tinggi section container
+  const renderGauge = (pct: number, colorStroke: string, rawLines?: string[], size = 148) => {
+    const radius = (size - 20) / 2 - 4;
+    const strokeWidth = Math.max(10, Math.round(size * 0.07));
     const center = size / 2;
     const circumference = 2 * Math.PI * radius;
     const progress = Math.min(100, Math.max(0, pct));
     const strokeDashoffset = circumference - (progress / 100) * circumference;
+    const valueFont = size >= 170 ? 'text-2xl' : 'text-xl';
 
     return (
-      <div className="flex flex-col items-center shrink-0">
-        <div className="relative flex items-center justify-center" style={{ width: size, height: size }}>
+      <div className="flex flex-col items-center justify-center shrink-0 h-full">
+        <div className="relative flex items-center justify-center w-auto h-full aspect-square" style={{ width: size, height: size, maxWidth: '100%' }}>
           <svg width={size} height={size} className="-rotate-90 overflow-visible" viewBox={`0 0 ${size} ${size}`}>
             {/* Background circle */}
             <circle
@@ -108,7 +108,7 @@ export const HeroKpiZone: React.FC<HeroKpiZoneProps> = ({
               className="transition-all duration-700 ease-out"
             />
           </svg>
-          <span className={`absolute font-mono font-bold text-xl leading-none ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+          <span className={`absolute font-mono font-bold ${valueFont} leading-none ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
             {pct.toFixed(1)}%
           </span>
         </div>
@@ -203,12 +203,12 @@ export const HeroKpiZone: React.FC<HeroKpiZoneProps> = ({
 
       {/* Grid of 4 Hero KPIs — proporsional: gap & padding diselaraskan, kartu tinggi konsisten */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
-        {/* 1. OEE Card */}
+        {/* 1. OEE Card — tanpa rincian a/p/q, circle diperbesar relatif terhadap tinggi section */}
         <div 
           id="kpi-card-oee"
-          className={`relative p-3.5 rounded-xl border ${oeeColor.border} ${oeeColor.bg} flex flex-col justify-between min-h-[158px] transition-all hover:shadow-md group`}
+          className={`relative p-3.5 rounded-xl border ${oeeColor.border} ${oeeColor.bg} flex flex-col justify-between min-h-[228px] transition-all hover:shadow-md group`}
         >
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center justify-between gap-3 flex-1 min-h-0">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1.5">
                 <span className={`text-sm font-bold uppercase tracking-wider ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>Overall OEE</span>
@@ -222,11 +222,7 @@ export const HeroKpiZone: React.FC<HeroKpiZoneProps> = ({
               </div>
               <p className={`text-xs mt-0.5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Overall Equipment Effectiveness</p>
             </div>
-            {renderGauge(metrics.oeePct, oeeColor.stroke, [
-              `a: ${metrics.availabilityPct.toFixed(1)}%`,
-              `p: ${metrics.performancePct.toFixed(1)}%`,
-              `q: ${metrics.qualityPct.toFixed(1)}%`,
-            ])}
+            {renderGauge(metrics.oeePct, oeeColor.stroke, undefined, 196)}
           </div>
 
           <div className={`mt-3 pt-2 border-t flex items-center justify-between text-xs ${

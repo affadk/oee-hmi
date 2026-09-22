@@ -26,8 +26,10 @@ export const PasXDonutGauge: React.FC<PasXDonutGaugeProps> = ({
   const isDark = theme === 'dark';
 
   const isLarge = size === 'large';
-  const diameter = isLarge ? 140 : 176;
-  const strokeWidth = isLarge ? 15 : 16;
+  // Large (OEE) diperbesar dan relatif terhadap tinggi section container via clamp(vh)
+  const diameter = isLarge ? 210 : 176;
+  const displaySize = isLarge ? 'clamp(180px, 26vh, 248px)' : diameter;
+  const strokeWidth = isLarge ? 18 : 16;
   const radius = (diameter - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
   const clampedValue = Math.min(100, Math.max(0, value));
@@ -43,8 +45,8 @@ export const PasXDonutGauge: React.FC<PasXDonutGaugeProps> = ({
       }`}
       title={`${label}: ${value}% (Click for calculation formula)`}
     >
-      <div className="relative flex items-center justify-center" style={{ width: diameter, height: diameter }}>
-        <svg width={diameter} height={diameter} className="overflow-visible">
+      <div className="relative flex items-center justify-center aspect-square" style={{ width: displaySize, height: displaySize, maxWidth: '100%' }}>
+        <svg width="100%" height="100%" viewBox={`0 0 ${diameter} ${diameter}`} className="overflow-visible">
           {/* Background circle track */}
           <circle
             cx={diameter / 2}

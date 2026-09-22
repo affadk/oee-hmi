@@ -75,6 +75,17 @@ export const FullscreenOeeView: React.FC<FullscreenOeeViewProps> = ({
   const perfValue = metrics.performancePct ?? 72.0;
   const qualValue = metrics.qualityPct ?? 98.0;
 
+  // Warna gauge sinkron dengan legend: Target (emerald-500) / −5% (amber-500) / Kritis (rose-500)
+  const getGaugeColor = (val: number, target: number) => {
+    if (val >= target) return '#10b981';
+    if (val >= target - 5) return '#f59e0b';
+    return '#f43f5e';
+  };
+  const oeeGaugeColor = getGaugeColor(oeeValue, machine.targetOee ?? 85);
+  const availGaugeColor = getGaugeColor(availValue, machine.targetAvailability ?? 90);
+  const perfGaugeColor = getGaugeColor(perfValue, machine.targetPerformance ?? 95);
+  const qualGaugeColor = getGaugeColor(qualValue, machine.targetQuality ?? 98);
+
   // Metadata from machine and job config - mapping user's custom OEE production fields
   const machineName = machine.name || 'Mesin Blister (CP400)';
   const machineLine = machine.line || 'Line Mediseal 01';
@@ -444,17 +455,12 @@ export const FullscreenOeeView: React.FC<FullscreenOeeViewProps> = ({
 
               {/* Gauges Row — gap & padding relatif vh, semua gauge skala relatif */}
               <div className="flex-1 min-h-0 flex flex-wrap items-center justify-around gap-[0.8vw] py-[0.6vh] my-auto overflow-hidden">
-                {/* OEE — konsisten dimensi medium sama dengan A/P/Q */}
+                {/* OEE — tanpa rincian a/p/q, circle diperbesar relatif terhadap tinggi section */}
                 <PasXDonutGauge
                   label="OEE"
                   value={oeeValue}
-                  size="medium"
-                  color="#48a43f"
-                  rawLines={[
-                    `a: ${availValue.toFixed(1)}%`,
-                    `p: ${perfValue.toFixed(1)}%`,
-                    `q: ${qualValue.toFixed(1)}%`,
-                  ]}
+                  size="large"
+                  color={oeeGaugeColor}
                   onClick={() => onOpenFormula('OEE')}
                 />
 
@@ -464,7 +470,7 @@ export const FullscreenOeeView: React.FC<FullscreenOeeViewProps> = ({
                     label="AVA"
                     value={availValue}
                     size="medium"
-                    color="#48a43f"
+                    color={availGaugeColor}
                     rawLines={[
                       `run: ${runTimeMin}m`,
                       `plan: ${plannedTimeMin}m`,
@@ -476,7 +482,7 @@ export const FullscreenOeeView: React.FC<FullscreenOeeViewProps> = ({
                     label="PER"
                     value={perfValue}
                     size="medium"
-                    color="#eab308"
+                    color={perfGaugeColor}
                     rawLines={[
                       `act: ${currentRate} pcs/h`,
                       `tgt: ${theoreticalHourlyOutput} pcs/h`,
@@ -488,7 +494,7 @@ export const FullscreenOeeView: React.FC<FullscreenOeeViewProps> = ({
                     label="QUA"
                     value={qualValue}
                     size="medium"
-                    color="#48a43f"
+                    color={qualGaugeColor}
                     rawLines={[
                       `good: ${goodPcs.toLocaleString()} pcs`,
                       `tot: ${actualPcs.toLocaleString()} pcs`,
