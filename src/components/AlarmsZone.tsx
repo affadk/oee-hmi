@@ -50,7 +50,7 @@ export const AlarmsZone: React.FC<AlarmsZoneProps> = ({
   return (
     <section
       id="last-events-alarms-zone"
-      className={`rounded-xl border p-[clamp(8px,1vh,14px)] shadow-sm transition-colors ${
+      className={`min-w-0 max-w-full rounded-xl border p-[clamp(8px,1vh,14px)] shadow-sm transition-colors ${
         isDark ? 'bg-[#0f1b2e] border-slate-800' : 'bg-white border-[#c9d3df]'
       }`}
     >
@@ -70,10 +70,10 @@ export const AlarmsZone: React.FC<AlarmsZoneProps> = ({
         </div>
       </div>
 
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto max-w-full">
         <table className="w-full text-left text-xs">
           <thead>
-            <tr className={`border-b font-mono uppercase text-[10px] tracking-wider ${isDark ? 'border-slate-800 text-slate-400' : 'border-[#c9d3df] text-slate-500'}`}>
+            <tr className={`border-b font-mono uppercase audit-micro tracking-wider ${isDark ? 'border-slate-800 text-slate-400' : 'border-[#c9d3df] text-slate-500'}`}>
               <th className="pb-2 pl-2">Time</th>
               <th className="pb-2">Type</th>
               <th className="pb-2">Machine</th>
@@ -89,13 +89,13 @@ export const AlarmsZone: React.FC<AlarmsZoneProps> = ({
               <tr key={alm.id} className={`transition-colors ${isDark ? 'hover:bg-[#132238]' : 'hover:bg-[#eef2f7]'}`}>
                 <td className={`py-2.5 pl-2 font-mono whitespace-nowrap font-semibold ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>{alm.timestamp}</td>
                 <td className="py-2.5 whitespace-nowrap">
-                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${getAlarmBadge(alm.type)}`}>{alm.type}</span>
+                  <span className={`px-2 py-0.5 rounded audit-micro font-bold border ${getAlarmBadge(alm.type)}`}>{alm.type}</span>
                 </td>
                 <td className={`py-2.5 font-mono font-bold whitespace-nowrap ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>{alm.machineId}</td>
                 <td className="py-2.5 font-mono font-bold whitespace-nowrap text-rose-500">{alm.durationMinutes} min</td>
                 <td className={`py-2.5 font-semibold max-w-md truncate ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>{alm.description}</td>
                 <td className="py-2.5 whitespace-nowrap">
-                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${getStatusBadge(alm.status)}`}>{alm.status}</span>
+                  <span className={`px-2 py-0.5 rounded audit-micro font-bold ${getStatusBadge(alm.status)}`}>{alm.status}</span>
                 </td>
                 <td className={`py-2.5 whitespace-nowrap font-mono ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{alm.operator}</td>
                 <td className="py-2.5 text-right pr-2 whitespace-nowrap">
@@ -104,20 +104,20 @@ export const AlarmsZone: React.FC<AlarmsZoneProps> = ({
                       {alm.status === 'Waiting Maintenance' && (
                         <button
                           onClick={() => onAcknowledgeAlarm(alm.id)}
-                          className="px-2 py-0.5 rounded text-[10px] font-bold border bg-[#1a3464] hover:opacity-90 text-white border-[#1a3464] transition-all cursor-pointer"
+                          className="px-2 py-0.5 rounded audit-micro font-bold border bg-[#1a3464] hover:opacity-90 text-white border-[#1a3464] transition-all cursor-pointer"
                         >
                           Acknowledge
                         </button>
                       )}
                       <button
                         onClick={() => onResolveAlarm(alm.id)}
-                        className="px-2 py-0.5 rounded text-[10px] font-bold border bg-[#48a43f] hover:brightness-110 text-white border-[#48a43f] transition-all cursor-pointer"
+                        className="px-2 py-0.5 rounded audit-micro font-bold border bg-[#48a43f] hover:brightness-110 text-white border-[#48a43f] transition-all cursor-pointer"
                       >
                         Resolve
                       </button>
                     </div>
                   ) : (
-                    <span className={`text-[10px] font-mono flex items-center justify-end gap-1 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+                    <span className={`audit-micro font-mono flex items-center justify-end gap-1 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
                       <CheckCircle2 className="w-3 h-3 text-emerald-500" /> Closed
                     </span>
                   )}

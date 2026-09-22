@@ -86,23 +86,23 @@ export const HeaderZone: React.FC<HeaderZoneProps> = ({
   const isRunning = currentMachine.status === 'RUNNING';
 
   return (
-    <div className="w-full shrink-0 select-none">
+    <div className="w-full max-w-full overflow-x-clip shrink-0 select-none">
       {/* 1. TOP HEADER — solid navy ala Shift Overview */}
-      <header className="bg-[#1a3464] text-white px-[1.2vw] py-[0.8vh] flex items-center justify-between text-[clamp(12px,0.85vw,14px)] font-semibold shadow-md w-full">
-        <div className="flex items-center gap-3">
-          <span className="font-bold tracking-wide text-sm sm:text-base">OEE Machine Dashboard</span>
+      <header className="bg-[#1a3464] text-white px-[1.2vw] py-[0.8vh] flex flex-wrap items-center justify-between gap-x-3 gap-y-2 text-[clamp(12px,0.85vw,14px)] font-semibold shadow-md w-full max-w-full overflow-x-clip">
+        <div className="flex items-center gap-3 min-w-0">
+          <span className="font-bold tracking-wide text-sm sm:text-base truncate">OEE Machine Dashboard</span>
           <span className="hidden md:inline-flex items-center px-2 py-0.5 rounded font-mono text-xs bg-white/10 border border-white/20 text-white/80">
             Detailed Audit
           </span>
         </div>
 
-        <div className="flex items-center gap-2 sm:gap-2.5">
+        <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-2.5 min-w-0 max-w-full">
           {/* Machine selector */}
-          <div className="relative inline-block text-slate-900">
+          <div className="relative inline-block min-w-0 text-slate-900">
             <select
               value={currentMachine.id}
               onChange={(e) => onSelectMachine(e.target.value)}
-              className="bg-white/95 hover:bg-white text-slate-900 font-bold py-1.5 pl-3 pr-7 rounded text-sm appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-300 shadow-sm"
+              className="bg-white/95 hover:bg-white text-slate-900 font-bold py-1.5 pl-3 pr-7 rounded text-sm appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-300 shadow-sm max-w-[46vw] sm:max-w-[240px] truncate"
               aria-label="Select Machine"
             >
               {allMachines.map((m) => (
@@ -184,7 +184,7 @@ export const HeaderZone: React.FC<HeaderZoneProps> = ({
           <button
             type="button"
             onClick={onToggleTeep}
-            className={`px-2.5 py-1.5 rounded font-mono text-sm font-semibold border transition-all cursor-pointer ${
+            className={`px-2.5 py-1.5 rounded font-mono text-sm font-semibold border transition-all cursor-pointer shrink-0 whitespace-nowrap ${
               teepEnabled
                 ? 'bg-purple-500/30 border-purple-400/50 text-purple-100'
                 : 'bg-white/10 border-white/10 text-white/70 hover:bg-white/20'
@@ -220,7 +220,7 @@ export const HeaderZone: React.FC<HeaderZoneProps> = ({
           <button
             type="button"
             onClick={onOpenMqttModal}
-            className={`hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded font-mono text-sm transition-all cursor-pointer select-none ml-1 border ${
+            className={`hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded font-mono text-sm transition-all cursor-pointer select-none ml-1 border shrink-0 whitespace-nowrap ${
               isHealthy
                 ? 'bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-200 border-emerald-400/40'
                 : 'bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border-amber-400/40'
@@ -238,14 +238,14 @@ export const HeaderZone: React.FC<HeaderZoneProps> = ({
 
       {/* 2. SUB-HEADER — ala Shift Overview */}
       <section
-        className={`w-full px-[1.2vw] py-[1vh] border-b transition-colors ${
+        className={`w-full max-w-full overflow-x-clip px-[1.2vw] py-[1vh] border-b transition-colors ${
           isDark ? 'bg-[#0d1728] border-slate-800' : 'bg-[#e8edf4] border-[#c4cbd5]'
         }`}
       >
         <div className="w-full flex flex-col xl:flex-row items-start xl:items-center justify-between gap-4 xl:gap-6">
           <div className="flex items-center gap-2.5 shrink-0 min-w-[180px]">
             <div className="flex flex-col">
-              <h1 className={`text-2xl sm:text-3xl font-black tracking-tight leading-none ${isDark ? 'text-white' : 'text-slate-900'}`}>
+              <h1 className={`audit-name font-black tracking-tight leading-none ${isDark ? 'text-white' : 'text-slate-900'}`}>
                 {machineName}
               </h1>
               <span className={`text-sm sm:text-base font-bold mt-0.5 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
@@ -257,45 +257,45 @@ export const HeaderZone: React.FC<HeaderZoneProps> = ({
           <div className="w-full xl:w-fit grid grid-cols-2 sm:grid-cols-4 gap-x-4 sm:gap-x-6 gap-y-2 text-sm">
             <div className="flex flex-col min-w-0">
               <span className={`text-sm leading-none font-semibold tracking-wide ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Product</span>
-              <strong className={`text-lg font-extrabold truncate mt-1 ${isDark ? 'text-slate-100' : 'text-slate-900'}`} title={productName}>{productName}</strong>
+              <strong className={`audit-value font-extrabold truncate mt-1 ${isDark ? 'text-slate-100' : 'text-slate-900'}`} title={productName}>{productName}</strong>
             </div>
             <div className="flex flex-col min-w-0">
               <span className={`text-sm leading-none font-semibold tracking-wide ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Cycle Time</span>
-              <strong className={`font-mono text-lg font-extrabold mt-1 ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>{targetCycleTimeSec}s</strong>
+              <strong className={`font-mono audit-value font-extrabold mt-1 ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>{targetCycleTimeSec}s</strong>
             </div>
             <div className="flex flex-col min-w-0">
               <span className={`text-sm leading-none font-semibold tracking-wide ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Operator</span>
-              <strong className={`text-lg font-extrabold truncate mt-1 ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>{operatorName}</strong>
+              <strong className={`audit-value font-extrabold truncate mt-1 ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>{operatorName}</strong>
             </div>
             <div className="flex flex-col min-w-0">
               <span className={`text-sm leading-none font-semibold tracking-wide ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Shift</span>
-              <strong className={`font-mono text-lg font-extrabold mt-1 ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>{operatorId} · {shiftNumber}</strong>
+              <strong className={`font-mono audit-value font-extrabold mt-1 ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>{operatorId} · {shiftNumber}</strong>
             </div>
             <div className="flex flex-col min-w-0">
               <span className={`text-sm leading-none font-semibold tracking-wide ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Mulai</span>
-              <strong className={`font-mono text-lg font-extrabold mt-1 ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>{shiftStart}</strong>
+              <strong className={`font-mono audit-value font-extrabold mt-1 ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>{shiftStart}</strong>
             </div>
             <div className="flex flex-col min-w-0">
               <span className={`text-sm leading-none font-semibold tracking-wide ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Selesai</span>
-              <strong className={`font-mono text-lg font-extrabold mt-1 ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>{shiftEnd}</strong>
+              <strong className={`font-mono audit-value font-extrabold mt-1 ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>{shiftEnd}</strong>
             </div>
             <div className="flex flex-col min-w-0">
               <span className={`text-sm leading-none font-semibold tracking-wide ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Istirahat</span>
-              <strong className="font-mono text-lg font-extrabold mt-1 text-amber-600 dark:text-amber-400" title={`Jam Istirahat: ${breakTimeWindow} (${plannedBreakMin} menit)`}>
+              <strong className="font-mono audit-value font-extrabold mt-1 text-amber-600 dark:text-amber-400" title={`Jam Istirahat: ${breakTimeWindow} (${plannedBreakMin} menit)`}>
                 {breakTimeWindow ? `${breakTimeWindow} (${plannedBreakMin}m)` : `${plannedBreakMin}m`}
               </strong>
             </div>
             <div className="flex flex-col min-w-0">
               <span className={`text-sm leading-none font-semibold tracking-wide ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Target Rate</span>
-              <strong className={`font-mono text-lg font-extrabold mt-1 ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>{theoreticalHourlyOutput} pcs/h</strong>
+              <strong className={`font-mono audit-value font-extrabold mt-1 ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>{theoreticalHourlyOutput} pcs/h</strong>
             </div>
           </div>
 
-          <div className="flex items-stretch gap-2.5 shrink-0">
+          <div className="flex flex-wrap items-stretch gap-2.5 shrink-0 max-w-full">
             <div className={`flex flex-col items-center justify-center leading-none shrink-0 px-4 py-2 rounded-md border shadow-sm select-none ${
               isDark ? 'bg-[#0f1b2e] border-slate-700' : 'bg-white border-slate-300'
             }`} title={`${headerDate} ${headerTime}`}>
-              <span className={`font-mono font-black tabular-nums tracking-tight text-2xl sm:text-3xl ${isDark ? 'text-white' : 'text-slate-900'}`}>{headerTime}</span>
+              <span className={`audit-clock font-mono font-black tabular-nums tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>{headerTime}</span>
               <span className={`font-mono text-xs font-semibold mt-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{headerDate}</span>
             </div>
             <div
@@ -305,7 +305,7 @@ export const HeaderZone: React.FC<HeaderZoneProps> = ({
               }`}
               title={`Status: ${isRunning ? 'Active / Running' : 'Down / Stopped'}. Klik untuk mengubah status.`}
             >
-              <span className="text-xl sm:text-2xl font-black leading-tight tracking-wide">{isRunning ? 'Active' : 'Down'}</span>
+              <span className="audit-status font-black leading-tight tracking-wide">{isRunning ? 'Active' : 'Down'}</span>
               <span className="text-sm font-semibold leading-none opacity-90">{isRunning ? 'Running' : 'Stopped'}</span>
             </div>
           </div>

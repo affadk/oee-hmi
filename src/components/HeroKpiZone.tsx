@@ -58,7 +58,7 @@ export const HeroKpiZone: React.FC<HeroKpiZoneProps> = ({
   return (
     <section
       id="hero-kpi-zone"
-      className={`p-[clamp(8px,1vh,14px)] rounded-xl border shadow-sm transition-colors ${
+      className={`min-w-0 max-w-full p-[clamp(8px,1vh,14px)] rounded-xl border shadow-sm transition-colors ${
         isDark ? 'bg-[#0f1b2e] border-slate-800' : 'bg-white border-[#c9d3df]'
       }`}
     >
@@ -96,7 +96,7 @@ export const HeroKpiZone: React.FC<HeroKpiZoneProps> = ({
       </div>
 
       {/* Gauges Row */}
-      <div className="flex flex-wrap items-stretch justify-around gap-[0.8vw] py-[0.6vh] overflow-hidden">
+      <div className="flex flex-wrap items-stretch justify-around gap-[0.8vw] min-w-0 py-[0.6vh] overflow-hidden">
         <div className="min-h-[190px] flex">
           <PasXDonutGauge label="OEE" value={oeeValue} size="large" color={oeeGaugeColor} onClick={() => onOpenFormula('OEE')} />
         </div>
@@ -167,28 +167,28 @@ export const HeroKpiZone: React.FC<HeroKpiZoneProps> = ({
               title={`Reject: ${rejectPcs.toLocaleString()} pcs`}
             />
           </div>
-          <span className={`text-base sm:text-lg font-mono font-black tabular-nums leading-none ${isDark ? 'text-white' : 'text-slate-900'}`}>
+          <span className={`audit-display font-mono font-black tabular-nums leading-none ${isDark ? 'text-white' : 'text-slate-900'}`}>
             {targetPcs > 0 ? Math.round((actualPcs / targetPcs) * 100) : 0}%
           </span>
         </div>
 
         <div className="flex flex-wrap items-baseline justify-between gap-[0.8vw]">
           <div className="flex items-baseline gap-2">
-            <span className={`text-2xl font-black font-sans leading-none ${isDark ? 'text-white' : 'text-slate-900'}`}>{actualPcs.toLocaleString()}</span>
+            <span className={`audit-display font-black font-sans leading-none ${isDark ? 'text-white' : 'text-slate-900'}`}>{actualPcs.toLocaleString()}</span>
             <span className={`text-xs font-semibold ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Actual</span>
           </div>
           <div className="flex items-center gap-4 text-sm font-mono">
             <div className="flex items-baseline gap-1.5">
               <span className={`text-xs font-sans font-bold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Good:</span>
-              <strong className="text-emerald-600 dark:text-emerald-400 text-xl font-black">{goodPcs.toLocaleString()}</strong>
+              <strong className="text-emerald-600 dark:text-emerald-400 audit-display font-black">{goodPcs.toLocaleString()}</strong>
             </div>
             <div className="flex items-baseline gap-1.5">
               <span className={`text-xs font-sans font-bold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Reject:</span>
-              <strong className="text-rose-600 dark:text-rose-400 text-xl font-black">{rejectPcs.toLocaleString()}</strong>
+              <strong className="text-rose-600 dark:text-rose-400 audit-display font-black">{rejectPcs.toLocaleString()}</strong>
             </div>
           </div>
           <div className="flex items-baseline gap-2">
-            <span className={`text-2xl font-black font-sans leading-none ${isDark ? 'text-white' : 'text-slate-900'}`}>{targetPcs.toLocaleString()}</span>
+            <span className={`audit-display font-black font-sans leading-none ${isDark ? 'text-white' : 'text-slate-900'}`}>{targetPcs.toLocaleString()}</span>
             <span className={`text-xs font-semibold ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Target</span>
           </div>
         </div>

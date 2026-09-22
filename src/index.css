@@ -34,4 +34,41 @@
     line-height: 1.3;
     font-weight: 700;
   }
+
+  /* Detailed Audit fluid type scale — proporsional terhadap lebar viewport,
+     pola yang sama seperti OEE Shift Overview (clamp + vw, tanpa breakpoint
+     lompat). Angka display & meta membesar di layar lebar dan mengecil
+     proporsional di layar kecil; teks baca 12-14px (text-xs/sm) dibiarkan
+     fixed sebagai baseline stabil. Hanya font-size (tanpa line-height) agar
+     tidak berkonflik dengan leading-* Tailwind. */
+  /* Angka display besar: Actual/Target/Good/Reject, achievement, pillar loss,
+     cycle (pengganti text-2xl/text-xl fixed 20-24px) */
+  .audit-display {
+    font-size: clamp(20px, 1.1vw + 14px, 32px);
+  }
+  /* Nilai meta: sub-header Product/Cycle/Operator/Shift, output rate,
+     sel waktu, waterfall (pengganti text-lg/text-base fixed 16-18px) */
+  .audit-value {
+    font-size: clamp(14px, 0.8vw + 10px, 22px);
+  }
+  /* Nama mesin + jam timestamp sub-header (pengganti text-2xl sm:text-3xl) */
+  .audit-name {
+    font-size: clamp(20px, 1.6vw + 12px, 34px);
+  }
+  .audit-clock {
+    font-size: clamp(20px, 1.6vw + 12px, 34px);
+  }
+  /* Status Active/Down (pengganti text-xl sm:text-2xl) */
+  .audit-status {
+    font-size: clamp(18px, 1.1vw + 12px, 28px);
+  }
+  /* Keterangan kecil (pengganti text-[11px] fixed — 11px di HP, 13px desktop) */
+  .audit-caption {
+    font-size: clamp(11px, 0.35vw + 9.5px, 13px);
+  }
+  /* Badge & label mikro (pengganti text-[10px]/[9px] fixed —
+     10px di HP agar padat, mencapai baseline 12px di layar ≥1170px) */
+  .audit-micro {
+    font-size: clamp(10px, 0.3vw + 8.5px, 12px);
+  }
 }

@@ -29,7 +29,7 @@ export const DashboardPage: React.FC = () => {
   return (
     <div
       id="dashboard-root-layout"
-      className={`font-sans selection:bg-blue-600 selection:text-white transition-colors ${
+      className={`font-sans selection:bg-blue-600 selection:text-white transition-colors w-full max-w-full overflow-x-clip ${
         isDark ? 'bg-[#070d1a] text-slate-100' : 'bg-slate-100 text-slate-900'
       } ${dashboard.viewMode === 'FULLSCREEN_IMAGE' ? 'h-screen max-h-screen overflow-hidden flex flex-col' : 'min-h-screen'}`}
     >
@@ -112,7 +112,7 @@ export const DashboardPage: React.FC = () => {
            shell bg #080e1a / #e9edf4, kartu #0f1b2e / white + border slate-800 / #c9d3df */
         <div
           id="detailed-audit-view-container"
-          className={`min-h-screen flex flex-col font-sans transition-colors ${
+          className={`min-h-screen w-full max-w-full overflow-x-clip flex flex-col font-sans transition-colors ${
             isDark ? 'bg-[#080e1a] text-slate-100' : 'bg-[#e9edf4] text-slate-900'
           }`}
         >
@@ -139,7 +139,7 @@ export const DashboardPage: React.FC = () => {
           />
 
           {/* Main Content Sections — spacing relatif ala Shift Overview */}
-          <main className="flex-1 w-full px-[1vw] py-[1vh] space-y-[1vh] pb-20">
+          <main className="flex-1 w-full min-w-0 max-w-full overflow-x-clip px-[1vw] py-[1vh] space-y-[1vh] pb-20">
             <HeroKpiZone
               metrics={dashboard.currentMetrics}
               machine={dashboard.currentMachine}

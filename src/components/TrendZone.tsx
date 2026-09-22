@@ -54,12 +54,12 @@ export const TrendZone: React.FC<TrendZoneProps> = ({
   const targetY = getY(targetOee);
   const maxProd = Math.max(...hourlyTrends.map(h => Math.max(h.target, h.actual)), 150);
 
-  const cardClass = `lg:col-span-6 rounded-xl border p-[clamp(8px,1vh,14px)] shadow-sm transition-colors flex flex-col justify-between ${
+  const cardClass = `lg:col-span-6 min-w-0 rounded-xl border p-[clamp(8px,1vh,14px)] shadow-sm transition-colors flex flex-col justify-between ${
     isDark ? 'bg-[#0f1b2e] border-slate-800' : 'bg-white border-[#c9d3df]'
   }`;
 
   return (
-    <section id="trend-zone" className="grid grid-cols-1 lg:grid-cols-12 gap-[1vh] lg:gap-[0.9vw]">
+    <section id="trend-zone" className="grid grid-cols-1 lg:grid-cols-12 gap-[1vh] lg:gap-[0.9vw] min-w-0 max-w-full">
       {/* OEE Trend */}
       <div className={cardClass}>
         <div>
@@ -72,7 +72,7 @@ export const TrendZone: React.FC<TrendZoneProps> = ({
             </div>
             <div className="flex items-center gap-2">
               <span className="text-xs font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-semibold">Target {targetOee}%</span>
-              <div className="flex items-center gap-1 text-[11px] font-bold">
+              <div className="flex items-center gap-1 audit-caption font-bold">
                 <button onClick={() => setActiveMetric('OEE')} className={`px-2 py-0.5 rounded cursor-pointer ${activeMetric === 'OEE' ? 'bg-[#1a3464] text-white' : isDark ? 'bg-[#132238] text-slate-400' : 'bg-slate-100 text-slate-600'}`}>OEE</button>
                 <button onClick={() => setActiveMetric('ALL')} className={`px-2 py-0.5 rounded cursor-pointer ${activeMetric === 'ALL' ? 'bg-[#1a3464] text-white' : isDark ? 'bg-[#132238] text-slate-400' : 'bg-slate-100 text-slate-600'}`}>All 3</button>
               </div>
@@ -115,18 +115,18 @@ export const TrendZone: React.FC<TrendZoneProps> = ({
           </div>
         </div>
 
-        <div className="mt-2 pt-2 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs">
-          <div className="flex items-center gap-3 text-[11px] font-mono">
+        <div className="mt-2 pt-2 border-t border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-2 text-xs">
+          <div className="flex items-center gap-3 audit-caption font-mono">
             <span className="flex items-center gap-1.5 font-bold text-blue-600 dark:text-blue-400"><span className="w-2.5 h-1 rounded-full bg-blue-600 dark:bg-sky-400"></span>OEE</span>
             <span className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400"><span className="w-2.5 h-0.5 border-t border-dashed border-amber-500"></span>Target ({targetOee}%)</span>
             {activeMetric === 'ALL' && <span className={isDark ? 'text-slate-500' : 'text-slate-600'}>A:green P:yellow Q:purple</span>}
           </div>
           {hoveredHour ? (
-            <div className={`px-2 py-0.5 rounded border text-[11px] font-mono ${isDark ? 'bg-[#132238] border-slate-700 text-slate-200' : 'bg-slate-100 border-slate-200 text-slate-800'}`}>
+            <div className={`px-2 py-0.5 rounded border audit-caption font-mono ${isDark ? 'bg-[#132238] border-slate-700 text-slate-200' : 'bg-slate-100 border-slate-200 text-slate-800'}`}>
               {hoveredHour.hour} → OEE: <strong className="text-blue-600 dark:text-sky-300">{hoveredHour.oee}%</strong> (A:{hoveredHour.availability}% P:{hoveredHour.performance}% Q:{hoveredHour.quality}%)
             </div>
           ) : (
-            <div className={`text-[11px] font-mono ${isDark ? 'text-slate-500' : 'text-slate-600'}`}>Hover nodes to inspect</div>
+            <div className={`audit-caption font-mono ${isDark ? 'text-slate-500' : 'text-slate-600'}`}>Hover nodes to inspect</div>
           )}
         </div>
       </div>
@@ -134,26 +134,26 @@ export const TrendZone: React.FC<TrendZoneProps> = ({
       {/* Production hourly */}
       <div className={cardClass}>
         <div>
-          <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-200 dark:border-slate-800">
-            <div>
+          <div className="flex flex-wrap items-center justify-between gap-2 pb-2 mb-2 border-b border-slate-200 dark:border-slate-800">
+            <div className="min-w-0">
               <h2 className={`text-sm font-bold tracking-tight ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>Hourly Production</h2>
               <span className={`text-xs font-mono ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Actual vs Target & Reject (pcs/hr)</span>
             </div>
-            <div className="flex items-center gap-3 text-xs font-semibold">
+            <div className="flex flex-wrap items-center gap-3 text-xs font-semibold">
               <span className={`flex items-center gap-1 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}><span className="w-2.5 h-2.5 bg-[#48a43f] rounded-xs"></span>Good</span>
               <span className="flex items-center gap-1 text-rose-500"><span className="w-2.5 h-2.5 bg-rose-600 rounded-xs"></span>Reject</span>
               <span className="flex items-center gap-1 text-amber-600 dark:text-amber-400"><span className="w-3 h-0.5 border-t border-dashed border-amber-500"></span>Target ({hourlyTarget}/h)</span>
             </div>
           </div>
 
-          <div className="h-[180px] flex items-end justify-between gap-1.5 pt-4 pb-2 px-1">
+          <div className="h-[180px] flex items-end justify-between gap-1.5 min-w-0 pt-4 pb-2 px-1">
             {hourlyTrends.map((h) => {
               const targetHeight = (h.target / maxProd) * 100;
               const goodHeight = (h.good / maxProd) * 100;
               const rejectHeight = (h.reject / maxProd) * 100;
               return (
-                <div key={h.hour} className="flex-1 flex flex-col items-center h-full justify-end group relative">
-                  <div className={`absolute -top-10 text-[10px] font-mono px-2 py-1 rounded shadow-lg border opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-20 whitespace-nowrap ${isDark ? 'bg-[#132238] text-slate-200 border-slate-700' : 'bg-white text-slate-800 border-slate-300'}`}>
+                <div key={h.hour} className="flex-1 min-w-0 flex flex-col items-center h-full justify-end group relative">
+                  <div className={`absolute -top-10 audit-micro font-mono px-2 py-1 rounded shadow-lg border opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-20 whitespace-nowrap ${isDark ? 'bg-[#132238] text-slate-200 border-slate-700' : 'bg-white text-slate-800 border-slate-300'}`}>
                     {h.hour}: Act {h.actual} | Good {h.good} | Rej {h.reject}
                   </div>
                   <div className="absolute w-full border-t border-dashed border-amber-500/70 z-10 pointer-events-none" style={{ bottom: `${targetHeight}%` }} />
@@ -161,7 +161,7 @@ export const TrendZone: React.FC<TrendZoneProps> = ({
                     <div className="w-full bg-rose-600 rounded-t-xs transition-all duration-300 group-hover:brightness-110" style={{ height: `${rejectHeight}%` }} />
                     <div className="w-full bg-[#48a43f] rounded-b-xs transition-all duration-300 group-hover:brightness-110" style={{ height: `${goodHeight}%` }} />
                   </div>
-                  <span className={`text-[10px] font-mono mt-2 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>{h.hour.split(':')[0]}</span>
+                  <span className={`audit-micro font-mono mt-2 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>{h.hour.split(':')[0]}</span>
                 </div>
               );
             })}
