@@ -1,6 +1,6 @@
 // /src/presentation/components/fullscreen/FullscreenOeeView.tsx
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { MachineConfig, CalculatedOeeMetrics } from '../../types';
 import { useTheme } from '../../context/ThemeContext';
 import {
@@ -68,6 +68,17 @@ export const FullscreenOeeView: React.FC<FullscreenOeeViewProps> = ({
   const isDark = theme === 'dark';
 
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
+
+  // Live wall-clock untuk timestamp header — refresh tiap detik
+  const [headerNow, setHeaderNow] = useState(() => new Date());
+  useEffect(() => {
+    const t = setInterval(() => setHeaderNow(new Date()), 1000);
+    return () => clearInterval(t);
+  }, []);
+  const headerDate = headerNow.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+  const headerTime = [headerNow.getHours(), headerNow.getMinutes(), headerNow.getSeconds()]
+    .map((n) => String(n).padStart(2, '0'))
+    .join(':');
 
   // Live computed OEE metrics
   const oeeValue = metrics.oeePct ?? 65.0;
@@ -385,22 +396,29 @@ export const FullscreenOeeView: React.FC<FullscreenOeeViewProps> = ({
             </div>
           </div>
 
-          {/* Kelompok 3: Status Mesin — teks sublabel diperbesar min 12px */}
-          <div className="flex items-center gap-2 shrink-0">
+          {/* Kelompok 3: Timestamp + Status Mesin — tinggi disamakan via items-stretch */}
+          <div className="flex items-stretch gap-2.5 shrink-0">
+            {/* Timestamp & tanggal — panel mandiri di sebelah penanda state */}
+            <div className={`flex flex-col items-center justify-center leading-none shrink-0 px-4 py-2 rounded-md border shadow-sm select-none ${
+              isDark ? 'bg-[#0f1b2e] border-slate-700' : 'bg-white border-slate-300'
+            }`} title={`${headerDate} ${headerTime}`}>
+              <span className={`font-mono font-black tabular-nums tracking-tight text-2xl sm:text-3xl ${isDark ? 'text-white' : 'text-slate-900'}`}>{headerTime}</span>
+              <span className={`font-mono text-xs font-semibold mt-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{headerDate}</span>
+            </div>
             <div
               onClick={() => onUpdateMachineStatus(isRunning ? 'DOWN' : 'RUNNING')}
-              className={`px-4 py-2 rounded-md shadow-sm flex flex-col items-center justify-center cursor-pointer transition-transform hover:scale-102 shrink-0 select-none ${
+              className={`w-[112px] px-4 py-2 rounded-md shadow-sm flex flex-col items-center justify-center cursor-pointer transition-transform hover:scale-102 shrink-0 select-none ${
                 isRunning
                   ? 'bg-[#48a43f] text-white'
                   : 'bg-rose-600 text-white'
               }`}
               title={`Status: ${isRunning ? 'Active / Running' : 'Down / Stopped'}. Klik untuk mengubah status.`}
             >
-              <span className="text-base sm:text-lg font-black leading-tight tracking-wide">
+              <span className="text-xl sm:text-2xl font-black leading-tight tracking-wide">
                 {isRunning ? 'Active' : 'Down'}
               </span>
-              <span className="text-xs font-semibold leading-none opacity-90">
-                {isRunning ? 'Active' : 'Stopped'}
+              <span className="text-sm font-semibold leading-none opacity-90">
+                {isRunning ? 'Running' : 'Stopped'}
               </span>
             </div>
           </div>
