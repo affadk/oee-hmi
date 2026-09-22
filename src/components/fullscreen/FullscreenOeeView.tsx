@@ -621,7 +621,7 @@ export const FullscreenOeeView: React.FC<FullscreenOeeViewProps> = ({
 
           {/* RIGHT COLUMN — semua panel flex-1 proporsional relatif */}
           <div id="oee-right-grid-group" className="lg:col-span-4 flex flex-col gap-[1vh] min-h-0 h-full overflow-hidden">
-            {/* Time Summary — flex-1 relatif */}
+            {/* Time Summary — flex awal, Production Rate tidak diubah */}
             <div className="flex-[1.1] min-h-0 overflow-hidden">
               <TimeSummaryPanel metrics={metrics} />
             </div>

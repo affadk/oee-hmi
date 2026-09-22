@@ -63,7 +63,7 @@ const formatHM = (totalMin: number): string => {
 export const PasXProgressStrip: React.FC<PasXProgressStripProps> = ({ machine }) => {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
-  const [selectedEvent, setSelectedEvent] = useState<TimelineEvent | null>(SHIFT_EVENTS[4]);
+  const [selectedEvent, setSelectedEvent] = useState<TimelineEvent | null>(null);
 
   // Real shift window (start → end) dari konfigurasi mesin
   const shiftStartStr = machine?.jobConfig?.shiftStart ?? '22:00';
