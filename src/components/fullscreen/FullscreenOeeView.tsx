@@ -454,12 +454,10 @@ export const FullscreenOeeView: React.FC<FullscreenOeeViewProps> = ({
           {/* LEFT COLUMN: OEE KPI & TREND (8 of 12 cols — dilebarkan) */}
           {/* ======================================================== */}
           <div className="lg:col-span-8 flex flex-col gap-[1vh] min-h-0 h-full overflow-hidden">
-            {/* CARD 1: KPI & Quantity — flex proporsional, padding relatif */}
+            {/* CARD 1: KPI & Quantity — flex proporsional, padding relatif — transparan mengikuti Progress & Shift Timeline (tanpa background container) */}
             <div
               id="kpi-card-fullheight"
-              className={`p-[clamp(8px,1vh,14px)] rounded-xl border shadow-sm transition-colors flex-[1.35] min-h-0 flex flex-col justify-between overflow-hidden ${
-                isDark ? 'bg-[#0f1b2e] border-slate-800' : 'bg-white border-[#c9d3df]'
-              }`}
+              className="p-[clamp(8px,1vh,14px)] rounded-xl border border-transparent bg-transparent shadow-none transition-colors flex-[1.35] min-h-0 flex flex-col justify-between overflow-hidden"
             >
               {/* Header KPI — gap & padding relatif — legend min 12px */}
               <div className="flex flex-wrap items-center justify-between gap-[0.8vw] pb-[1vh] border-b border-slate-200 dark:border-slate-800 mb-[0.6vh] shrink-0">

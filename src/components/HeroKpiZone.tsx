@@ -32,7 +32,7 @@ export const HeroKpiZone: React.FC<HeroKpiZoneProps> = ({
     if (val >= target) {
       return {
         text: isDark ? 'text-emerald-400' : 'text-emerald-700',
-        bg: isDark ? 'bg-emerald-500/10' : 'bg-emerald-50/80',
+        bg: 'bg-transparent',
         border: isDark ? 'border-emerald-500/30' : 'border-emerald-300',
         stroke: '#10b981',
       };
@@ -40,14 +40,14 @@ export const HeroKpiZone: React.FC<HeroKpiZoneProps> = ({
     if (val >= target - 5) {
       return {
         text: isDark ? 'text-amber-400' : 'text-amber-700',
-        bg: isDark ? 'bg-amber-500/10' : 'bg-amber-50/80',
+        bg: 'bg-transparent',
         border: isDark ? 'border-amber-500/30' : 'border-amber-300',
         stroke: '#f59e0b',
       };
     }
     return {
       text: isDark ? 'text-rose-400' : 'text-rose-700',
-      bg: isDark ? 'bg-rose-500/10' : 'bg-rose-50/80',
+      bg: 'bg-transparent',
       border: isDark ? 'border-rose-500/30' : 'border-rose-300',
       stroke: '#f43f5e',
     };
@@ -147,9 +147,7 @@ export const HeroKpiZone: React.FC<HeroKpiZoneProps> = ({
   return (
     <section 
       id="hero-kpi-zone" 
-      className={`rounded-xl border p-4 transition-colors ${
-        isDark ? 'bg-slate-900/90 border-slate-800 shadow-lg backdrop-blur-sm' : 'bg-white border-slate-200 shadow-sm'
-      }`}
+      className="rounded-xl border border-transparent bg-transparent p-4 shadow-none backdrop-blur-none transition-colors"
     >
       <div className={`flex flex-wrap items-center justify-between pb-3 mb-3 border-b gap-3 ${
         isDark ? 'border-slate-800/80' : 'border-slate-200'
@@ -206,7 +204,7 @@ export const HeroKpiZone: React.FC<HeroKpiZoneProps> = ({
         {/* 1. OEE Card — tanpa rincian a/p/q, circle diperbesar relatif terhadap tinggi section */}
         <div 
           id="kpi-card-oee"
-          className={`relative p-3.5 rounded-xl border ${oeeColor.border} ${oeeColor.bg} flex flex-col justify-between min-h-[228px] transition-all hover:shadow-md group`}
+          className="relative p-3.5 rounded-xl border border-transparent bg-transparent flex flex-col justify-between min-h-[228px] transition-all group"
         >
           <div className="flex items-center justify-between gap-3 flex-1 min-h-0">
             <div className="flex-1 min-w-0">
@@ -245,7 +243,7 @@ export const HeroKpiZone: React.FC<HeroKpiZoneProps> = ({
         {/* 2. Availability Card */}
         <div 
           id="kpi-card-availability"
-          className={`relative p-3.5 rounded-xl border ${availColor.border} ${availColor.bg} flex flex-col justify-between min-h-[158px] transition-all hover:shadow-md group`}
+          className="relative p-3.5 rounded-xl border border-transparent bg-transparent flex flex-col justify-between min-h-[158px] transition-all group"
         >
           <div className="flex items-center justify-between gap-3">
             <div className="flex-1 min-w-0">
@@ -289,7 +287,7 @@ export const HeroKpiZone: React.FC<HeroKpiZoneProps> = ({
         {/* 3. Performance Card — A × P × Q urutan benar */}
         <div 
           id="kpi-card-performance"
-          className={`relative p-3.5 rounded-xl border ${perfColor.border} ${perfColor.bg} flex flex-col justify-between min-h-[158px] transition-all hover:shadow-md group`}
+          className="relative p-3.5 rounded-xl border border-transparent bg-transparent flex flex-col justify-between min-h-[158px] transition-all group"
         >
           <div className="flex items-center justify-between gap-3">
             <div className="flex-1 min-w-0">
@@ -333,7 +331,7 @@ export const HeroKpiZone: React.FC<HeroKpiZoneProps> = ({
         {/* 4. Quality Card — A × P × Q urutan benar */}
         <div 
           id="kpi-card-quality"
-          className={`relative p-3.5 rounded-xl border ${qualColor.border} ${qualColor.bg} flex flex-col justify-between min-h-[158px] transition-all hover:shadow-md group`}
+          className="relative p-3.5 rounded-xl border border-transparent bg-transparent flex flex-col justify-between min-h-[158px] transition-all group"
         >
           <div className="flex items-center justify-between gap-3">
             <div className="flex-1 min-w-0">
