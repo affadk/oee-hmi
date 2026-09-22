@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   X,
   Terminal,
@@ -125,7 +125,26 @@ export const MqttEdgeInspectorModal: React.FC<MqttEdgeInspectorModalProps> = ({
   const [shiftEnd, setShiftEnd] = useState(machine.jobConfig?.shiftEnd ?? '08:00');
   const [breakMin, setBreakMin] = useState(machine.jobConfig?.plannedBreakMin ?? 60);
 
-  if (!isOpen) return null;
+  // Sinkron ulang draft hanya saat ganti perangkat (bukan saat live telemetry pulse),
+  // agar ketikan user tidak tertimpa update simulasi 3.5s.
+  useEffect(() => {
+    setDevName(machine.name);
+    setDevLine(machine.line ?? 'Machining Line 2');
+    setDevArea(machine.area ?? 'Machining & Turning');
+    setClientId(`edge-${machine.deviceId.toLowerCase()}`);
+    setTopicPrefix(`oee/device/${machine.deviceId}`);
+    setWo(machine.jobConfig?.workOrder ?? 'WO-2026-0920-01');
+    setProductId(machine.jobConfig?.productId ?? 'PRD-FLANGE-B20');
+    setProductName(machine.jobConfig?.productName ?? machine.currentProduct);
+    setOperatorId(machine.jobConfig?.operatorId ?? 'OP-4021');
+    setOperatorName(machine.jobConfig?.operatorName ?? 'Budi Santoso');
+    setStdCycle(machine.jobConfig?.standardCycleTimeSec ?? machine.idealCycleTimeSec ?? 45);
+    setTargetQty(machine.jobConfig?.targetQuantity ?? machine.targetCount ?? 560);
+    setShiftStart(machine.jobConfig?.shiftStart ?? '22:00');
+    setShiftEnd(machine.jobConfig?.shiftEnd ?? '08:00');
+    setBreakMin(machine.jobConfig?.plannedBreakMin ?? 60);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [machine.id]);
 
   const t = machine.telemetry;
   const h = machine.health;
@@ -214,6 +233,11 @@ export const MqttEdgeInspectorModal: React.FC<MqttEdgeInspectorModalProps> = ({
       className={`w-full border rounded-lg px-2.5 py-2 text-sm font-mono outline-none focus:ring-1 focus:ring-blue-500/40 transition-colors ${inputCls} ${extra ?? ''}`}
     />
   );
+
+  // Early-return HARUS setelah semua hooks (Rules of Hooks):
+  // sebelumnya ada useMemo setelah return → crash
+  // "Rendered more hooks than during the previous render" saat modal dibuka.
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/65 backdrop-blur-md" role="dialog" aria-modal="true" aria-label="STM32H723 Edge Controller Terminal">
