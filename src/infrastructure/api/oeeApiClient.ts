@@ -5,6 +5,7 @@
 // query-string shapes, and envelope unwrapping.
 
 import type {
+  AuthSession,
   IAuthGateway,
   IDeviceCommandGateway,
   ILiveStateRepository,
@@ -14,17 +15,26 @@ import type {
 } from '../../domain/ports/IOeeBackend';
 import type { LiveStateSnapshot } from '../../domain/entities/backend/LiveState';
 import type { DeviceCommandInput, DeviceRecord, MachineRecord, OperatorRecord, ProductRecord } from '../../domain/entities/backend/Device';
+import type { DeviceMetadataPatch, MachineMetadataPatch } from '../../domain/ports/IOeeBackend';
 import type { DowntimeCategory, DowntimeEvent, OperationalEvent, TelemetryHistoryPoint } from '../../domain/entities/backend/Telemetry';
+import type { HourlyTrendPoint, PageMeta } from '../../domain/ports/IOeeBackend';
 import type { WorkOrderListItem, WorkOrderQuery, WorkOrderResolveResult } from '../../domain/entities/backend/WorkOrder';
 import { mapLiveStateDto, mapLiveStateListDto } from '../../application/dto/live-state.dto';
-import { mapWorkOrderDto, mapWorkOrderListDto } from '../../application/dto/work-order.dto';
+import { mapWorkOrderDto, mapWorkOrderListDto, mapWorkOrderResolveDto } from '../../application/dto/work-order.dto';
+import {
+  mapDowntimeEventDto,
+  mapDowntimeResultDto,
+  mapHourlyTrendResultDto,
+  mapOperationalEventResultDto,
+  mapTelemetryHistoryListDto,
+} from '../../application/dto/telemetry.dto';
 import { assertDeviceCommandReason } from '../../domain/entities/backend/Device';
 import { endpoints } from './endpoints';
 import { httpRequest } from './httpClient';
 
-function withQuery(path: string, params: Record<string, string | number | boolean | undefined>): string {
+function withQuery(path: string, params: Record<string, string | number | boolean | undefined | null>): string {
   const qs = Object.entries(params)
-    .filter(([, v]) => v !== undefined && v !== '')
+    .filter(([, v]) => v !== undefined && v !== null && v !== '')
     .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`)
     .join('&');
   return qs ? `${path}?${qs}` : path;
@@ -66,8 +76,8 @@ export class OeeHttpWorkOrderRepository implements IWorkOrderRepository {
     return mapWorkOrderDto(raw as Record<string, string>);
   }
   async resolve(woId: string, deviceId: string, signal?: AbortSignal): Promise<WorkOrderResolveResult> {
-    const raw = await httpRequest<{ work_order: WorkOrderResolveResult }>(endpoints.workOrderResolve(woId, deviceId), { signal });
-    return raw.work_order;
+    const raw = await httpRequest<{ work_order?: unknown }>(endpoints.workOrderResolve(woId, deviceId), { signal });
+    return mapWorkOrderResolveDto((raw.work_order ?? {}) as Record<string, unknown>);
   }
   async dispatch(woId: string, deviceId: string, notes?: string): Promise<void> {
     await httpRequest(endpoints.workOrderDispatch(woId), { method: 'POST', body: { device_id: deviceId, notes } });
@@ -107,30 +117,102 @@ export class OeeHttpMasterDataRepository implements IMasterDataRepository {
   async listOperators(signal?: AbortSignal): Promise<OperatorRecord[]> {
     return httpRequest<OperatorRecord[]>(endpoints.operators(), { signal });
   }
+  async getDevice(deviceId: string, signal?: AbortSignal): Promise<DeviceRecord> {
+    return httpRequest<DeviceRecord>(endpoints.deviceDetail(deviceId), { signal });
+  }
+  async updateDevice(deviceId: string, patch: DeviceMetadataPatch): Promise<DeviceRecord> {
+    return httpRequest<DeviceRecord>(endpoints.deviceDetail(deviceId), { method: 'PUT', body: patch });
+  }
+  async getMachine(machineId: string, signal?: AbortSignal): Promise<MachineRecord> {
+    return httpRequest<MachineRecord>(endpoints.machineDetail(machineId), { signal });
+  }
+  async updateMachine(machineId: string, patch: MachineMetadataPatch): Promise<MachineRecord> {
+    return httpRequest<MachineRecord>(endpoints.machineDetail(machineId), { method: 'PUT', body: patch });
+  }
+  async bindDevice(machineId: string, deviceId: string): Promise<MachineRecord> {
+    // Bind contract uses snake_case body per API_DOCUMENTATION.md §F.6.
+    return httpRequest<MachineRecord>(endpoints.machineBind(machineId), {
+      method: 'POST',
+      body: { device_id: deviceId },
+    });
+  }
+  async unbindMachine(machineId: string): Promise<MachineRecord> {
+    return httpRequest<MachineRecord>(endpoints.machineUnbind(machineId), { method: 'POST' });
+  }
 }
 
 export class OeeHttpTelemetryRepository implements ITelemetryRepository {
   async getHistory(deviceId: string, from?: string, to?: string, limit = 200, signal?: AbortSignal): Promise<TelemetryHistoryPoint[]> {
     const path = withQuery(endpoints.telemetryHistory(deviceId), { from, to, limit });
-    return httpRequest<TelemetryHistoryPoint[]>(path, { signal });
+    const raw = await httpRequest<unknown>(path, { signal });
+    return mapTelemetryHistoryListDto(raw);
   }
   async getActiveDowntimes(signal?: AbortSignal): Promise<DowntimeEvent[]> {
-    return httpRequest<DowntimeEvent[]>(endpoints.downtimeActive(), { signal });
+    const raw = await httpRequest<unknown>(endpoints.downtimeActive(), { signal });
+    return Array.isArray(raw) ? raw.map((item) => mapDowntimeEventDto(item as Record<string, unknown>)) : mapDowntimeResultDto(raw).data;
   }
-  async getDowntimes(deviceId: string, signal?: AbortSignal): Promise<DowntimeEvent[]> {
-    return httpRequest<DowntimeEvent[]>(endpoints.downtimesByDevice(deviceId), { signal });
+  async getDowntimes(
+    deviceId: string,
+    from?: string,
+    to?: string,
+    limit = 100,
+    cursor?: string,
+    envelope = false,
+    signal?: AbortSignal
+  ): Promise<{ data: DowntimeEvent[]; meta: PageMeta }> {
+    const path = withQuery(endpoints.downtimesByDevice(deviceId), { from, to, limit, cursor, envelope });
+    const raw = await httpRequest<unknown>(path, { signal });
+    const result = mapDowntimeResultDto(raw);
+    return { data: result.data, meta: envelope ? result.meta : { limit, hasMore: false, nextCursor: null, count: result.data.length } };
+  }
+  async getLabelableDowntimes(deviceId: string, signal?: AbortSignal): Promise<DowntimeEvent[]> {
+    const path = withQuery(endpoints.downtimesByDevice(deviceId), {
+      limit: 100,
+      active_only: true,
+      unlabeled_only: true,
+    });
+    const raw = await httpRequest<unknown>(path, { signal });
+    return mapDowntimeResultDto(raw).data;
+  }
+  async getHourlyTrends(
+    deviceId: string,
+    from?: string,
+    to?: string,
+    limit = 72,
+    envelope = false,
+    signal?: AbortSignal
+  ): Promise<{ data: HourlyTrendPoint[]; meta: PageMeta }> {
+    const path = withQuery(endpoints.telemetryHourly(deviceId), { from, to, limit, envelope });
+    const raw = await httpRequest<unknown>(path, { signal });
+    const result = mapHourlyTrendResultDto(raw);
+    return { data: result.data, meta: envelope ? result.meta : { limit, hasMore: false, nextCursor: null, count: result.data.length } };
+  }
+  async getOperationalEvents(
+    deviceId: string,
+    from?: string,
+    to?: string,
+    limit = 100,
+    cursor?: string,
+    envelope = false,
+    signal?: AbortSignal
+  ): Promise<{ data: OperationalEvent[]; meta: PageMeta }> {
+    const path = withQuery(endpoints.operationalEvents(deviceId), { from, to, limit, cursor, envelope });
+    const raw = await httpRequest<unknown>(path, { signal });
+    const result = mapOperationalEventResultDto(raw);
+    return { data: result.data, meta: envelope ? result.meta : { limit, hasMore: false, nextCursor: null, count: result.data.length } };
   }
   async labelDowntimeReason(id: number, category: DowntimeCategory, reason: string, notes?: string): Promise<void> {
     await httpRequest(endpoints.downtimeReason(id), { method: 'POST', body: { category, reason, notes } });
   }
-  async getOperationalEvents(deviceId: string, signal?: AbortSignal): Promise<OperationalEvent[]> {
-    return httpRequest<OperationalEvent[]>(endpoints.operationalEvents(deviceId), { signal });
-  }
 }
 
 export class OeeHttpAuthGateway implements IAuthGateway {
-  async loginWithPin(pin: string, operatorId?: string, stationId?: string): Promise<{ token: string; expiresIn: number }> {
-    const raw = await httpRequest<{ token: string; expires_in: number }>(endpoints.authOperatorPin(), {
+  async loginWithPin(pin: string, operatorId?: string, stationId?: string): Promise<AuthSession> {
+    const raw = await httpRequest<{
+      token: string;
+      expires_in: number;
+      operator?: { id?: string; username?: string; role?: string; line_id?: string | null; lineId?: string | null };
+    }>(endpoints.authOperatorPin(), {
       method: 'POST',
       body: { pin, operator_id: operatorId, station_id: stationId },
     });
@@ -139,7 +221,16 @@ export class OeeHttpAuthGateway implements IAuthGateway {
     } catch {
       // storage unavailable — token stays in memory only
     }
-    return { token: raw.token, expiresIn: raw.expires_in };
+    return {
+      token: raw.token,
+      expiresIn: raw.expires_in,
+      operator: {
+        id: raw.operator?.id ?? operatorId ?? '',
+        username: raw.operator?.username ?? '',
+        role: raw.operator?.role ?? '',
+        lineId: raw.operator?.line_id ?? raw.operator?.lineId ?? null,
+      },
+    };
   }
   logout(): void {
     try {
@@ -150,7 +241,7 @@ export class OeeHttpAuthGateway implements IAuthGateway {
   }
   getToken(): string | null {
     try {
-      return window.localStorage.getItem('oee_api_token');
+      return window.localStorage.getItem('oee_api_token') ?? null;
     } catch {
       return null;
     }

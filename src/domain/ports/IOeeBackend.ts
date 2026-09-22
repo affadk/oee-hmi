@@ -39,23 +39,66 @@ export interface IDeviceCommandGateway {
   sendCommand(input: DeviceCommandInput): Promise<{ success: boolean; transactionId: string }>;
 }
 
+export interface DeviceMetadataPatch {
+  ipAddress?: string;
+  firmwareVersion?: string;
+}
+
+export interface MachineMetadataPatch {
+  machineName?: string;
+  modbusSlaveId?: number;
+}
+
 export interface IMasterDataRepository {
   listDevices(signal?: AbortSignal): Promise<DeviceRecord[]>;
   listMachines(signal?: AbortSignal): Promise<MachineRecord[]>;
   listProducts(signal?: AbortSignal): Promise<ProductRecord[]>;
   listOperators(signal?: AbortSignal): Promise<OperatorRecord[]>;
+  getDevice(deviceId: string, signal?: AbortSignal): Promise<DeviceRecord>;
+  updateDevice(deviceId: string, patch: DeviceMetadataPatch): Promise<DeviceRecord>;
+  getMachine(machineId: string, signal?: AbortSignal): Promise<MachineRecord>;
+  updateMachine(machineId: string, patch: MachineMetadataPatch): Promise<MachineRecord>;
+  /** Bind device ↔ machine 1:1 (POST /machines/:machineId/bind). */
+  bindDevice(machineId: string, deviceId: string): Promise<MachineRecord>;
+  /** Unbind device from machine (POST /machines/:machineId/unbind). */
+  unbindMachine(machineId: string): Promise<MachineRecord>;
 }
 
 export interface ITelemetryRepository {
   getHistory(deviceId: string, from?: string, to?: string, limit?: number, signal?: AbortSignal): Promise<TelemetryHistoryPoint[]>;
   getActiveDowntimes(signal?: AbortSignal): Promise<DowntimeEvent[]>;
-  getDowntimes(deviceId: string, signal?: AbortSignal): Promise<DowntimeEvent[]>;
+  getDowntimes(deviceId: string, from?: string, to?: string, limit?: number, cursor?: string, envelope?: boolean, signal?: AbortSignal): Promise<{ data: DowntimeEvent[]; meta: PageMeta }>;
+  getLabelableDowntimes(deviceId: string, signal?: AbortSignal): Promise<DowntimeEvent[]>;
+  getHourlyTrends(deviceId: string, from?: string, to?: string, limit?: number, envelope?: boolean, signal?: AbortSignal): Promise<{ data: HourlyTrendPoint[]; meta: PageMeta }>;
+  getOperationalEvents(deviceId: string, from?: string, to?: string, limit?: number, cursor?: string, envelope?: boolean, signal?: AbortSignal): Promise<{ data: OperationalEvent[]; meta: PageMeta }>;
   labelDowntimeReason(id: number, category: DowntimeCategory, reason: string, notes?: string): Promise<void>;
-  getOperationalEvents(deviceId: string, signal?: AbortSignal): Promise<OperationalEvent[]>;
+}
+
+export interface HourlyTrendPoint {
+  bucket: string;
+  deviceId: string;
+  oee: number;
+  availability: number;
+  performance: number;
+  quality: number;
+  totalCount: number;
+  goodCount: number;
+  rejectCount: number;
+}
+
+export interface AuthSession {
+  token: string;
+  expiresIn: number;
+  operator: {
+    id: string;
+    username: string;
+    role: string;
+    lineId: string | null;
+  };
 }
 
 export interface IAuthGateway {
-  loginWithPin(pin: string, operatorId?: string, stationId?: string): Promise<{ token: string; expiresIn: number }>;
+  loginWithPin(pin: string, operatorId?: string, stationId?: string): Promise<AuthSession>;
   logout(): void;
   getToken(): string | null;
 }

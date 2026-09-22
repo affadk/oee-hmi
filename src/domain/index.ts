@@ -16,6 +16,7 @@ export * from './entities/backend/Device';
 
 // Domain Services
 export * from './services/OeeCalculator';
+export * from './services/ShiftTimeline';
 
 // Ports (legacy simulation lane)
 export * from './ports/IMachineRepository';

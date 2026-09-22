@@ -19,6 +19,9 @@ import { AlarmsZone } from '../components/AlarmsZone';
 import { LogEventModal } from '../components/LogEventModal';
 import { FormulaHelpModal } from '../components/FormulaHelpModal';
 import { MqttEdgeInspectorModal } from '../components/MqttEdgeInspectorModal';
+import { AuthPinModal } from '../components/AuthPinModal';
+import { DeviceConfigModal } from '../components/DeviceConfigModal';
+import { ProductionSetupModal } from '../components/ProductionSetupModal';
 import { LayoutDashboard, Tv, Sun, Moon } from 'lucide-react';
 
 export const DashboardPage: React.FC = () => {
@@ -36,6 +39,15 @@ export const DashboardPage: React.FC = () => {
     simulateMachinePulseUseCase: container.simulateMachinePulseUseCase,
     manageAlarmsUseCase: container.manageAlarmsUseCase,
     mqttEdgeCommandUseCase: container.mqttEdgeCommandUseCase,
+    getDowntimeReasonsUseCase: container.getDowntimeReasonsUseCase,
+    getHourlyTrendsUseCase: container.getHourlyTrendsUseCase,
+    subscribeTelemetryUseCase: container.subscribeTelemetryUseCase,
+    listLabelableDowntimesUseCase: container.listLabelableDowntimesUseCase,
+    labelDowntimeReasonUseCase: container.labelDowntimeReasonUseCase,
+    configureDeviceUseCase: container.configureDeviceUseCase,
+    listWorkOrdersUseCase: container.listWorkOrdersUseCase,
+    authGateway: container.authGateway,
+    useBackend: container.useBackend,
   }), [container]);
 
   const dashboard = useOeeDashboard(deps);
@@ -120,6 +132,7 @@ export const DashboardPage: React.FC = () => {
           onToggleFullscreen={toggleBrowserFullscreen}
           onOpenMqttModal={dashboard.openMqttModal}
           isSimulating={dashboard.isSimulating}
+          useBackend={dashboard.useBackend}
           onToggleSimulate={dashboard.toggleSimulate}
           onSwitchMachine={dashboard.selectMachine}
           onOpenFormula={dashboard.openFormulaModal}
@@ -145,6 +158,7 @@ export const DashboardPage: React.FC = () => {
             selectedShift={dashboard.selectedShift}
             selectedDate={dashboard.selectedDate}
             isSimulating={dashboard.isSimulating}
+            useBackend={dashboard.useBackend}
             onSelectMachine={dashboard.selectMachine}
             onSelectLine={dashboard.selectLine}
             onSelectShift={dashboard.selectShift}
@@ -152,6 +166,11 @@ export const DashboardPage: React.FC = () => {
             onOpenLogModal={dashboard.openLogModal}
             onOpenHelpModal={() => dashboard.openFormulaModal('OEE')}
             onOpenMqttModal={dashboard.openMqttModal}
+            onOpenProductionSetup={() => {
+              dashboard.openProductionSetupModal();
+              void dashboard.loadPendingWorkOrders().catch(() => undefined);
+            }}
+            onOpenDeviceConfig={dashboard.openDeviceConfigModal}
             onUpdateMachineStatus={dashboard.updateMachineStatus}
             teepEnabled={dashboard.teepEnabled}
             onToggleTeep={dashboard.toggleTeep}
@@ -239,6 +258,44 @@ export const DashboardPage: React.FC = () => {
         machine={machine}
         onSendCommand={dashboard.dispatchMqttCommand}
         onSendJobConfig={dashboard.dispatchMqttJobConfig}
+        useBackend={dashboard.useBackend}
+      />
+
+      <DeviceConfigModal
+        isOpen={dashboard.isDeviceConfigModalOpen}
+        onClose={dashboard.closeDeviceConfigModal}
+        registry={dashboard.deviceRegistry}
+        registryError={dashboard.deviceRegistryError}
+        isBackendMode={dashboard.useBackend}
+        onRefresh={dashboard.refreshDeviceRegistry}
+        onSaveDeviceMetadata={dashboard.saveDeviceMetadata}
+        onBindDevice={dashboard.bindDeviceToMachine}
+        onUnbindDevice={dashboard.unbindDeviceFromMachine}
+      />
+
+      <ProductionSetupModal
+        isOpen={dashboard.isProductionSetupModalOpen}
+        onClose={dashboard.closeProductionSetupModal}
+        isBackendMode={dashboard.useBackend}
+        machineId={machine.id}
+        deviceId={machine.deviceId || null}
+        pendingWorkOrders={dashboard.pendingWorkOrders}
+        workOrderError={dashboard.workOrderError}
+        preview={dashboard.workOrderPreview}
+        busy={dashboard.productionSetupBusy}
+        onLoadPending={dashboard.loadPendingWorkOrders}
+        onPreview={dashboard.previewWorkOrder}
+        onClearPreview={dashboard.clearWorkOrderPreview}
+        onDispatch={dashboard.dispatchWorkOrder}
+        onComplete={dashboard.completeWorkOrder}
+        onCancel={dashboard.cancelWorkOrder}
+      />
+
+      <AuthPinModal
+        isOpen={dashboard.isAuthModalOpen}
+        error={dashboard.authError}
+        onClose={dashboard.closeAuthModal}
+        onSubmit={(pin, operatorId) => dashboard.loginWithPin(pin, operatorId)}
       />
     </div>
   );

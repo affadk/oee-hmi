@@ -1,13 +1,19 @@
 // /src/application/use-cases/ListWorkOrdersUseCase.ts
 
 import type { IWorkOrderRepository } from '../../domain/ports/IOeeBackend';
-import type { WorkOrderListItem, WorkOrderQuery } from '../../domain/entities/backend/WorkOrder';
+import type { WorkOrderListItem, WorkOrderQuery, WorkOrderResolveResult, WorkOrderStatus } from '../../domain/entities/backend/WorkOrder';
 
 export class ListWorkOrdersUseCase {
   constructor(private readonly workOrders: IWorkOrderRepository) {}
 
   list(query?: WorkOrderQuery, signal?: AbortSignal): Promise<WorkOrderListItem[]> {
     return this.workOrders.list(query, signal);
+  }
+
+  /** Safe read — resolves WO + machine + product + operator + shift plan without publishing MQTT. */
+  resolve(woId: string, deviceId: string, signal?: AbortSignal): Promise<WorkOrderResolveResult> {
+    if (!woId || !deviceId) throw new Error('woId and deviceId are required.');
+    return this.workOrders.resolve(woId, deviceId, signal);
   }
 
   detail(woId: string, signal?: AbortSignal): Promise<WorkOrderListItem> {

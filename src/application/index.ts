@@ -16,6 +16,9 @@ export * from './use-cases/GetLiveStateUseCase';
 export * from './use-cases/ListWorkOrdersUseCase';
 export * from './use-cases/SendDeviceCommandUseCase';
 export * from './use-cases/SubscribeTelemetryUseCase';
+export * from './use-cases/ListLabelableDowntimesUseCase';
+export * from './use-cases/LabelDowntimeReasonUseCase';
+export * from './use-cases/ConfigureDeviceUseCase';
 
 // DTO mappers (boundary: raw API JSON → domain)
 export * from './dto/live-state.dto';

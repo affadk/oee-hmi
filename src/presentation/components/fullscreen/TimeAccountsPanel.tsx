@@ -1,9 +1,10 @@
 // /src/components/fullscreen/TimeAccountsPanel.tsx
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Clock } from 'lucide-react';
 import { useTheme } from '../../providers/ThemeProvider';
 import { CalculatedOeeMetrics, MachineConfig } from '../../../domain/index';
+import { buildShiftTimeline, summarizeTimeline } from '../../../domain/services/ShiftTimeline';
 
 interface TimeAccountsPanelProps {
   metrics: CalculatedOeeMetrics;
@@ -17,6 +18,29 @@ export const TimeAccountsPanel: React.FC<TimeAccountsPanelProps> = ({ metrics, m
   const plannedTimeMin = metrics.plannedProductionTimeMin || 420;
   const runTimeMin = metrics.runTimeMin || 378;
   const downtimeMin = metrics.downtimeMin || 42;
+
+  // Angka nyata dari data mesin: changeover = label (bisa PLANNED terjadwal),
+  // breakdown/waiting = unplanned. Tidak ada angka hardcode per jam.
+  const accounts = useMemo(() => {
+    const reasons = machine?.downtimeReasons ?? [];
+    const isChangeover = (r: { category: string; label: string }) =>
+      /changeover|setup|adjust|splice|foil|calibrat|die|tool/i.test(`${r.category} ${r.label}`);
+    const isWaiting = (r: { category: string; label: string }) =>
+      /waiting|material|supply|starv|verif/i.test(`${r.category} ${r.label}`);
+    const changeover = Math.round(reasons.filter(isChangeover).reduce((acc, r) => acc + r.durationMinutes, 0));
+    const waiting = Math.round(reasons.filter((r) => !isChangeover(r) && isWaiting(r)).reduce((acc, r) => acc + r.durationMinutes, 0));
+    const breakdown = Math.round(
+      reasons.filter((r) => !isChangeover(r) && !isWaiting(r) && r.type !== 'PLANNED' && r.category !== 'Planned')
+        .reduce((acc, r) => acc + r.durationMinutes, 0),
+    );
+    const plannedBreak = Math.round(
+      reasons.filter((r) => !isChangeover(r) && !isWaiting(r) && (r.type === 'PLANNED' || r.category === 'Planned'))
+        .reduce((acc, r) => acc + r.durationMinutes, 0),
+    );
+    const staffedMin = machine?.shiftDurationMinutes ?? plannedTimeMin + (machine?.plannedDowntimeMinutes ?? 60);
+    const undefinedMin = Math.max(0, Math.round(staffedMin - runTimeMin - breakdown - waiting - changeover - plannedBreak));
+    return { breakdown, waiting, changeover, plannedBreak, staffedMin, undefinedMin };
+  }, [machine?.downtimeReasons, machine?.shiftDurationMinutes, machine?.plannedDowntimeMinutes, plannedTimeMin, runTimeMin]);
 
   // Format hours and minutes helper
   const formatHm = (min: number) => {

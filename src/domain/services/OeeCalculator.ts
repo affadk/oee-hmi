@@ -57,10 +57,10 @@ export class OeeCalculator {
     const runTimeMin = Math.max(0, plannedProductionTimeMin - downtimeMin);
 
     // If telemetry values are available, prioritize MQTT contract values
-    const availabilityPct = machine.telemetry?.a ? Number((machine.telemetry.a / 100).toFixed(1)) : 91.2;
-    const performancePct = machine.telemetry?.p ? Number((machine.telemetry.p / 100).toFixed(1)) : 94.5;
-    const qualityPct = machine.telemetry?.q ? Number((machine.telemetry.q / 100).toFixed(1)) : 95.6;
-    const oeePct = machine.telemetry?.oee ? Number((machine.telemetry.oee / 100).toFixed(1)) : 82.4;
+    const availabilityPct = machine.telemetry?.a ? Number((machine.telemetry.a / 100).toFixed(1)) : 0;
+    const performancePct = machine.telemetry?.p ? Number((machine.telemetry.p / 100).toFixed(1)) : 0;
+    const qualityPct = machine.telemetry?.q ? Number((machine.telemetry.q / 100).toFixed(1)) : 0;
+    const oeePct = machine.telemetry?.oee ? Number((machine.telemetry.oee / 100).toFixed(1)) : 0;
 
     const totalCount = machine.telemetry?.tot ?? machine.totalCount;
     const rejectCount = machine.telemetry?.rej ?? machine.rejectCount;
@@ -73,14 +73,15 @@ export class OeeCalculator {
       : 0;
 
     // Equivalent units loss calculation
-    const potentialProductionPcs = Math.round((plannedProductionTimeMin * 60) / machine.idealCycleTimeSec);
+    const safeCycleTime = Math.max(0.1, machine.idealCycleTimeSec);
+    const potentialProductionPcs = Math.round((plannedProductionTimeMin * 60) / safeCycleTime);
     const totalLossPcs = Math.max(0, potentialProductionPcs - goodCount);
-    const availabilityLossPcs = Math.round((downtimeMin * 60) / machine.idealCycleTimeSec);
+    const availabilityLossPcs = Math.round((downtimeMin * 60) / safeCycleTime);
     const qualityLossPcs = rejectCount;
     const performanceLossPcs = Math.max(0, totalLossPcs - availabilityLossPcs - qualityLossPcs);
-    const performanceLossMin = Math.round((performanceLossPcs * machine.idealCycleTimeSec) / 60);
+    const performanceLossMin = Math.round((performanceLossPcs * safeCycleTime) / 60);
 
-    const calendarUtilizationPct = 87.5;
+    const calendarUtilizationPct = 0;
     const teepPct = Number(((oeePct * (calendarUtilizationPct / 100))).toFixed(1));
 
     return {

@@ -20,6 +20,9 @@ import type {
 import { InMemoryMachineRepository } from '../adapters/InMemoryMachineRepository';
 import { InMemoryAlarmRepository } from '../adapters/InMemoryAlarmRepository';
 import { MqttEdgeSimulatorAdapter } from '../adapters/MqttEdgeSimulatorAdapter';
+import { NoOpMqttGateway } from '../adapters/NoOpMqttGateway';
+import { BackendMachineRepository } from '../adapters/BackendMachineRepository';
+import { BackendAlarmRepository } from '../adapters/BackendAlarmRepository';
 import { LocalStorageThemeAdapter } from '../storage/LocalStorageThemeAdapter';
 import {
   OeeHttpAuthGateway,
@@ -30,6 +33,7 @@ import {
   OeeHttpWorkOrderRepository,
 } from '../api/oeeApiClient';
 import { TelemetryWsClient } from '../realtime/telemetryWsClient';
+import { env } from '../config/env';
 
 import { CalculateOeeUseCase } from '../../application/use-cases/CalculateOeeUseCase';
 import { GetMachinesUseCase } from '../../application/use-cases/GetMachinesUseCase';
@@ -43,9 +47,17 @@ import { GetLiveStateUseCase } from '../../application/use-cases/GetLiveStateUse
 import { ListWorkOrdersUseCase } from '../../application/use-cases/ListWorkOrdersUseCase';
 import { SendDeviceCommandUseCase } from '../../application/use-cases/SendDeviceCommandUseCase';
 import { SubscribeTelemetryUseCase } from '../../application/use-cases/SubscribeTelemetryUseCase';
+import { GetDowntimeReasonsUseCase } from '../../application/use-cases/GetDowntimeReasonsUseCase';
+import { GetHourlyTrendsUseCase } from '../../application/use-cases/GetHourlyTrendsUseCase';
+import { ListLabelableDowntimesUseCase } from '../../application/use-cases/ListLabelableDowntimesUseCase';
+import { LabelDowntimeReasonUseCase } from '../../application/use-cases/LabelDowntimeReasonUseCase';
+import { ConfigureDeviceUseCase } from '../../application/use-cases/ConfigureDeviceUseCase';
 
 export interface AppContainer {
-  // Ports / Repositories (legacy in-memory simulation lane)
+  // Data source mode
+  useBackend: boolean;
+
+  // Ports / Repositories (lane depends on useBackend flag)
   machineRepository: IMachineRepository;
   alarmRepository: IAlarmRepository;
   mqttGateway: IMqttGateway;
@@ -60,7 +72,7 @@ export interface AppContainer {
   authGateway: IAuthGateway;
   realtimeGateway: IRealtimeGateway;
 
-  // Use cases (legacy simulation lane)
+  // Use cases (simulation lane)
   calculateOeeUseCase: CalculateOeeUseCase;
   getMachinesUseCase: GetMachinesUseCase;
   updateMachineStatusUseCase: UpdateMachineStatusUseCase;
@@ -75,21 +87,26 @@ export interface AppContainer {
   listWorkOrdersUseCase: ListWorkOrdersUseCase;
   sendDeviceCommandUseCase: SendDeviceCommandUseCase;
   subscribeTelemetryUseCase: SubscribeTelemetryUseCase;
+  getDowntimeReasonsUseCase: GetDowntimeReasonsUseCase;
+  getHourlyTrendsUseCase: GetHourlyTrendsUseCase;
+  listLabelableDowntimesUseCase: ListLabelableDowntimesUseCase;
+  labelDowntimeReasonUseCase: LabelDowntimeReasonUseCase;
+  configureDeviceUseCase: ConfigureDeviceUseCase;
 }
 
 /**
  * Creates and wires the dependency injection container.
  * In a Hexagonal Architecture, this Composition Root instantiates
  * infrastructure adapters and injects them into application use cases.
+ *
+ * Data source is controlled by VITE_USE_BACKEND:
+ * - false (default): simulation lane with InMemory repositories + MqttEdgeSimulatorAdapter
+ * - true: backend lane with HTTP repositories + TelemetryWsClient
  */
 export function createContainer(): AppContainer {
-  // 1. Adapters (Infrastructure) — simulation lane (default UI data source)
-  const machineRepository = new InMemoryMachineRepository();
-  const alarmRepository = new InMemoryAlarmRepository();
-  const mqttGateway = new MqttEdgeSimulatorAdapter();
-  const themeStorage = new LocalStorageThemeAdapter();
+  const useBackend = env.useBackend;
 
-  // 1b. Adapters (Infrastructure) — backend lane (real REST + WS)
+  // 1. Adapters (Infrastructure)
   const liveStateRepository = new OeeHttpLiveStateRepository();
   const workOrderRepository = new OeeHttpWorkOrderRepository();
   const deviceCommandGateway = new OeeHttpDeviceCommandGateway();
@@ -97,6 +114,26 @@ export function createContainer(): AppContainer {
   const telemetryRepository = new OeeHttpTelemetryRepository();
   const authGateway = new OeeHttpAuthGateway();
   const realtimeGateway = new TelemetryWsClient();
+
+  const machineRepository = useBackend
+    ? new BackendMachineRepository(
+        liveStateRepository,
+        masterDataRepository,
+        workOrderRepository,
+        deviceCommandGateway,
+        telemetryRepository,
+      )
+    : new InMemoryMachineRepository();
+
+  const alarmRepository = useBackend
+    ? new BackendAlarmRepository(telemetryRepository)
+    : new InMemoryAlarmRepository();
+
+  const mqttGateway = useBackend
+    ? new NoOpMqttGateway()
+    : new MqttEdgeSimulatorAdapter();
+
+  const themeStorage = new LocalStorageThemeAdapter();
 
   // 2. Use Cases (Application) with Injected Adapters
   const calculateOeeUseCase = new CalculateOeeUseCase();
@@ -111,8 +148,14 @@ export function createContainer(): AppContainer {
   const listWorkOrdersUseCase = new ListWorkOrdersUseCase(workOrderRepository);
   const sendDeviceCommandUseCase = new SendDeviceCommandUseCase(deviceCommandGateway);
   const subscribeTelemetryUseCase = new SubscribeTelemetryUseCase(realtimeGateway);
+  const getDowntimeReasonsUseCase = new GetDowntimeReasonsUseCase(telemetryRepository);
+  const getHourlyTrendsUseCase = new GetHourlyTrendsUseCase(telemetryRepository);
+  const listLabelableDowntimesUseCase = new ListLabelableDowntimesUseCase(telemetryRepository);
+  const labelDowntimeReasonUseCase = new LabelDowntimeReasonUseCase(telemetryRepository);
+  const configureDeviceUseCase = new ConfigureDeviceUseCase(masterDataRepository);
 
   return {
+    useBackend,
     machineRepository,
     alarmRepository,
     mqttGateway,
@@ -136,6 +179,11 @@ export function createContainer(): AppContainer {
     listWorkOrdersUseCase,
     sendDeviceCommandUseCase,
     subscribeTelemetryUseCase,
+    getDowntimeReasonsUseCase,
+    getHourlyTrendsUseCase,
+    listLabelableDowntimesUseCase,
+    labelDowntimeReasonUseCase,
+    configureDeviceUseCase,
   };
 }
 

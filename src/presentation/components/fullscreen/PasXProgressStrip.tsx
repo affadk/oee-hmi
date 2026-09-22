@@ -1,8 +1,14 @@
 // /src/components/fullscreen/PasXProgressStrip.tsx
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useTheme } from '../../providers/ThemeProvider';
 import { MachineConfig, CalculatedOeeMetrics } from '../../../domain/index';
+import {
+  buildShiftTimeline,
+  clockLabel,
+  formatDuration,
+  type TimelineKind,
+} from '../../../domain/services/ShiftTimeline';
 
 interface PasXProgressStripProps {
   machine: MachineConfig;
@@ -21,18 +27,13 @@ interface TimelineEvent {
   durationFraction: number;
 }
 
-const SHIFT_EVENTS: TimelineEvent[] = [
-  { key: '0295837101', type: 'Active', label: 'Normal Production Run', startTime: '2026/09/20 - 10:00 PM', endTime: '2026/09/20 - 11:15 PM', duration: '1h 15m', color: '#48a43f', startHourFraction: 0, durationFraction: 1.25 },
-  { key: '0295837120', type: 'Changeover', label: 'Blister Film Roll Setup', startTime: '2026/09/20 - 11:15 PM', endTime: '2026/09/21 - 00:05 AM', duration: '50m', color: '#eab308', startHourFraction: 1.25, durationFraction: 0.85 },
-  { key: '0295837144', type: 'Active', label: 'High Speed Packaging Run', startTime: '2026/09/21 - 00:05 AM', endTime: '2026/09/21 - 00:37 AM', duration: '32m', color: '#48a43f', startHourFraction: 2.1, durationFraction: 0.55 },
-  { key: '0295837182', type: 'Breakdown', label: 'Feeder Jam & Jam Sensor Error', startTime: '2026/09/21 - 00:37 AM', endTime: '2026/09/21 - 01:05 AM', duration: '28m', color: '#dc2626', startHourFraction: 2.65, durationFraction: 0.47 },
-  { key: '0295837201', type: 'Active', label: 'Continuous Blister Sealing (Current)', startTime: '2026/09/21 - 01:05 AM', endTime: '2026/09/21 - 02:20 AM', duration: '1h 15m', color: '#48a43f', startHourFraction: 3.12, durationFraction: 1.25 },
-  { key: '0295837225', type: 'Waiting', label: 'Waiting for Batch Verification', startTime: '2026/09/21 - 02:20 AM', endTime: '2026/09/21 - 02:34 AM', duration: '14m', color: '#eab308', startHourFraction: 4.37, durationFraction: 0.23 },
-  { key: '0295837240', type: 'Active', label: 'Production Run (Shift Peak)', startTime: '2026/09/21 - 02:34 AM', endTime: '2026/09/21 - 03:30 AM', duration: '56m', color: '#48a43f', startHourFraction: 4.6, durationFraction: 0.93 },
-  { key: '0295837265', type: 'Changeover', label: 'Secondary Foil Splice & Inspection', startTime: '2026/09/21 - 03:30 AM', endTime: '2026/09/21 - 04:28 AM', duration: '58m', color: '#eab308', startHourFraction: 5.53, durationFraction: 0.97 },
-  { key: '0295837290', type: 'Breakdown', label: 'Cartoner Chute Sensor Offset', startTime: '2026/09/21 - 04:28 AM', endTime: '2026/09/21 - 04:40 AM', duration: '12m', color: '#dc2626', startHourFraction: 6.5, durationFraction: 0.2 },
-  { key: '0295837310', type: 'Active', label: 'Final Shift Run & Batch Close', startTime: '2026/09/21 - 04:40 AM', endTime: '2026/09/21 - 06:35 AM', duration: '1h 55m', color: '#48a43f', startHourFraction: 6.7, durationFraction: 1.9 },
-];
+const KIND_COLOR: Record<TimelineKind, string> = {
+  Active: '#48a43f',
+  Changeover: '#eab308',
+  Waiting: '#eab308',
+  Breakdown: '#dc2626',
+  Undefined: '#64748b',
+};
 
 const getEventColorTheme = (type: TimelineEvent['type']) => {
   switch (type) {
@@ -73,6 +74,28 @@ export const PasXProgressStrip: React.FC<PasXProgressStripProps> = ({ machine })
   const endMin = endMinRaw <= startMin ? endMinRaw + 24 * 60 : endMinRaw;
   const windowMin = Math.max(60, endMin - startMin);
   const windowH = windowMin / 60;
+
+  // Segmen timeline nyata dari data mesin (downtimeReasons + window shift),
+  // bukan mock statis. Changeover = label SETUP_AND_ADJUSTMENT, bukan FSM baru.
+  const SHIFT_EVENTS: TimelineEvent[] = useMemo(() => {
+    const segments = buildShiftTimeline(machine, windowMin);
+    return segments.map((seg) => {
+      const startClock = clockLabel(startMin, seg.startOffsetMin);
+      const endClock = clockLabel(startMin, seg.startOffsetMin + seg.durationMinutes);
+      return {
+        key: seg.key,
+        type: seg.kind,
+        label: seg.label,
+        startTime: startClock,
+        endTime: endClock,
+        duration: formatDuration(seg.durationMinutes),
+        color: KIND_COLOR[seg.kind],
+        startHourFraction: seg.startOffsetMin / 60,
+        durationFraction: seg.durationMinutes / 60,
+      };
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [machine?.downtimeReasons, machine?.jobConfig?.shiftStart, machine?.jobConfig?.shiftEnd, windowMin]);
 
   // Live clock — penanda real-time, refresh tiap detik
   const [now, setNow] = useState(() => new Date());

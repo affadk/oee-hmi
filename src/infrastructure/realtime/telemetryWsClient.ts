@@ -5,7 +5,7 @@
 // consumer decides to skip them for 60fps rendering (see isLiveTelemetryFrame).
 
 import type { IRealtimeGateway, RealtimeListener } from '../../domain/ports/IOeeBackend';
-import { mapTelemetryFrameDto } from '../../application/dto/telemetry.dto';
+import { mapTelemetryFrameDto, mapWsLifecycleEventDto } from '../../application/dto/telemetry.dto';
 import { env } from '../config/env';
 
 const HEARTBEAT_MS = 25_000;
@@ -31,7 +31,8 @@ export class TelemetryWsClient implements IRealtimeGateway {
         if (raw && typeof raw === 'object' && ('device_id' in raw || 'deviceId' in raw || 'fsm_state' in raw)) {
           this.listener.onTelemetry?.(mapTelemetryFrameDto(raw));
         } else if (raw && typeof raw.type === 'string') {
-          this.listener.onLifecycle?.(raw as Parameters<NonNullable<RealtimeListener['onLifecycle']>>[0]);
+          const lifecycleEvent = mapWsLifecycleEventDto(raw);
+          if (lifecycleEvent) this.listener.onLifecycle?.(lifecycleEvent);
         }
       } catch {
         // Malformed frame — never crash the dashboard loop.

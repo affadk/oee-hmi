@@ -10,6 +10,8 @@ import {
   RefreshCw,
   Sun,
   Moon,
+  ClipboardList,
+  Cpu,
 } from 'lucide-react';
 import { MachineConfig, CalculatedOeeMetrics, MachineStatus } from '../../domain/index';
 import { useTheme } from '../providers/ThemeProvider';
@@ -23,6 +25,7 @@ interface HeaderZoneProps {
   selectedShift: string;
   selectedDate: string;
   isSimulating: boolean;
+  useBackend?: boolean;
   onSelectMachine: (id: string) => void;
   onSelectLine: (line: string) => void;
   onSelectShift: (shift: string) => void;
@@ -30,6 +33,8 @@ interface HeaderZoneProps {
   onOpenLogModal: () => void;
   onOpenHelpModal: () => void;
   onOpenMqttModal?: () => void;
+  onOpenProductionSetup?: () => void;
+  onOpenDeviceConfig?: () => void;
   onUpdateMachineStatus?: (status: MachineStatus) => void;
   teepEnabled: boolean;
   onToggleTeep: () => void;
@@ -41,6 +46,7 @@ export const HeaderZone: React.FC<HeaderZoneProps> = ({
   selectedLine,
   selectedShift,
   isSimulating,
+  useBackend,
   onSelectMachine,
   onSelectLine,
   onSelectShift,
@@ -48,6 +54,8 @@ export const HeaderZone: React.FC<HeaderZoneProps> = ({
   onOpenLogModal,
   onOpenHelpModal,
   onOpenMqttModal,
+  onOpenProductionSetup,
+  onOpenDeviceConfig,
   onUpdateMachineStatus,
   teepEnabled,
   onToggleTeep,
@@ -66,22 +74,22 @@ export const HeaderZone: React.FC<HeaderZoneProps> = ({
     .map((n) => String(n).padStart(2, '0'))
     .join(':');
 
-  const machineName = currentMachine.name || 'Mesin Blister (CP400)';
-  const machineLine = currentMachine.line || 'Line Mediseal 01';
-  const productName = currentMachine.currentProduct || currentMachine.jobConfig?.productName || 'Sodium Tablets 500mg';
-  const targetCycleTimeSec = currentMachine.idealCycleTimeSec || currentMachine.jobConfig?.standardCycleTimeSec || 9.0;
-  const operatorName = currentMachine.jobConfig?.operatorName || 'Budi Santoso';
-  const operatorId = currentMachine.jobConfig?.operatorId || 'OP-104';
-  const shiftStart = currentMachine.jobConfig?.shiftStart || '22:00';
-  const shiftEnd = currentMachine.jobConfig?.shiftEnd || '08:00';
-  const breakTimeWindow = currentMachine.jobConfig?.breakTimeWindow || '02:00 - 03:00';
-  const plannedBreakMin = currentMachine.jobConfig?.plannedBreakMin ?? 60;
-  const shiftNumber = shiftStart === '22:00' || shiftStart === '23:00' ? 'Shift 3' : shiftStart === '15:00' ? 'Shift 2' : 'Shift 1';
-  const theoreticalHourlyOutput = targetCycleTimeSec > 0 ? Math.round(3600 / targetCycleTimeSec) : 400;
+  const machineName = currentMachine.name || '—';
+  const machineLine = currentMachine.line || '—';
+  const productName = currentMachine.currentProduct || currentMachine.jobConfig?.productName || '—';
+  const targetCycleTimeSec = currentMachine.idealCycleTimeSec || currentMachine.jobConfig?.standardCycleTimeSec || 0;
+  const operatorName = currentMachine.jobConfig?.operatorName || '—';
+  const operatorId = currentMachine.jobConfig?.operatorId || '—';
+  const shiftStart = currentMachine.jobConfig?.shiftStart || '—';
+  const shiftEnd = currentMachine.jobConfig?.shiftEnd || '—';
+  const breakTimeWindow = currentMachine.jobConfig?.breakTimeWindow || '—';
+  const plannedBreakMin = currentMachine.jobConfig?.plannedBreakMin ?? 0;
+  const shiftNumber = shiftStart === '22:00' || shiftStart === '23:00' ? 'Shift 3' : shiftStart === '15:00' ? 'Shift 2' : shiftStart === '—' ? '—' : 'Shift 1';
+  const theoreticalHourlyOutput = targetCycleTimeSec > 0 ? Math.round(3600 / targetCycleTimeSec) : 0;
 
-  const health = currentMachine.health || { tasks_healthy: 6, tasks_total: 6, heap_free: 184320, stale_count: 0 } as any;
+  const health = currentMachine.health || { tasks_healthy: 0, tasks_total: 0, heap_free: 0, stale_count: 0 } as any;
   const isHealthy = (health.stale_count ?? 0) === 0;
-  const heapFreeKb = Math.round((health.heap_free || 184320) / 1024);
+  const heapFreeKb = health.heap_free != null ? Math.round(health.heap_free / 1024) : 0;
 
   const isRunning = currentMachine.status === 'RUNNING';
 
@@ -94,6 +102,15 @@ export const HeaderZone: React.FC<HeaderZoneProps> = ({
           <span className="hidden md:inline-flex items-center px-2 py-0.5 rounded font-mono text-xs bg-white/10 border border-white/20 text-white/80">
             Detailed Audit
           </span>
+          {useBackend ? (
+            <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase tracking-wider bg-blue-500/20 text-blue-200 border border-blue-400/30">
+              Backend Live
+            </span>
+          ) : (
+            <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase tracking-wider bg-emerald-500/20 text-emerald-200 border border-emerald-400/30">
+              Simulation
+            </span>
+          )}
         </div>
 
         <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-2.5 min-w-0 max-w-full">
@@ -169,6 +186,32 @@ export const HeaderZone: React.FC<HeaderZoneProps> = ({
             </button>
           )}
 
+          {/* Production Setup */}
+          {onOpenProductionSetup && (
+            <button
+              type="button"
+              onClick={onOpenProductionSetup}
+              className="px-2.5 py-1.5 rounded bg-white/10 hover:bg-white/20 text-white text-sm font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
+              title="Setup produksi — dispatch / complete / cancel work order"
+            >
+              <ClipboardList className="w-4 h-4 text-emerald-400" />
+              <span className="hidden lg:inline font-mono">Setup Produksi</span>
+            </button>
+          )}
+
+          {/* Device Configuration */}
+          {onOpenDeviceConfig && (
+            <button
+              type="button"
+              onClick={onOpenDeviceConfig}
+              className="px-2.5 py-1.5 rounded bg-white/10 hover:bg-white/20 text-white text-sm font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
+              title="Konfigurasi perangkat — metadata & binding device↔mesin"
+            >
+              <Cpu className="w-4 h-4 text-violet-400" />
+              <span className="hidden lg:inline font-mono">Perangkat</span>
+            </button>
+          )}
+
           {/* Formula Help */}
           <button
             type="button"
@@ -195,16 +238,18 @@ export const HeaderZone: React.FC<HeaderZoneProps> = ({
           </button>
 
           {/* Sim toggle */}
-          <button
-            type="button"
-            onClick={onToggleSimulate}
-            className={`p-1.5 rounded transition-colors cursor-pointer ${
-              isSimulating ? 'bg-emerald-600 text-white shadow-sm' : 'bg-white/10 text-white/70 hover:bg-white/20'
-            }`}
-            title={isSimulating ? 'Pause simulation' : 'Resume simulation'}
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${isSimulating ? 'animate-spin' : ''}`} />
-          </button>
+          {!useBackend && (
+            <button
+              type="button"
+              onClick={onToggleSimulate}
+              className={`p-1.5 rounded transition-colors cursor-pointer ${
+                isSimulating ? 'bg-emerald-600 text-white shadow-sm' : 'bg-white/10 text-white/70 hover:bg-white/20'
+              }`}
+              title={isSimulating ? 'Pause simulation' : 'Resume simulation'}
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isSimulating ? 'animate-spin' : ''}`} />
+            </button>
+          )}
 
           {/* Theme */}
           <button

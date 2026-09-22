@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useTheme } from '../../providers/ThemeProvider';
 import { MachineConfig, CalculatedOeeMetrics } from '../../../domain/index';
+import { buildShiftTimeline } from '../../../domain/services/ShiftTimeline';
 
 interface MachineTimelineStripProps {
   machine: MachineConfig;
@@ -21,6 +22,17 @@ export const MachineTimelineStrip: React.FC<MachineTimelineStripProps> = ({ mach
   const downPct = Math.round((downtimeMin / totalMin) * 100);
   const breakPct = Math.max(0, 100 - runPct - downPct);
 
+  // Segmen nyata dari data mesin (bukan fake proporsional).
+  // Hijau = Active, biru = planned (break/maintenance/changeover terjadwal), merah = unplanned.
+  const segments = useMemo(
+    () => buildShiftTimeline(machine, totalMin),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [machine?.downtimeReasons, machine?.jobConfig?.shiftStart, machine?.jobConfig?.shiftEnd, totalMin],
+  );
+  const segColor = (kind: string, planned: boolean) =>
+    kind === 'Active' ? 'bg-emerald-500' : planned ? 'bg-blue-600' : 'bg-rose-500';
+  const segTitle = (kind: string, planned: boolean) =>
+    kind === 'Active' ? 'Shift Run' : planned ? 'Planned Stop' : 'Unplanned Stop';
   const shiftStart = machine.jobConfig?.shiftStart || '22:00';
   const shiftEnd = machine.jobConfig?.shiftEnd || '08:00';
   const breakWindow = machine.jobConfig?.breakTimeWindow || '02:00 - 03:00';
@@ -73,12 +85,14 @@ export const MachineTimelineStrip: React.FC<MachineTimelineStripProps> = ({ mach
       {/* Multi-segment continuous visual timeline bar with live time cursor */}
       <div className="relative w-full">
         <div className={`w-full h-4 rounded-lg overflow-hidden flex shadow-inner border ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-slate-200 border-slate-300'}`}>
-          <div style={{ width: `${Math.round(runPct * 0.45)}%` }} className="h-full bg-emerald-500" title="Shift Run" />
-          <div style={{ width: `${Math.round(downPct * 0.6)}%` }} className="h-full bg-rose-500" title="Unplanned Stop" />
-          <div style={{ width: `${Math.round(runPct * 0.25)}%` }} className="h-full bg-emerald-500" title="Shift Run" />
-          <div style={{ width: `${breakPct}%` }} className="h-full bg-blue-600" title="Planned Meal Break" />
-          <div style={{ width: `${Math.round(runPct * 0.3)}%` }} className="h-full bg-emerald-500" title="Shift Run" />
-          <div style={{ width: `${Math.round(downPct * 0.4)}%` }} className="h-full bg-rose-500" title="Unplanned Stop" />
+          {segments.map((seg) => (
+            <div
+              key={seg.key}
+              style={{ width: `${Math.max(0, Math.min(100, (seg.durationMinutes / totalMin) * 100))}%` }}
+              className={`h-full ${segColor(seg.kind, seg.planned)}`}
+              title={`${segTitle(seg.kind, seg.planned)}: ${seg.label}`}
+            />
+          ))}
         </div>
 
         {/* Live Cursor for Metadata Current Time 01:25:37 */}

@@ -41,7 +41,7 @@ export const INITIAL_MACHINES: MachineConfig[] = [
     downtimeReasons: [
       { id: 'dt-s1', category: 'Breakdown', label: 'Feeder Breakdown (Event Key 0295837182)', durationMinutes: 28, equivalentLossPcs: 187, type: 'UNPLANNED' },
       { id: 'dt-s2', category: 'Waiting', label: 'Waiting for Material Supply', durationMinutes: 14, equivalentLossPcs: 93, type: 'UNPLANNED' },
-      { id: 'dt-s3', category: 'Changeover', label: 'Batch Foil Changeover', durationMinutes: 108, equivalentLossPcs: 720, type: 'UNPLANNED' },
+      { id: 'dt-s3', category: 'Changeover', label: 'Batch Foil Changeover', durationMinutes: 108, equivalentLossPcs: 720, type: 'PLANNED' },
       { id: 'dt-sp1', category: 'Planned', label: 'Staff Meal Break', durationMinutes: 60, equivalentLossPcs: 400, type: 'PLANNED' },
     ],
     rejectReasons: [

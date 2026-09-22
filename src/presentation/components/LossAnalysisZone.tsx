@@ -101,7 +101,7 @@ export const LossAnalysisZone: React.FC<LossAnalysisZoneProps> = ({ machine, met
           </div>
           <div className="flex items-center justify-between mt-1 audit-caption font-mono">
             <span className={isDark ? 'text-slate-400' : 'text-slate-500'}>Unplanned: <strong className="text-rose-500">{metrics.downtimeMin}m</strong></span>
-            <span className={`px-1.5 rounded ${isDark ? 'bg-slate-800 text-slate-400' : 'bg-slate-200 text-slate-600'}`}>Planned: {machine.plannedDowntimeMinutes || 60}m</span>
+            <span className={`px-1.5 rounded ${isDark ? 'bg-slate-800 text-slate-400' : 'bg-slate-200 text-slate-600'}`}>Planned: {machine.plannedDowntimeMinutes || 0}m</span>
           </div>
           <div className={`w-full h-2 rounded-md overflow-hidden mt-2 ${isDark ? 'bg-slate-800' : 'bg-slate-200'}`}>
             <div className="bg-rose-600 h-full rounded-full" style={{ width: '65%' }}></div>

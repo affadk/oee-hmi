@@ -34,10 +34,10 @@ export const HeroKpiZone: React.FC<HeroKpiZoneProps> = ({
   const perfValue = metrics.performancePct ?? 0;
   const qualValue = metrics.qualityPct ?? 0;
 
-  const oeeGaugeColor = getGaugeColor(oeeValue, machine.targetOee ?? 85);
-  const availGaugeColor = getGaugeColor(availValue, machine.targetAvailability ?? 90);
-  const perfGaugeColor = getGaugeColor(perfValue, machine.targetPerformance ?? 95);
-  const qualGaugeColor = getGaugeColor(qualValue, machine.targetQuality ?? 98);
+  const oeeGaugeColor = getGaugeColor(oeeValue, machine.targetOee ?? 0);
+  const availGaugeColor = getGaugeColor(availValue, machine.targetAvailability ?? 0);
+  const perfGaugeColor = getGaugeColor(perfValue, machine.targetPerformance ?? 0);
+  const qualGaugeColor = getGaugeColor(qualValue, machine.targetQuality ?? 0);
 
   const totalCount = machine.telemetry?.tot ?? machine.totalCount ?? 0;
   const rejectCount = machine.telemetry?.rej ?? machine.rejectCount ?? 0;
@@ -45,12 +45,12 @@ export const HeroKpiZone: React.FC<HeroKpiZoneProps> = ({
   const runTimeMin = machine.telemetry?.run ? Math.round(machine.telemetry.run / 60) : (metrics.runTimeMin || 0);
   const plannedTimeMin = metrics.plannedProductionTimeMin || 1;
   const downtimeMin = machine.telemetry?.dt ? Math.round(machine.telemetry.dt / 60) : (metrics.downtimeMin || 0);
-  const targetCycleTimeSec = machine.idealCycleTimeSec || 9.0;
-  const currentRate = machine.actualHourlyRate || 203;
-  const theoreticalHourlyOutput = targetCycleTimeSec > 0 ? Math.round(3600 / targetCycleTimeSec) : 400;
-  const actualCycleTimeSec = currentRate > 0 ? (3600 / currentRate).toFixed(1) : (targetCycleTimeSec * 1.97).toFixed(1);
+  const targetCycleTimeSec = machine.idealCycleTimeSec || 0;
+  const currentRate = machine.actualHourlyRate || 0;
+  const theoreticalHourlyOutput = targetCycleTimeSec > 0 ? Math.round(3600 / targetCycleTimeSec) : 0;
+  const actualCycleTimeSec = currentRate > 0 ? (3600 / currentRate).toFixed(1) : '0.0';
 
-  const targetPcs = machine.jobConfig?.targetQuantity ?? machine.targetCount ?? 12500;
+  const targetPcs = machine.jobConfig?.targetQuantity ?? machine.targetCount ?? 0;
   const actualPcs = totalCount;
   const rejectPcs = rejectCount;
   const goodPcs = goodCount;

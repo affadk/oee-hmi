@@ -1,7 +1,15 @@
 // /src/application/dto/telemetry.dto.ts
 // Boundary DTO: raw WS/REST telemetry frames → domain WsTelemetryFrame.
 
-import type { WsTelemetryFrame } from '../../domain/entities/backend/Telemetry';
+import type {
+  DowntimeCategory,
+  DowntimeEvent,
+  OperationalEvent,
+  TelemetryHistoryPoint,
+  WsLifecycleEvent,
+  WsTelemetryFrame,
+} from '../../domain/entities/backend/Telemetry';
+import type { HourlyTrendPoint, PageMeta } from '../../domain/ports/IOeeBackend';
 
 interface RawFrame {
   timestamp?: number; ts?: number;
@@ -19,6 +27,80 @@ interface RawFrame {
   rpm?: number; tmp?: number; alm?: number;
   hw_diag?: { uptime_sec?: number; uptimeSec?: number; free_heap?: number; freeHeap?: number };
   is_buffered?: boolean; isBuffered?: boolean;
+}
+
+interface RawTelemetryHistory {
+  timestamp?: string; ts?: string;
+  deviceId?: string; device_id?: string;
+  totalCount?: number; total_count?: number; total?: number;
+  goodCount?: number; good_count?: number; good?: number;
+  rejectCount?: number; reject_count?: number; reject?: number;
+  oee?: string | number; total_oee?: string | number;
+  availability?: string | number;
+  performance?: string | number;
+  quality?: string | number;
+  isBuffered?: boolean; is_buffered?: boolean;
+}
+
+interface RawHourlyTrend {
+  bucket?: string; hour?: string;
+  deviceId?: string; device_id?: string;
+  oee?: string | number; total_oee?: string | number;
+  availability?: string | number;
+  performance?: string | number;
+  quality?: string | number;
+  totalCount?: number; total_count?: number;
+  goodCount?: number; good_count?: number;
+  rejectCount?: number; reject_count?: number;
+}
+
+interface RawDowntime {
+  id?: number;
+  deviceId?: string | null; device_id?: string | null;
+  machineId?: string | null; machine_id?: string | null;
+  category?: DowntimeCategory | null;
+  operatorReason?: string | null; operator_reason?: string | null; reason?: string | null;
+  startTime?: string; start_time?: string;
+  endTime?: string | null; end_time?: string | null;
+}
+
+interface RawOperationalEvent {
+  id?: number;
+  deviceId?: string | null; device_id?: string | null;
+  machineId?: string | null; machine_id?: string | null;
+  eventType?: string; event_type?: string;
+  timestamp?: string; created_at?: string;
+}
+
+interface RawLifecycleEvent {
+  type?: string;
+  deviceId?: string; device_id?: string;
+  machineId?: string; machine_id?: string;
+  woId?: string; wo_id?: string;
+  productId?: string; product_id?: string;
+  status?: string;
+  data?: { wo_id?: string; woId?: string; status?: string };
+}
+
+function toFiniteNumber(value: unknown, fallback = 0): number {
+  const n = typeof value === 'string' ? Number(value) : (value as number);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function unwrapList<T>(raw: unknown): { data: T[]; meta: PageMeta } {
+  if (raw && typeof raw === 'object' && 'data' in raw) {
+    const envelope = raw as { data?: unknown; meta?: Partial<PageMeta> };
+    return {
+      data: Array.isArray(envelope.data) ? (envelope.data as T[]) : [],
+      meta: {
+        limit: envelope.meta?.limit ?? 0,
+        hasMore: envelope.meta?.hasMore ?? false,
+        nextCursor: envelope.meta?.nextCursor ?? null,
+        count: envelope.meta?.count ?? 0,
+      },
+    };
+  }
+  return { data: Array.isArray(raw) ? (raw as T[]) : [], meta: { limit: 0, hasMore: false, nextCursor: null, count: 0 } };
 }
 
 export function mapTelemetryFrameDto(raw: RawFrame): WsTelemetryFrame {
@@ -48,7 +130,7 @@ export function mapTelemetryFrameDto(raw: RawFrame): WsTelemetryFrame {
       availability: oee.availability ?? (raw.a != null ? raw.a / 100 : 0),
       performance: oee.performance ?? (raw.p != null ? raw.p / 100 : 0),
       quality: oee.quality ?? (raw.q != null ? raw.q / 100 : 0),
-      totalOee: oee.total_oee ?? oee.totalOee ?? 0,
+      totalOee: oee.total_oee ?? oee.totalOee ?? raw.oee_x100 ?? 0,
     },
     plcModbus: {
       spindleRpm: plc.spindle_rpm ?? plc.spindleRpm ?? raw.rpm ?? 0,
@@ -58,4 +140,100 @@ export function mapTelemetryFrameDto(raw: RawFrame): WsTelemetryFrame {
     hwDiag: { uptimeSec: hw.uptime_sec ?? hw.uptimeSec ?? 0, freeHeap: hw.free_heap ?? hw.freeHeap ?? 0 },
     isBuffered: raw.is_buffered ?? raw.isBuffered ?? false,
   };
+}
+
+export function mapTelemetryHistoryDto(raw: RawTelemetryHistory): TelemetryHistoryPoint {
+  return {
+    timestamp: raw.timestamp ?? raw.ts ?? new Date(0).toISOString(),
+    deviceId: raw.deviceId ?? raw.device_id ?? '',
+    totalCount: toFiniteNumber(raw.totalCount ?? raw.total_count ?? raw.total),
+    goodCount: toFiniteNumber(raw.goodCount ?? raw.good_count ?? raw.good),
+    rejectCount: toFiniteNumber(raw.rejectCount ?? raw.reject_count ?? raw.reject),
+    oee: toFiniteNumber(raw.oee ?? raw.total_oee),
+    availability: toFiniteNumber(raw.availability),
+    performance: toFiniteNumber(raw.performance),
+    quality: toFiniteNumber(raw.quality),
+    isBuffered: raw.isBuffered ?? raw.is_buffered ?? false,
+  };
+}
+
+export function mapTelemetryHistoryListDto(raw: unknown): TelemetryHistoryPoint[] {
+  return unwrapList<RawTelemetryHistory>(raw).data.map(mapTelemetryHistoryDto);
+}
+
+export function mapHourlyTrendDto(raw: RawHourlyTrend): HourlyTrendPoint {
+  return {
+    bucket: raw.bucket ?? raw.hour ?? '',
+    deviceId: raw.deviceId ?? raw.device_id ?? '',
+    oee: toFiniteNumber(raw.oee ?? raw.total_oee),
+    availability: toFiniteNumber(raw.availability),
+    performance: toFiniteNumber(raw.performance),
+    quality: toFiniteNumber(raw.quality),
+    totalCount: toFiniteNumber(raw.totalCount ?? raw.total_count),
+    goodCount: toFiniteNumber(raw.goodCount ?? raw.good_count),
+    rejectCount: toFiniteNumber(raw.rejectCount ?? raw.reject_count),
+  };
+}
+
+export function mapHourlyTrendResultDto(raw: unknown): { data: HourlyTrendPoint[]; meta: PageMeta } {
+  const unwrapped = unwrapList<RawHourlyTrend>(raw);
+  return { data: unwrapped.data.map(mapHourlyTrendDto), meta: unwrapped.meta };
+}
+
+export function mapDowntimeEventDto(raw: RawDowntime): DowntimeEvent {
+  return {
+    id: toFiniteNumber(raw.id),
+    deviceId: raw.deviceId ?? raw.device_id ?? null,
+    machineId: raw.machineId ?? raw.machine_id ?? null,
+    category: raw.category ?? null,
+    operatorReason: raw.operatorReason ?? raw.operator_reason ?? raw.reason ?? null,
+    startTime: raw.startTime ?? raw.start_time ?? new Date(0).toISOString(),
+    endTime: raw.endTime ?? raw.end_time ?? null,
+  };
+}
+
+export function mapDowntimeResultDto(raw: unknown): { data: DowntimeEvent[]; meta: PageMeta } {
+  const unwrapped = unwrapList<RawDowntime>(raw);
+  return { data: unwrapped.data.map(mapDowntimeEventDto), meta: unwrapped.meta };
+}
+
+export function mapOperationalEventDto(raw: RawOperationalEvent): OperationalEvent {
+  return {
+    id: toFiniteNumber(raw.id),
+    deviceId: raw.deviceId ?? raw.device_id ?? null,
+    machineId: raw.machineId ?? raw.machine_id ?? null,
+    eventType: raw.eventType ?? raw.event_type ?? 'UNKNOWN',
+    timestamp: raw.timestamp ?? raw.created_at ?? new Date(0).toISOString(),
+  };
+}
+
+export function mapOperationalEventResultDto(raw: unknown): { data: OperationalEvent[]; meta: PageMeta } {
+  const unwrapped = unwrapList<RawOperationalEvent>(raw);
+  return { data: unwrapped.data.map(mapOperationalEventDto), meta: unwrapped.meta };
+}
+
+export function mapWsLifecycleEventDto(raw: RawLifecycleEvent): WsLifecycleEvent | null {
+  const type = raw.type;
+  if (type === 'MACHINE_BOUND') {
+    return { type, machineId: raw.machineId ?? raw.machine_id ?? '', deviceId: raw.deviceId ?? raw.device_id ?? '' };
+  }
+  if (type === 'MACHINE_UNBOUND') {
+    return { type, machineId: raw.machineId ?? raw.machine_id ?? '', deviceId: raw.deviceId ?? raw.device_id ?? '' };
+  }
+  if (type === 'MACHINE_DELETED') {
+    return { type, machineId: raw.machineId ?? raw.machine_id ?? '' };
+  }
+  if (type === 'PRODUCT_DELETED') {
+    return { type, productId: raw.productId ?? raw.product_id ?? '' };
+  }
+  if (type === 'WORK_ORDER_CANCELLED') {
+    return {
+      type,
+      deviceId: raw.deviceId ?? raw.device_id ?? '',
+      machineId: raw.machineId ?? raw.machine_id ?? '',
+      woId: raw.woId ?? raw.wo_id ?? raw.data?.woId ?? raw.data?.wo_id ?? '',
+      status: 'ABORTED',
+    };
+  }
+  return null;
 }

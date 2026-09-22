@@ -46,6 +46,7 @@ interface FullscreenOeeViewProps {
     cycleTimeSec?: number,
     shiftOverride?: { shiftStart: string; shiftEnd: string; breakWindow: string; breakMin: number }
   ) => Promise<void>;
+  useBackend?: boolean;
 }
 
 export const FullscreenOeeView: React.FC<FullscreenOeeViewProps> = ({
@@ -64,6 +65,7 @@ export const FullscreenOeeView: React.FC<FullscreenOeeViewProps> = ({
   onLogReject = async () => {},
   onDispatchMqttCommand = async () => {},
   onApplyJobConfig = async () => {},
+  useBackend,
 }) => {
   const { theme, toggleTheme } = useTheme();
   const isDark = theme === 'dark';
@@ -117,51 +119,51 @@ export const FullscreenOeeView: React.FC<FullscreenOeeViewProps> = ({
   const qualGaugeColor = getGaugeColor(qualValue, machine.targetQuality ?? 98);
 
   // Metadata from machine and job config - mapping user's custom OEE production fields
-  const machineName = machine.name || 'Mesin Blister (CP400)';
-  const machineLine = machine.line || 'Line Mediseal 01';
-  const productName = machine.currentProduct || machine.jobConfig?.productName || 'Sodium Tablets 500mg';
-  const targetCycleTimeSec = machine.idealCycleTimeSec || machine.jobConfig?.standardCycleTimeSec || 9.0;
-  const operatorName = machine.jobConfig?.operatorName || 'Budi Santoso';
-  const operatorId = machine.jobConfig?.operatorId || 'OP-104';
-  const shiftStart = machine.jobConfig?.shiftStart || '22:00';
-  const shiftEnd = machine.jobConfig?.shiftEnd || '08:00';
-  const breakTimeWindow = machine.jobConfig?.breakTimeWindow || '02:00 - 03:00';
-  const plannedBreakMin = machine.jobConfig?.plannedBreakMin ?? 60;
+  const machineName = machine.name || '—';
+  const machineLine = machine.line || '—';
+  const productName = machine.currentProduct || machine.jobConfig?.productName || '—';
+  const targetCycleTimeSec = machine.idealCycleTimeSec || machine.jobConfig?.standardCycleTimeSec || 0;
+  const operatorName = machine.jobConfig?.operatorName || '—';
+  const operatorId = machine.jobConfig?.operatorId || '—';
+  const shiftStart = machine.jobConfig?.shiftStart || '—';
+  const shiftEnd = machine.jobConfig?.shiftEnd || '—';
+  const breakTimeWindow = machine.jobConfig?.breakTimeWindow || '—';
+  const plannedBreakMin = machine.jobConfig?.plannedBreakMin ?? 0;
   const shiftNumber = shiftStart === '22:00' || shiftStart === '23:00' ? 'Shift 3' : shiftStart === '15:00' ? 'Shift 2' : 'Shift 1';
 
   // Synchronize Production Rate strictly with metadata cycle time: Target Rate = 3600 / targetCycleTimeSec
-  const theoreticalHourlyOutput = targetCycleTimeSec > 0 ? Math.round(3600 / targetCycleTimeSec) : 400;
+  const theoreticalHourlyOutput = targetCycleTimeSec > 0 ? Math.round(3600 / targetCycleTimeSec) : 0;
   const targetRate = theoreticalHourlyOutput;
-  const currentRate = machine.actualHourlyRate || 203;
-  const actualCycleTimeSec = currentRate > 0 ? (3600 / currentRate).toFixed(1) : (targetCycleTimeSec * 1.97).toFixed(1);
+  const currentRate = machine.actualHourlyRate || 0;
+  const actualCycleTimeSec = currentRate > 0 ? (3600 / currentRate).toFixed(1) : (targetCycleTimeSec > 0 ? targetCycleTimeSec.toFixed(1) : '0.0');
   const speedEffRatio = targetRate > 0 ? currentRate / targetRate : 0;
-  const speedEffPct = Math.round(speedEffRatio * 100);
+  const speedEffPct = targetRate > 0 ? Math.round(speedEffRatio * 100) : 0;
   const speedEffColor = speedEffRatio >= 0.85 ? 'text-emerald-500' : speedEffRatio >= 0.6 ? 'text-amber-500' : 'text-rose-500';
 
   // Edge Health Telemetry (Poin 4 MQTT Edge Controller: FreeRTOS Health)
   const health = machine.health || {
-    tasks_healthy: 6,
-    tasks_total: 6,
-    heap_free: 184320,
+    tasks_healthy: 0,
+    tasks_total: 0,
+    heap_free: 0,
     stale_count: 0,
     timestamp: Math.floor(Date.now() / 1000),
-    event_flags: 1,
+    event_flags: 0,
     stale_tasks: [],
   };
-  const isHealthy = (health.stale_count ?? 0) === 0 && (health.tasks_healthy ?? 6) === (health.tasks_total ?? 6);
-  const heapFreeKb = Math.round((health.heap_free || 184320) / 1024);
+  const isHealthy = (health.stale_count ?? 0) === 0 && (health.tasks_healthy ?? 0) === (health.tasks_total ?? 0);
+  const heapFreeKb = health.heap_free != null ? Math.round(health.heap_free / 1024) : 0;
 
   // Output Counters
-  const targetPcs = machine.jobConfig?.targetQuantity ?? machine.targetCount ?? 12500;
-  const actualPcs = machine.telemetry?.tot ?? machine.totalCount ?? 8721;
+  const targetPcs = machine.jobConfig?.targetQuantity ?? machine.targetCount ?? 0;
+  const actualPcs = machine.telemetry?.tot ?? machine.totalCount ?? 0;
   const rejectPcs = machine.telemetry?.rej ?? machine.rejectCount ?? 201;
   const goodPcs = Math.max(0, actualPcs - rejectPcs);
   const deltaPcs = actualPcs - targetPcs;
 
   // Calculation parameters for AVA, QUA, and PER
-  const runTimeMin = machine.telemetry?.run ? Math.round(machine.telemetry.run / 60) : (metrics.runTimeMin || 219);
-  const plannedTimeMin = metrics.plannedProductionTimeMin || Math.max(1, machine.shiftDurationMinutes - (machine.plannedDowntimeMinutes || 60));
-  const downtimeMin = machine.telemetry?.dt ? Math.round(machine.telemetry.dt / 60) : (metrics.downtimeMin || 42);
+  const runTimeMin = machine.telemetry?.run ? Math.round(machine.telemetry.run / 60) : (metrics.runTimeMin || 0);
+  const plannedTimeMin = metrics.plannedProductionTimeMin || Math.max(1, machine.shiftDurationMinutes - (machine.plannedDowntimeMinutes || 0));
+  const downtimeMin = machine.telemetry?.dt ? Math.round(machine.telemetry.dt / 60) : (metrics.downtimeMin || 0);
   const runTimeSec = machine.telemetry?.run ?? (runTimeMin * 60);
 
   const isRunning = machine.status === 'RUNNING';
@@ -195,6 +197,11 @@ export const FullscreenOeeView: React.FC<FullscreenOeeViewProps> = ({
       <header className="bg-[#1a3464] text-white px-[1.2vw] py-[0.8vh] flex items-center justify-between text-[clamp(12px,0.85vw,14px)] font-semibold shadow-md shrink-0 w-full">
         <div className="flex items-center gap-3">
           <span className="font-bold tracking-wide text-sm sm:text-base">OEE Machine Dashboard</span>
+          {useBackend ? (
+            <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase tracking-wider bg-blue-500/20 text-blue-200 border border-blue-400/30">Backend Live</span>
+          ) : (
+            <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase tracking-wider bg-emerald-500/20 text-emerald-200 border border-emerald-400/30">Simulation</span>
+          )}
         </div>
 
         {/* Action Controls Toolbar */}
@@ -238,16 +245,18 @@ export const FullscreenOeeView: React.FC<FullscreenOeeViewProps> = ({
           </button>
 
           {/* Live simulation toggle */}
-          <button
-            type="button"
-            onClick={onToggleSimulate}
-            className={`p-1.5 rounded transition-colors cursor-pointer ${
-              isSimulating ? 'bg-emerald-600 text-white shadow-sm' : 'bg-white/10 text-white/70 hover:bg-white/20'
-            }`}
-            title={isSimulating ? 'Pause simulation' : 'Resume simulation'}
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${isSimulating ? 'animate-spin' : ''}`} />
-          </button>
+          {!useBackend && (
+            <button
+              type="button"
+              onClick={onToggleSimulate}
+              className={`p-1.5 rounded transition-colors cursor-pointer ${
+                isSimulating ? 'bg-emerald-600 text-white shadow-sm' : 'bg-white/10 text-white/70 hover:bg-white/20'
+              }`}
+              title={isSimulating ? 'Pause simulation' : 'Resume simulation'}
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isSimulating ? 'animate-spin' : ''}`} />
+            </button>
+          )}
 
           {/* Switch to Detailed Audit View — text-sm for readability */}
           {onViewAllEvents && (
@@ -678,12 +687,14 @@ export const FullscreenOeeView: React.FC<FullscreenOeeViewProps> = ({
             </div>
 
             {/* SUB-CARD 3: FLOOR PUSH BUTTONS PANEL */}
-            <FloorPushButtonsPanel
-              machine={machine}
-              onUpdateMachineStatus={onUpdateMachineStatus}
-              onLogReject={onLogReject}
-              onDispatchMqttCommand={onDispatchMqttCommand}
-            />
+            {!useBackend && (
+              <FloorPushButtonsPanel
+                machine={machine}
+                onUpdateMachineStatus={onUpdateMachineStatus}
+                onLogReject={onLogReject}
+                onDispatchMqttCommand={onDispatchMqttCommand}
+              />
+            )}
           </div>
         </div>
 

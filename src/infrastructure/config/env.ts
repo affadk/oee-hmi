@@ -18,4 +18,6 @@ export const env = {
   wsTelemetryUrl: readEnv('VITE_WS_TELEMETRY_URL', 'ws://localhost:3001/ws/telemetry'),
   /** Bearer token injected at runtime (HMI operator session). */
   apiToken: readEnv('VITE_API_TOKEN', ''),
+  /** Toggle between simulation lane (false) and real backend lane (true). */
+  useBackend: readEnv('VITE_USE_BACKEND', 'false') === 'true',
 } as const;

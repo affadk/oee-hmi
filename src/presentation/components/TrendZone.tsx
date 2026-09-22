@@ -22,7 +22,7 @@ export const TrendZone: React.FC<TrendZoneProps> = ({
   const [activeMetric, setActiveMetric] = useState<'OEE' | 'ALL'>('OEE');
   const [hoveredHour, setHoveredHour] = useState<HourlyDataPoint | null>(null);
 
-  const hourlyTarget = hourlyTrends[0]?.target ?? 125;
+  const hourlyTarget = hourlyTrends[0]?.target ?? 0;
   const maxActualItem = hourlyTrends.reduce(
     (max, cur) => (cur.actual > max.actual ? cur : max),
     hourlyTrends[0] || { actual: 0, hour: '--' } as HourlyDataPoint

@@ -93,8 +93,8 @@ function draftFromMachine(machine: MachineConfig): BatchDraft {
     QR_PRODUCT_CATALOG.find((p) => p.productName === (job?.productName || machine.currentProduct)) ??
     QR_PRODUCT_CATALOG[1] ??
     QR_PRODUCT_CATALOG[0];
-  const operatorName = job?.operatorName || 'Budi Santoso';
-  const operatorId = job?.operatorId || 'OP-4021';
+  const operatorName = job?.operatorName || '—';
+  const operatorId = job?.operatorId || '—';
   const operatorMatch =
     QR_OPERATOR_CATALOG.find((o) => o.operatorId === operatorId || o.operatorName === operatorName) ??
     ({ code: 'QR-CUSTOM', operatorName, operatorId } as QrOperatorPreset);

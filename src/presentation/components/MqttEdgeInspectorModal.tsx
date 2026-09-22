@@ -34,6 +34,7 @@ interface MqttEdgeInspectorModalProps {
   machine: MachineConfig;
   onSendCommand: (cmd: 'RESET_COUNTER' | 'PAUSE' | 'RESUME') => void;
   onSendJobConfig: (wo: string, product: string, operator: string, target: number, cycleTimeSec?: number) => void;
+  useBackend?: boolean;
 }
 
 type TabKey = 'RINGKASAN' | 'PERANGKAT' | 'JARINGAN' | 'PRODUKSI' | 'KONTROL' | 'TELEMETRI' | 'KESEHATAN';
@@ -80,6 +81,7 @@ export const MqttEdgeInspectorModal: React.FC<MqttEdgeInspectorModalProps> = ({
   machine,
   onSendCommand,
   onSendJobConfig,
+  useBackend,
 }) => {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
@@ -114,16 +116,16 @@ export const MqttEdgeInspectorModal: React.FC<MqttEdgeInspectorModalProps> = ({
   const [mqttUser, setMqttUser] = useState('oee-edge');
 
   // ---- Produksi / Job (draft, sinkron ke machine.jobConfig) ----
-  const [wo, setWo] = useState(machine.jobConfig?.workOrder ?? 'WO-2026-0920-01');
-  const [productId, setProductId] = useState(machine.jobConfig?.productId ?? 'PRD-FLANGE-B20');
-  const [productName, setProductName] = useState(machine.jobConfig?.productName ?? machine.currentProduct);
-  const [operatorId, setOperatorId] = useState(machine.jobConfig?.operatorId ?? 'OP-4021');
-  const [operatorName, setOperatorName] = useState(machine.jobConfig?.operatorName ?? 'Budi Santoso');
-  const [stdCycle, setStdCycle] = useState(machine.jobConfig?.standardCycleTimeSec ?? machine.idealCycleTimeSec ?? 45);
-  const [targetQty, setTargetQty] = useState(machine.jobConfig?.targetQuantity ?? machine.targetCount ?? 560);
-  const [shiftStart, setShiftStart] = useState(machine.jobConfig?.shiftStart ?? '22:00');
-  const [shiftEnd, setShiftEnd] = useState(machine.jobConfig?.shiftEnd ?? '08:00');
-  const [breakMin, setBreakMin] = useState(machine.jobConfig?.plannedBreakMin ?? 60);
+  const [wo, setWo] = useState(machine.jobConfig?.workOrder ?? '—');
+  const [productId, setProductId] = useState(machine.jobConfig?.productId ?? '—');
+  const [productName, setProductName] = useState(machine.jobConfig?.productName ?? machine.currentProduct ?? '—');
+  const [operatorId, setOperatorId] = useState(machine.jobConfig?.operatorId ?? '—');
+  const [operatorName, setOperatorName] = useState(machine.jobConfig?.operatorName ?? '—');
+  const [stdCycle, setStdCycle] = useState(machine.jobConfig?.standardCycleTimeSec ?? machine.idealCycleTimeSec ?? 0);
+  const [targetQty, setTargetQty] = useState(machine.jobConfig?.targetQuantity ?? machine.targetCount ?? 0);
+  const [shiftStart, setShiftStart] = useState(machine.jobConfig?.shiftStart ?? '—');
+  const [shiftEnd, setShiftEnd] = useState(machine.jobConfig?.shiftEnd ?? '—');
+  const [breakMin, setBreakMin] = useState(machine.jobConfig?.plannedBreakMin ?? 0);
 
   // Sinkron ulang draft hanya saat ganti perangkat (bukan saat live telemetry pulse),
   // agar ketikan user tidak tertimpa update simulasi 3.5s.
@@ -133,16 +135,16 @@ export const MqttEdgeInspectorModal: React.FC<MqttEdgeInspectorModalProps> = ({
     setDevArea(machine.area ?? 'Machining & Turning');
     setClientId(`edge-${machine.deviceId.toLowerCase()}`);
     setTopicPrefix(`oee/device/${machine.deviceId}`);
-    setWo(machine.jobConfig?.workOrder ?? 'WO-2026-0920-01');
-    setProductId(machine.jobConfig?.productId ?? 'PRD-FLANGE-B20');
-    setProductName(machine.jobConfig?.productName ?? machine.currentProduct);
-    setOperatorId(machine.jobConfig?.operatorId ?? 'OP-4021');
-    setOperatorName(machine.jobConfig?.operatorName ?? 'Budi Santoso');
-    setStdCycle(machine.jobConfig?.standardCycleTimeSec ?? machine.idealCycleTimeSec ?? 45);
-    setTargetQty(machine.jobConfig?.targetQuantity ?? machine.targetCount ?? 560);
-    setShiftStart(machine.jobConfig?.shiftStart ?? '22:00');
-    setShiftEnd(machine.jobConfig?.shiftEnd ?? '08:00');
-    setBreakMin(machine.jobConfig?.plannedBreakMin ?? 60);
+    setWo(machine.jobConfig?.workOrder ?? '—');
+    setProductId(machine.jobConfig?.productId ?? '—');
+    setProductName(machine.jobConfig?.productName ?? machine.currentProduct ?? '—');
+    setOperatorId(machine.jobConfig?.operatorId ?? '—');
+    setOperatorName(machine.jobConfig?.operatorName ?? '—');
+    setStdCycle(machine.jobConfig?.standardCycleTimeSec ?? machine.idealCycleTimeSec ?? 0);
+    setTargetQty(machine.jobConfig?.targetQuantity ?? machine.targetCount ?? 0);
+    setShiftStart(machine.jobConfig?.shiftStart ?? '—');
+    setShiftEnd(machine.jobConfig?.shiftEnd ?? '—');
+    setBreakMin(machine.jobConfig?.plannedBreakMin ?? 0);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [machine.id]);
 
@@ -407,7 +409,7 @@ export const MqttEdgeInspectorModal: React.FC<MqttEdgeInspectorModalProps> = ({
                           <select value={rpmSource} onChange={(e) => setRpmSource(e.target.value)} className={`w-full border rounded-lg px-2.5 py-2 text-sm font-mono outline-none ${inputCls}`}>
                             <option>Modbus PLC HR-4001</option>
                             <option>Pulse counter PC6</option>
-                            <option>Simulasi internal</option>
+                            {!useBackend && <option>Simulasi internal</option>}
                           </select>
                         ))}
                         {field('Offset suhu (°C)', textInput(tempOffset, setTempOffset, undefined, 'number'), 'Kalibrasi NTC → tmp_x10.')}
