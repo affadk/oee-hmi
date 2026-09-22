@@ -123,9 +123,6 @@ export const PasXProgressStrip: React.FC<PasXProgressStripProps> = ({ machine })
   const displayEvent = selectedEvent ?? autoEvent;
   const isAutoFollow = selectedEvent === null && autoEvent !== null;
   const displayTheme = displayEvent ? getEventColorTheme(displayEvent.type) : null;
-  const displayCenterPct = displayEvent
-    ? Math.min(98, Math.max(2, ((displayEvent.startHourFraction + displayEvent.durationFraction / 2) / windowH) * 100))
-    : 0;
 
   return (
     <div
@@ -184,18 +181,12 @@ export const PasXProgressStrip: React.FC<PasXProgressStripProps> = ({ machine })
 
         {/* RIGHT: Timeline — 8 cols, tinggi relatif vh */}
         <div className="col-span-12 lg:col-span-8 min-h-0 flex flex-col justify-center gap-[0.6vh] overflow-hidden">
-          {/* Pointer lane — segitiga realtime (biru) + segitiga select (warna event).
-              Segitiga select disembunyikan bila berhimpit dengan segitiga biru
-              agar tidak duplikat; border kotak select tetap menandai segmen. */}
+          {/* Pointer lane — hanya segitiga realtime (biru).
+              Segitiga select warna event dihapus agar tidak duplikat. */}
           <div className="relative w-full h-[0.8vh] min-h-[6px] shrink-0 pointer-events-none">
             <div style={{ left: `${livePct}%` }} className="absolute bottom-0 -translate-x-1/2 flex flex-col items-center transition-all duration-1000 z-40">
               <div className="w-0 h-0 border-x-[0.5vw] border-x-transparent border-t-[0.7vh] border-t-blue-500 drop-shadow-[0_0_4px_rgba(59,130,246,0.9)]" />
             </div>
-            {displayEvent && Math.abs(displayCenterPct - livePct) >= 2 && (
-            <div style={{ left: `${displayCenterPct}%` }} className="absolute -bottom-0.5 -translate-x-1/2 flex flex-col items-center transition-all duration-300 z-30">
-              <div className="w-0 h-0 border-x-[0.4vw] border-x-transparent border-t-[0.6vh] drop-shadow-md" style={{ borderTopColor: displayEvent.color }} />
-            </div>
-            )}
           </div>
 
           {/* Timeline bar — skala real window shift start → end, tinggi relatif vh */}
