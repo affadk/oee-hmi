@@ -1,6 +1,6 @@
 // /src/presentation/components/fullscreen/FullscreenOeeView.tsx
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { MachineConfig, CalculatedOeeMetrics } from '../../types';
 import { useTheme } from '../../context/ThemeContext';
 import {
@@ -80,6 +80,24 @@ export const FullscreenOeeView: React.FC<FullscreenOeeViewProps> = ({
     .map((n) => String(n).padStart(2, '0'))
     .join(':');
 
+  // Ukur kontainer Production Rate — font skala proporsional terhadap lebar+tinggi
+  // kontainer aktual (bukan viewport), agar tak bertumpuk di luar mode fullscreen
+  const rateCardRef = useRef<HTMLDivElement>(null);
+  const [rateBox, setRateBox] = useState({ w: 0, h: 0 });
+  useEffect(() => {
+    const el = rateCardRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver((entries) => {
+      const r = entries[0].contentRect;
+      setRateBox({ w: r.width, h: r.height });
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  const rateK = rateBox.w > 0 && rateBox.h > 0 ? Math.min(rateBox.w / 340, rateBox.h / 230) : 1;
+  const rateFs = (base: number, min: number, max: number) =>
+    `${Math.min(max, Math.max(min, base * rateK))}px`;
+
   // Live computed OEE metrics
   const oeeValue = metrics.oeePct ?? 65.0;
   const availValue = metrics.availabilityPct ?? 65.0;
@@ -115,6 +133,9 @@ export const FullscreenOeeView: React.FC<FullscreenOeeViewProps> = ({
   const targetRate = theoreticalHourlyOutput;
   const currentRate = machine.actualHourlyRate || 203;
   const actualCycleTimeSec = currentRate > 0 ? (3600 / currentRate).toFixed(1) : (targetCycleTimeSec * 1.97).toFixed(1);
+  const speedEffRatio = targetRate > 0 ? currentRate / targetRate : 0;
+  const speedEffPct = Math.round(speedEffRatio * 100);
+  const speedEffColor = speedEffRatio >= 0.85 ? 'text-emerald-500' : speedEffRatio >= 0.6 ? 'text-amber-500' : 'text-rose-500';
 
   // Edge Health Telemetry (Poin 4 MQTT Edge Controller: FreeRTOS Health)
   const health = machine.health || {
@@ -613,6 +634,7 @@ export const FullscreenOeeView: React.FC<FullscreenOeeViewProps> = ({
             {/* Production Rate — flex-1 relatif */}
             <div
               id="production-rate-card"
+              ref={rateCardRef}
               className={`p-[clamp(8px,1vh,12px)] rounded-xl border shadow-sm transition-colors flex-1 min-h-0 overflow-hidden flex flex-col ${
                 isDark ? 'bg-[#0f1b2e] border-slate-800' : 'bg-white border-[#c9d3df]'
               }`}
@@ -631,33 +653,30 @@ export const FullscreenOeeView: React.FC<FullscreenOeeViewProps> = ({
                   </div>
                 </div>
 
-                {/* Numbers layer (depan) — overlay kiri/kanan di atas chart */}
+                {/* Numbers layer (depan) — nilai besar, label kecil */}
                 <div className="absolute inset-x-0 top-0 z-10 flex items-start justify-between px-[0.5vw] pt-[0.4vh] pointer-events-none">
                   <div className="flex flex-col drop-shadow-sm">
-                    <span className={`text-[clamp(18px,1.8vw,26px)] font-black font-sans leading-none ${isDark ? 'text-white' : 'text-slate-900'}`}>{currentRate}</span>
-                    <span className={`text-xs font-semibold mt-1 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>Current Rate (pcs/h)</span>
-                    <span className={`text-xs font-mono mt-0.5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Actual: {actualCycleTimeSec}s/pcs</span>
+                    <span className={`font-black font-sans leading-none ${isDark ? 'text-white' : 'text-slate-900'}`} style={{ fontSize: rateFs(36, 16, 48) }}>{currentRate}</span>
+                    <span className={`font-semibold mt-1 ${isDark ? 'text-slate-300' : 'text-slate-600'}`} style={{ fontSize: rateFs(14, 11, 18) }}>Current Rate (pcs/h)</span>
+                    <span className={`font-mono mt-0.5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`} style={{ fontSize: rateFs(13, 11, 17) }}>Actual: {actualCycleTimeSec}s/pcs</span>
                   </div>
                   <div className="flex flex-col items-end drop-shadow-sm text-right">
-                    <span className={`text-[clamp(18px,1.8vw,26px)] font-black font-sans leading-none ${isDark ? 'text-white' : 'text-slate-900'}`}>{targetRate}</span>
-                    <span className={`text-xs font-semibold mt-1 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>Target Rate (pcs/h)</span>
-                    <span className={`text-xs font-mono mt-0.5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Ideal: {targetCycleTimeSec}s/pcs</span>
+                    <span className={`font-black font-sans leading-none ${isDark ? 'text-white' : 'text-slate-900'}`} style={{ fontSize: rateFs(36, 16, 48) }}>{targetRate}</span>
+                    <span className={`font-semibold mt-1 ${isDark ? 'text-slate-300' : 'text-slate-600'}`} style={{ fontSize: rateFs(14, 11, 18) }}>Target Rate (pcs/h)</span>
+                    <span className={`font-mono mt-0.5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`} style={{ fontSize: rateFs(13, 11, 17) }}>Ideal: {targetCycleTimeSec}s/pcs</span>
                   </div>
+                </div>
+
+                {/* Speed Eff — pojok kanan bawah, nilai dominan */}
+                <div className="absolute bottom-[0.4vh] right-[0.5vw] z-10 flex flex-col items-end drop-shadow-sm text-right pointer-events-none">
+                  <span className={`font-mono font-black leading-none ${speedEffColor}`} style={{ fontSize: rateFs(40, 18, 54) }}>{speedEffPct}%</span>
+                  <span className={`font-semibold mt-0.5 ${isDark ? 'text-slate-300' : 'text-slate-600'}`} style={{ fontSize: rateFs(14, 11, 18) }}>Speed Eff</span>
                 </div>
               </div>
 
-              <div className="flex items-center justify-between text-xs font-mono mt-[0.4vh] pt-[0.6vh] border-t border-slate-100 dark:border-slate-800 shrink-0">
-                <span className={isDark ? 'text-slate-400' : 'text-slate-500'}>
+              <div className="flex items-center justify-center font-mono font-semibold mt-[0.4vh] pt-[0.6vh] border-t border-slate-100 dark:border-slate-800 shrink-0" style={{ fontSize: rateFs(14, 10, 17) }}>
+                <span className={isDark ? 'text-slate-300' : 'text-slate-600'}>
                   3600 / {targetCycleTimeSec}s = {targetRate} pcs/h
-                </span>
-                <span className={`font-semibold ${
-                  (currentRate / targetRate) >= 0.85
-                    ? 'text-emerald-500'
-                    : (currentRate / targetRate) >= 0.6
-                    ? 'text-amber-500'
-                    : 'text-rose-500'
-                }`}>
-                  Speed Eff: {Math.round((currentRate / targetRate) * 100)}%
                 </span>
               </div>
             </div>
