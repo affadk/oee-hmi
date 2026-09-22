@@ -12,6 +12,23 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+      // Terapkan tema tersimpan sebelum React mount agar tidak flicker.
+      (function () {
+        try {
+          var pref = localStorage.getItem('oee_dashboard_theme') || 'system';
+          var systemDark = window.matchMedia
+            ? !window.matchMedia('(prefers-color-scheme: light)').matches
+            : true;
+          var resolved = pref === 'system' ? (systemDark ? 'dark' : 'light') : pref;
+          var root = document.documentElement;
+          root.classList.toggle('dark', resolved === 'dark');
+          root.classList.toggle('light', resolved !== 'dark');
+          root.dataset.theme = resolved;
+          root.style.colorScheme = resolved;
+        } catch (e) { /* abaikan — default ke stylesheet */ }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

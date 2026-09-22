@@ -43,7 +43,8 @@ interface FullscreenOeeViewProps {
     product: string,
     operator: string,
     target: number,
-    cycleTimeSec?: number
+    cycleTimeSec?: number,
+    shiftOverride?: { shiftStart: string; shiftEnd: string; breakWindow: string; breakMin: number }
   ) => Promise<void>;
 }
 

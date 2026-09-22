@@ -8,6 +8,27 @@
    - line-height 1.5 untuk keterbacaan, letter-spacing sedikit longgar untuk label mono
 */
 @layer base {
+  :root {
+    color-scheme: light;
+    --surface: #e9edf4;
+    --surface-card: #ffffff;
+    --surface-inset: #f1f5f9;
+    --border-soft: #c9d3df;
+    --text-primary: #0f172a;
+    --text-secondary: #475569;
+    --text-muted: #64748b;
+  }
+  :root.dark,
+  .dark {
+    color-scheme: dark;
+    --surface: #080e1a;
+    --surface-card: #0f1b2e;
+    --surface-inset: #0b1528;
+    --border-soft: #1e293b;
+    --text-primary: #f1f5f9;
+    --text-secondary: #cbd5e1;
+    --text-muted: #94a3b8;
+  }
   html {
     font-size: 16px;
     -webkit-text-size-adjust: 100%;
@@ -17,8 +38,19 @@
     line-height: 1.5;
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
+    background-color: var(--surface);
+    color: var(--text-primary);
   }
   /* Pastikan zoom 200% tetap terbaca (WCAG 1.4.4) — hindari vw-only tanpa clamp min */
+  ::selection {
+    background-color: #2563eb;
+    color: #ffffff;
+  }
+  /* Scrollbar mengikuti tema via color-scheme di atas */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--text-muted) transparent;
+  }
 }
 
 /* Utility helper untuk label pabrik agar konsisten */

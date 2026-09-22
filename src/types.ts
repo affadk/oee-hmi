@@ -5,6 +5,7 @@ export * from './domain/entities/Machine';
 export * from './domain/entities/OeeMetrics';
 export * from './domain/entities/Alarm';
 export * from './domain/entities/MqttContracts';
+export * from './domain/entities/BatchQr';
 export * from './domain/ports/IMachineRepository';
 export * from './domain/ports/IAlarmRepository';
 export * from './domain/ports/IMqttGateway';

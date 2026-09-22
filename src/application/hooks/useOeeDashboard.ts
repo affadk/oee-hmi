@@ -52,7 +52,8 @@ export interface UseOeeDashboardReturn {
     product: string,
     operator: string,
     target: number,
-    cycleTimeSec?: number
+    cycleTimeSec?: number,
+    shiftOverride?: { shiftStart: string; shiftEnd: string; breakWindow: string; breakMin: number }
   ) => Promise<void>;
   openFormulaModal: (metricName: string) => void;
   closeFormulaModal: () => void;
@@ -252,12 +253,23 @@ export function useOeeDashboard(): UseOeeDashboardReturn {
     product: string,
     operator: string,
     target: number,
-    cycleTimeSec?: number
+    cycleTimeSec?: number,
+    shiftOverride?: { shiftStart: string; shiftEnd: string; breakWindow: string; breakMin: number }
   ) => {
     const stdCycleSec = cycleTimeSec ?? currentMachine.idealCycleTimeSec ?? currentMachine.jobConfig?.standardCycleTimeSec ?? 9.0;
     const theoreticalRate = stdCycleSec > 0 ? Math.round(3600 / stdCycleSec) : 400;
     // Scale actual rate based on current speed efficiency (~50.7%)
     const newActualRate = Math.round(theoreticalRate * 0.5075);
+
+    // Operator tiba sebagai display "Nama (ID)" dari modal QR — pecah kembali
+    // agar operator.id asli (mis. OP-4021) terkirim, bukan hardcoded OP-EDGE.
+    const opMatch = operator.match(/^(.*?)\s*\(([^)]+)\)\s*$/);
+    const operatorName = opMatch ? opMatch[1].trim() || operator : operator;
+    const operatorId = opMatch ? opMatch[2].trim() || 'OP-EDGE' : 'OP-EDGE';
+
+    const shiftStart = shiftOverride?.shiftStart ?? currentMachine.jobConfig?.shiftStart ?? '06:00';
+    const shiftEnd = shiftOverride?.shiftEnd ?? currentMachine.jobConfig?.shiftEnd ?? '14:00';
+    const plannedBreakMin = shiftOverride?.breakMin ?? currentMachine.plannedDowntimeMinutes;
 
     const payload = {
       command: 'SET_JOB_CONFIG' as const,
@@ -269,15 +281,16 @@ export function useOeeDashboard(): UseOeeDashboardReturn {
         std_cycle_time_sec: stdCycleSec,
       },
       operator: {
-        id: 'OP-EDGE',
-        name: operator,
+        id: operatorId,
+        name: operatorName,
       },
       shift_plan: {
-        shift_start: '06:00:00Z',
-        shift_end: '14:00:00Z',
-        planned_break_min: currentMachine.plannedDowntimeMinutes,
+        shift_start: shiftStart,
+        shift_end: shiftEnd,
+        planned_break_min: plannedBreakMin,
         planned_operating_sec: (currentMachine.shiftDurationMinutes - currentMachine.plannedDowntimeMinutes) * 60,
         target_qty: target,
+        ...(shiftOverride?.breakWindow ? { break_window: shiftOverride.breakWindow } : {}),
       },
     };
 

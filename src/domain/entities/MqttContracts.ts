@@ -39,6 +39,8 @@ export interface MqttJobConfigPayload {
     planned_break_min: number;
     planned_operating_sec: number;
     target_qty: number;
+    /** Jendela istirahat "HH:MM - HH:MM" — opsional agar payload lama tetap valid. */
+    break_window?: string;
   };
 }
 

@@ -219,7 +219,7 @@ export class InMemoryMachineRepository implements IMachineRepository {
         targetQuantity: newTargetQty,
         shiftStart: jobConfig.shift_plan.shift_start,
         shiftEnd: jobConfig.shift_plan.shift_end,
-        breakTimeWindow: target.jobConfig?.breakTimeWindow || '12:00 - 13:00',
+        breakTimeWindow: jobConfig.shift_plan.break_window || target.jobConfig?.breakTimeWindow || '12:00 - 13:00',
         plannedBreakMin: jobConfig.shift_plan.planned_break_min,
         plannedOperatingSec: jobConfig.shift_plan.planned_operating_sec,
       },
