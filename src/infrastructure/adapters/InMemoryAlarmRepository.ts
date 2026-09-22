@@ -2,7 +2,7 @@
 
 import { IAlarmRepository } from '../../domain/ports/IAlarmRepository';
 import { MachineAlarmEvent, AlarmStatus } from '../../domain/entities/Alarm';
-import { INITIAL_ALARMS } from '../../data/mockData';
+import { INITIAL_ALARMS } from '../seeds/seedData';
 
 export class InMemoryAlarmRepository implements IAlarmRepository {
   private alarms: MachineAlarmEvent[];

@@ -3,7 +3,7 @@
 import { IMachineRepository } from '../../domain/ports/IMachineRepository';
 import { MachineConfig, MachineStatus } from '../../domain/entities/Machine';
 import { MqttJobConfigPayload, MqttTelemetryPayload } from '../../domain/entities/MqttContracts';
-import { INITIAL_MACHINES } from '../../data/mockData';
+import { INITIAL_MACHINES } from '../seeds/seedData';
 
 export class InMemoryMachineRepository implements IMachineRepository {
   private machines: MachineConfig[];

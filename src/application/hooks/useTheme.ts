@@ -1,26 +1,9 @@
 // /src/application/hooks/useTheme.ts
+// DEPRECATED compatibility shim — theme state is owned by presentation.
+// New code: import { useTheme } from '../../presentation/providers/ThemeProvider'.
+// This shim keeps legacy src/components/* working until the old folder is removed.
+// Do NOT add new imports of this file.
 
-import { useTheme as useThemeFromContext, ThemeMode, ThemePreference } from '../../context/ThemeContext';
-
-export interface UseThemeReturn {
-  /** Resolved mode actually applied ('dark' | 'light'). */
-  theme: ThemeMode;
-  /** Raw user preference, including 'system'. */
-  preference: ThemePreference;
-  /** Resolved mode (explicit alias of `theme`). */
-  resolvedTheme: ThemeMode;
-  /** True when the resolved theme is dark. */
-  isDark: boolean;
-  /** True when following the OS color scheme. */
-  isSystem: boolean;
-  /** Last observed OS color scheme. */
-  systemTheme: ThemeMode;
-  toggleTheme: () => void;
-  setTheme: (theme: ThemePreference) => void;
-}
-
-export function useTheme(): UseThemeReturn {
-  return useThemeFromContext();
-}
-
-export type { ThemeMode, ThemePreference };
+export { useTheme } from '../../presentation/providers/ThemeProvider';
+export type { ThemeMode, ThemePreference } from '../../domain/ports/IThemeStorage';
+export type { UseThemeReturn } from '../../presentation/providers/ThemeProvider';

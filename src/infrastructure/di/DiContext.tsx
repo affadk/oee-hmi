@@ -1,19 +1,6 @@
 // /src/infrastructure/di/DiContext.tsx
+// DEPRECATED shim — canonical provider lives in presentation/providers/DiProvider.
+// Kept so legacy imports keep compiling until callers migrate.
 
-import React, { createContext, useContext } from 'react';
-import { AppContainer, defaultContainer } from './Container';
-
-const DiContext = createContext<AppContainer>(defaultContainer);
-
-export interface DiProviderProps {
-  container?: AppContainer;
-  children: React.ReactNode;
-}
-
-export const DiProvider: React.FC<DiProviderProps> = ({ container = defaultContainer, children }) => {
-  return <DiContext.Provider value={container}>{children}</DiContext.Provider>;
-};
-
-export const useDiContainer = (): AppContainer => {
-  return useContext(DiContext);
-};
+export { DiProvider, useDiContainer } from '../../presentation/providers/DiProvider';
+export type { DiProviderProps } from '../../presentation/providers/DiProvider';

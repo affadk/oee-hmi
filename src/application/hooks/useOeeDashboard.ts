@@ -1,41 +1,56 @@
 // /src/application/hooks/useOeeDashboard.ts
+// Application orchestration hook — composes use-cases over repository ports.
+// LAYER RULES (enforced):
+// - MUST NOT import infrastructure/* (concrete DI container, adapters)
+// - MUST NOT import seed/mock data (data/*, infrastructure/seeds)
+// - MUST NOT touch document/window (DOM lives in presentation/hooks)
+// Presentation injects collaborators via the deps argument (see
+// presentation/pages/DashboardPage.tsx). Pure domain + use-case composition only.
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { useDiContainer } from '../../infrastructure/di/DiContext';
-import { MachineConfig, MachineStatus, DowntimeReasonItem } from '../../domain/entities/Machine';
-import { CalculatedOeeMetrics } from '../../domain/entities/OeeMetrics';
-import { MachineAlarmEvent } from '../../domain/entities/Alarm';
-import { INITIAL_MACHINES, INITIAL_ALARMS } from '../../data/mockData';
+import type { MachineConfig, MachineStatus, DowntimeReasonItem } from '../../domain/entities/Machine';
+import type { CalculatedOeeMetrics } from '../../domain/entities/OeeMetrics';
+import type { MachineAlarmEvent } from '../../domain/entities/Alarm';
+import type { CalculateOeeUseCase } from '../use-cases/CalculateOeeUseCase';
+import type { GetMachinesUseCase } from '../use-cases/GetMachinesUseCase';
+import type { UpdateMachineStatusUseCase } from '../use-cases/UpdateMachineStatusUseCase';
+import type { LogDowntimeUseCase } from '../use-cases/LogDowntimeUseCase';
+import type { LogRejectUseCase } from '../use-cases/LogRejectUseCase';
+import type { SimulateMachinePulseUseCase } from '../use-cases/SimulateMachinePulseUseCase';
+import type { ManageAlarmsUseCase } from '../use-cases/ManageAlarmsUseCase';
+import type { MqttEdgeCommandUseCase } from '../use-cases/MqttEdgeCommandUseCase';
+import { buildJobConfigPayload, deriveActualRate } from '../use-cases/MqttEdgeCommandUseCase';
+
+export interface OeeDashboardDeps {
+  calculateOeeUseCase: CalculateOeeUseCase;
+  getMachinesUseCase: GetMachinesUseCase;
+  updateMachineStatusUseCase: UpdateMachineStatusUseCase;
+  logDowntimeUseCase: LogDowntimeUseCase;
+  logRejectUseCase: LogRejectUseCase;
+  simulateMachinePulseUseCase: SimulateMachinePulseUseCase;
+  manageAlarmsUseCase: ManageAlarmsUseCase;
+  mqttEdgeCommandUseCase: MqttEdgeCommandUseCase;
+}
 
 export interface UseOeeDashboardReturn {
-  // Machines state
   machines: MachineConfig[];
-  currentMachine: MachineConfig;
-  currentMetrics: CalculatedOeeMetrics;
+  currentMachine: MachineConfig | null;
+  currentMetrics: CalculatedOeeMetrics | null;
   currentMachineId: string;
   selectedPlant: string;
   selectedLine: string;
   selectedShift: string;
   selectedDate: string;
-
-  // View mode
   viewMode: 'FULLSCREEN_IMAGE' | 'DETAILED_AUDIT';
-  isFullscreen: boolean;
   isSimulating: boolean;
   teepEnabled: boolean;
-
-  // Alarms
   alarms: MachineAlarmEvent[];
-
-  // Modals state
+  isLoading: boolean;
   isLogModalOpen: boolean;
   isHelpModalOpen: boolean;
   isMqttModalOpen: boolean;
   formulaMetricHighlight: string;
-
-  // Actions
   setViewMode: (mode: 'FULLSCREEN_IMAGE' | 'DETAILED_AUDIT') => void;
-  toggleBrowserFullscreen: () => void;
   toggleSimulate: () => void;
   toggleTeep: () => void;
   selectMachine: (machineId: string) => void;
@@ -63,114 +78,81 @@ export interface UseOeeDashboardReturn {
   closeMqttModal: () => void;
 }
 
-export function useOeeDashboard(): UseOeeDashboardReturn {
-  const container = useDiContainer();
+export function useOeeDashboard(deps: OeeDashboardDeps): UseOeeDashboardReturn {
+  const {
+    calculateOeeUseCase,
+    getMachinesUseCase,
+    updateMachineStatusUseCase,
+    logDowntimeUseCase,
+    logRejectUseCase,
+    simulateMachinePulseUseCase,
+    manageAlarmsUseCase,
+    mqttEdgeCommandUseCase,
+  } = deps;
 
-  // State initialized with repository values
-  const [machines, setMachines] = useState<MachineConfig[]>(INITIAL_MACHINES);
-  const [currentMachineId, setCurrentMachineId] = useState<string>('MC-SODIUM');
+  const [machines, setMachines] = useState<MachineConfig[]>([]);
+  const [currentMachineId, setCurrentMachineId] = useState<string>('');
   const [selectedPlant] = useState<string>('Plant 1');
   const [selectedLine, setSelectedLine] = useState<string>('Line 1');
   const [selectedShift, setSelectedShift] = useState<string>('Shift 1');
   const [selectedDate] = useState<string>('18 Sep 2026');
 
   const [viewMode, setViewMode] = useState<'FULLSCREEN_IMAGE' | 'DETAILED_AUDIT'>('FULLSCREEN_IMAGE');
-  const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
   const [isSimulating, setIsSimulating] = useState<boolean>(true);
   const [teepEnabled, setTeepEnabled] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  const [alarms, setAlarms] = useState<MachineAlarmEvent[]>(INITIAL_ALARMS);
+  const [alarms, setAlarms] = useState<MachineAlarmEvent[]>([]);
 
-  // Modals
   const [isLogModalOpen, setIsLogModalOpen] = useState<boolean>(false);
   const [isHelpModalOpen, setIsHelpModalOpen] = useState<boolean>(false);
   const [isMqttModalOpen, setIsMqttModalOpen] = useState<boolean>(false);
   const [formulaMetricHighlight, setFormulaMetricHighlight] = useState<string>('OEE');
 
-  // Load initial data through Use Cases
   useEffect(() => {
     let isMounted = true;
     async function loadData() {
       try {
-        const machineList = await container.getMachinesUseCase.executeAll();
-        const alarmList = await container.manageAlarmsUseCase.getAllAlarms();
+        const machineList = await getMachinesUseCase.executeAll();
+        const alarmList = await manageAlarmsUseCase.getAllAlarms();
         if (isMounted) {
-          if (machineList.length > 0) setMachines(machineList);
-          if (alarmList.length > 0) setAlarms(alarmList);
+          setMachines(machineList);
+          if (machineList.length > 0) setCurrentMachineId((prev) => prev || machineList[0].id);
+          setAlarms(alarmList);
         }
       } catch (err) {
         console.error('Failed to initialize dashboard data:', err);
+      } finally {
+        if (isMounted) setIsLoading(false);
       }
     }
     loadData();
     return () => {
       isMounted = false;
     };
-  }, [container]);
+  }, [getMachinesUseCase, manageAlarmsUseCase]);
 
-  // Active machine resolution
   const currentMachine = useMemo(() => {
-    return machines.find((m) => m.id === currentMachineId) || machines[0] || INITIAL_MACHINES[0];
+    return machines.find((m) => m.id === currentMachineId) ?? machines[0] ?? null;
   }, [machines, currentMachineId]);
 
-  // Calculated OEE metrics via Domain Service / Use Case
   const currentMetrics = useMemo(() => {
-    return container.calculateOeeUseCase.execute(currentMachine);
-  }, [container, currentMachine]);
-
-  // Fullscreen management
-  const toggleBrowserFullscreen = useCallback(() => {
-    if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen().catch(() => {});
-      setIsFullscreen(true);
-    } else {
-      if (document.exitFullscreen) {
-        document.exitFullscreen().catch(() => {});
-      }
-      setIsFullscreen(false);
-    }
-  }, []);
+    if (!currentMachine) return null;
+    return calculateOeeUseCase.execute(currentMachine);
+  }, [calculateOeeUseCase, currentMachine]);
 
   useEffect(() => {
-    const handleFullscreenChange = () => {
-      setIsFullscreen(Boolean(document.fullscreenElement));
-    };
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (
-        (e.key === 'f' || e.key === 'F') &&
-        !(e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement)
-      ) {
-        e.preventDefault();
-        toggleBrowserFullscreen();
-      }
-    };
-
-    document.addEventListener('fullscreenchange', handleFullscreenChange);
-    window.addEventListener('keydown', handleKeyDown);
-
-    return () => {
-      document.removeEventListener('fullscreenchange', handleFullscreenChange);
-      window.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [toggleBrowserFullscreen]);
-
-  // Live simulation effect via SimulateMachinePulseUseCase
-  useEffect(() => {
-    if (!isSimulating) return;
-
+    if (!isSimulating || !currentMachine) return;
     const interval = setInterval(async () => {
       if (currentMachine.status !== 'RUNNING') return;
-      const updated = await container.simulateMachinePulseUseCase.execute(currentMachine);
+      const updated = await simulateMachinePulseUseCase.execute(currentMachine);
       if (updated) {
         setMachines((prev) => prev.map((m) => (m.id === updated.id ? updated : m)));
       }
     }, 3500);
-
     return () => clearInterval(interval);
-  }, [isSimulating, currentMachine, container]);
+  }, [isSimulating, currentMachine, simulateMachinePulseUseCase]);
 
-  // Machine and Line selection
   const selectLine = useCallback((line: string) => {
     setSelectedLine(line);
     const firstMachineInLine = machines.find((m) => m.line === line);
@@ -191,62 +173,54 @@ export function useOeeDashboard(): UseOeeDashboardReturn {
     setSelectedShift(shift);
   }, []);
 
-  // Update Machine Status via Use Case
   const updateMachineStatus = useCallback(async (newStatus: MachineStatus) => {
-    const { updatedMachine, createdAlarm } = await container.updateMachineStatusUseCase.execute(
+    const { updatedMachine, createdAlarm } = await updateMachineStatusUseCase.execute(
       currentMachineId,
       newStatus
     );
-
     setMachines((prev) => prev.map((m) => (m.id === currentMachineId ? updatedMachine : m)));
-
     if (createdAlarm) {
       setAlarms((prev) => [createdAlarm, ...prev]);
     }
-  }, [container, currentMachineId]);
+  }, [updateMachineStatusUseCase, currentMachineId]);
 
-  // Log Downtime via Use Case
   const logDowntime = useCallback(async (event: Omit<DowntimeReasonItem, 'id' | 'equivalentLossPcs'>) => {
-    const { updatedMachine, createdAlarm } = await container.logDowntimeUseCase.execute(
+    const { updatedMachine, createdAlarm } = await logDowntimeUseCase.execute(
       currentMachineId,
       event
     );
-
     setMachines((prev) => prev.map((m) => (m.id === currentMachineId ? updatedMachine : m)));
     setAlarms((prev) => [createdAlarm, ...prev]);
-  }, [container, currentMachineId]);
+  }, [logDowntimeUseCase, currentMachineId]);
 
-  // Log Reject via Use Case
   const logReject = useCallback(async (reasonLabel: string, count: number) => {
-    const updatedMachine = await container.logRejectUseCase.execute(
+    const updatedMachine = await logRejectUseCase.execute(
       currentMachineId,
       reasonLabel,
       count
     );
     setMachines((prev) => prev.map((m) => (m.id === currentMachineId ? updatedMachine : m)));
-  }, [container, currentMachineId]);
+  }, [logRejectUseCase, currentMachineId]);
 
-  // Alarms management via Use Case
   const acknowledgeAlarm = useCallback(async (alarmId: string) => {
-    const updated = await container.manageAlarmsUseCase.acknowledgeAlarm(alarmId);
+    const updated = await manageAlarmsUseCase.acknowledgeAlarm(alarmId);
     setAlarms((prev) => prev.map((a) => (a.id === alarmId ? updated : a)));
-  }, [container]);
+  }, [manageAlarmsUseCase]);
 
   const resolveAlarm = useCallback(async (alarmId: string) => {
-    const updated = await container.manageAlarmsUseCase.resolveAlarm(alarmId);
+    const updated = await manageAlarmsUseCase.resolveAlarm(alarmId);
     setAlarms((prev) => prev.map((a) => (a.id === alarmId ? updated : a)));
-  }, [container]);
+  }, [manageAlarmsUseCase]);
 
-  // MQTT Edge interactions via Use Case
   const dispatchMqttCommand = useCallback(async (command: 'RESET_COUNTER' | 'PAUSE' | 'RESUME') => {
-    const { updatedMachine } = await container.mqttEdgeCommandUseCase.dispatchCommand(
+    const { updatedMachine } = await mqttEdgeCommandUseCase.dispatchCommand(
       currentMachineId,
       command
     );
     if (updatedMachine) {
       setMachines((prev) => prev.map((m) => (m.id === currentMachineId ? updatedMachine : m)));
     }
-  }, [container, currentMachineId]);
+  }, [mqttEdgeCommandUseCase, currentMachineId]);
 
   const dispatchMqttJobConfig = useCallback(async (
     wo: string,
@@ -256,64 +230,34 @@ export function useOeeDashboard(): UseOeeDashboardReturn {
     cycleTimeSec?: number,
     shiftOverride?: { shiftStart: string; shiftEnd: string; breakWindow: string; breakMin: number }
   ) => {
+    if (!currentMachine) return;
     const stdCycleSec = cycleTimeSec ?? currentMachine.idealCycleTimeSec ?? currentMachine.jobConfig?.standardCycleTimeSec ?? 9.0;
-    const theoreticalRate = stdCycleSec > 0 ? Math.round(3600 / stdCycleSec) : 400;
-    // Scale actual rate based on current speed efficiency (~50.7%)
-    const newActualRate = Math.round(theoreticalRate * 0.5075);
+    const payload = buildJobConfigPayload({
+      workOrder: wo,
+      productName: product,
+      operatorDisplay: operator,
+      targetQty: target,
+      stdCycleTimeSec: stdCycleSec,
+      shiftOverride,
+      fallbackShiftStart: currentMachine.jobConfig?.shiftStart,
+      fallbackShiftEnd: currentMachine.jobConfig?.shiftEnd,
+      fallbackPlannedBreakMin: currentMachine.plannedDowntimeMinutes,
+      fallbackPlannedOperatingSec: (currentMachine.shiftDurationMinutes - currentMachine.plannedDowntimeMinutes) * 60,
+    });
 
-    // Operator tiba sebagai display "Nama (ID)" dari modal QR — pecah kembali
-    // agar operator.id asli (mis. OP-4021) terkirim, bukan hardcoded OP-EDGE.
-    const opMatch = operator.match(/^(.*?)\s*\(([^)]+)\)\s*$/);
-    const operatorName = opMatch ? opMatch[1].trim() || operator : operator;
-    const operatorId = opMatch ? opMatch[2].trim() || 'OP-EDGE' : 'OP-EDGE';
-
-    const shiftStart = shiftOverride?.shiftStart ?? currentMachine.jobConfig?.shiftStart ?? '06:00';
-    const shiftEnd = shiftOverride?.shiftEnd ?? currentMachine.jobConfig?.shiftEnd ?? '14:00';
-    const plannedBreakMin = shiftOverride?.breakMin ?? currentMachine.plannedDowntimeMinutes;
-
-    const payload = {
-      command: 'SET_JOB_CONFIG' as const,
-      transaction_id: `tx-${Date.now()}`,
-      work_order: wo,
-      product: {
-        id: `PRD-${product.replace(/\s+/g, '-').toUpperCase()}`,
-        name: product,
-        std_cycle_time_sec: stdCycleSec,
-      },
-      operator: {
-        id: operatorId,
-        name: operatorName,
-      },
-      shift_plan: {
-        shift_start: shiftStart,
-        shift_end: shiftEnd,
-        planned_break_min: plannedBreakMin,
-        planned_operating_sec: (currentMachine.shiftDurationMinutes - currentMachine.plannedDowntimeMinutes) * 60,
-        target_qty: target,
-        ...(shiftOverride?.breakWindow ? { break_window: shiftOverride.breakWindow } : {}),
-      },
-    };
-
-    const { updatedMachine } = await container.mqttEdgeCommandUseCase.setJobConfig(
-      currentMachineId,
-      payload
-    );
+    const { updatedMachine } = await mqttEdgeCommandUseCase.setJobConfig(currentMachineId, payload);
 
     const syncedMachine: MachineConfig = {
       ...updatedMachine,
       idealCycleTimeSec: stdCycleSec,
-      actualHourlyRate: newActualRate,
-      jobConfig: {
-        ...updatedMachine.jobConfig,
-        standardCycleTimeSec: stdCycleSec,
-      },
+      actualHourlyRate: deriveActualRate(stdCycleSec),
+      jobConfig: { ...updatedMachine.jobConfig, standardCycleTimeSec: stdCycleSec },
     };
 
     setMachines((prev) => prev.map((m) => (m.id === currentMachineId ? syncedMachine : m)));
     setIsMqttModalOpen(false);
-  }, [container, currentMachineId, currentMachine]);
+  }, [mqttEdgeCommandUseCase, currentMachineId, currentMachine]);
 
-  // Modals & UI Toggles
   const openFormulaModal = useCallback((metricName: string) => {
     setFormulaMetricHighlight(metricName);
     setIsHelpModalOpen(true);
@@ -337,16 +281,15 @@ export function useOeeDashboard(): UseOeeDashboardReturn {
     selectedShift,
     selectedDate,
     viewMode,
-    isFullscreen,
     isSimulating,
     teepEnabled,
     alarms,
+    isLoading,
     isLogModalOpen,
     isHelpModalOpen,
     isMqttModalOpen,
     formulaMetricHighlight,
     setViewMode,
-    toggleBrowserFullscreen,
     toggleSimulate,
     toggleTeep,
     selectMachine,

@@ -1,8 +1,8 @@
 // /src/App.tsx
 
 import React from 'react';
-import { DiProvider } from './infrastructure/di/DiContext';
-import { ThemeProvider } from './context/ThemeContext';
+import { DiProvider } from './presentation/providers/DiProvider';
+import { ThemeProvider } from './presentation/providers/ThemeProvider';
 import { DashboardPage } from './presentation/pages/DashboardPage';
 
 /**

@@ -112,3 +112,8 @@ export class OeeCalculator {
   }
 }
 
+/** Named helper — lets presentation import { formatNumber } without the class. */
+export function formatNumber(num: number): string {
+  return OeeCalculator.formatNumber(num);
+}
+

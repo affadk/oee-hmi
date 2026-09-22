@@ -1,5 +1,6 @@
 // /src/types.ts
-// Re-export domain contracts and entities for backwards compatibility
+// DEPRECATED compatibility shim — canonical contracts live in src/domain.
+// New code: import { ... } from './domain' (or './domain/entities/...').
 
 export * from './domain/entities/Machine';
 export * from './domain/entities/OeeMetrics';

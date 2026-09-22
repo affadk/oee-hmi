@@ -1,14 +1,35 @@
 // /src/infrastructure/di/Container.ts
+// Composition root: the ONLY place that wires concrete adapters to use-cases.
+// Presentation obtains the container via presentation/providers/DiProvider.
+// Application layers must NOT import this file (dependency points inward).
 
 import { IMachineRepository } from '../../domain/ports/IMachineRepository';
 import { IAlarmRepository } from '../../domain/ports/IAlarmRepository';
 import { IMqttGateway } from '../../domain/ports/IMqttGateway';
 import { IThemeStoragePort } from '../../domain/ports/IThemeStorage';
+import type {
+  IAuthGateway,
+  IDeviceCommandGateway,
+  ILiveStateRepository,
+  IMasterDataRepository,
+  IRealtimeGateway,
+  ITelemetryRepository,
+  IWorkOrderRepository,
+} from '../../domain/ports/IOeeBackend';
 
 import { InMemoryMachineRepository } from '../adapters/InMemoryMachineRepository';
 import { InMemoryAlarmRepository } from '../adapters/InMemoryAlarmRepository';
 import { MqttEdgeSimulatorAdapter } from '../adapters/MqttEdgeSimulatorAdapter';
-import { LocalStorageThemeAdapter } from '../adapters/LocalStorageThemeAdapter';
+import { LocalStorageThemeAdapter } from '../storage/LocalStorageThemeAdapter';
+import {
+  OeeHttpAuthGateway,
+  OeeHttpDeviceCommandGateway,
+  OeeHttpLiveStateRepository,
+  OeeHttpMasterDataRepository,
+  OeeHttpTelemetryRepository,
+  OeeHttpWorkOrderRepository,
+} from '../api/oeeApiClient';
+import { TelemetryWsClient } from '../realtime/telemetryWsClient';
 
 import { CalculateOeeUseCase } from '../../application/use-cases/CalculateOeeUseCase';
 import { GetMachinesUseCase } from '../../application/use-cases/GetMachinesUseCase';
@@ -18,15 +39,28 @@ import { LogRejectUseCase } from '../../application/use-cases/LogRejectUseCase';
 import { SimulateMachinePulseUseCase } from '../../application/use-cases/SimulateMachinePulseUseCase';
 import { ManageAlarmsUseCase } from '../../application/use-cases/ManageAlarmsUseCase';
 import { MqttEdgeCommandUseCase } from '../../application/use-cases/MqttEdgeCommandUseCase';
+import { GetLiveStateUseCase } from '../../application/use-cases/GetLiveStateUseCase';
+import { ListWorkOrdersUseCase } from '../../application/use-cases/ListWorkOrdersUseCase';
+import { SendDeviceCommandUseCase } from '../../application/use-cases/SendDeviceCommandUseCase';
+import { SubscribeTelemetryUseCase } from '../../application/use-cases/SubscribeTelemetryUseCase';
 
 export interface AppContainer {
-  // Ports / Repositories
+  // Ports / Repositories (legacy in-memory simulation lane)
   machineRepository: IMachineRepository;
   alarmRepository: IAlarmRepository;
   mqttGateway: IMqttGateway;
   themeStorage: IThemeStoragePort;
 
-  // Use cases
+  // Ports / Backend lane (real IIoT OEE REST + WS, see API_DOCUMENTATION.md)
+  liveStateRepository: ILiveStateRepository;
+  workOrderRepository: IWorkOrderRepository;
+  deviceCommandGateway: IDeviceCommandGateway;
+  masterDataRepository: IMasterDataRepository;
+  telemetryRepository: ITelemetryRepository;
+  authGateway: IAuthGateway;
+  realtimeGateway: IRealtimeGateway;
+
+  // Use cases (legacy simulation lane)
   calculateOeeUseCase: CalculateOeeUseCase;
   getMachinesUseCase: GetMachinesUseCase;
   updateMachineStatusUseCase: UpdateMachineStatusUseCase;
@@ -35,6 +69,12 @@ export interface AppContainer {
   simulateMachinePulseUseCase: SimulateMachinePulseUseCase;
   manageAlarmsUseCase: ManageAlarmsUseCase;
   mqttEdgeCommandUseCase: MqttEdgeCommandUseCase;
+
+  // Use cases (backend lane)
+  getLiveStateUseCase: GetLiveStateUseCase;
+  listWorkOrdersUseCase: ListWorkOrdersUseCase;
+  sendDeviceCommandUseCase: SendDeviceCommandUseCase;
+  subscribeTelemetryUseCase: SubscribeTelemetryUseCase;
 }
 
 /**
@@ -43,11 +83,20 @@ export interface AppContainer {
  * infrastructure adapters and injects them into application use cases.
  */
 export function createContainer(): AppContainer {
-  // 1. Adapters (Infrastructure)
+  // 1. Adapters (Infrastructure) — simulation lane (default UI data source)
   const machineRepository = new InMemoryMachineRepository();
   const alarmRepository = new InMemoryAlarmRepository();
   const mqttGateway = new MqttEdgeSimulatorAdapter();
   const themeStorage = new LocalStorageThemeAdapter();
+
+  // 1b. Adapters (Infrastructure) — backend lane (real REST + WS)
+  const liveStateRepository = new OeeHttpLiveStateRepository();
+  const workOrderRepository = new OeeHttpWorkOrderRepository();
+  const deviceCommandGateway = new OeeHttpDeviceCommandGateway();
+  const masterDataRepository = new OeeHttpMasterDataRepository();
+  const telemetryRepository = new OeeHttpTelemetryRepository();
+  const authGateway = new OeeHttpAuthGateway();
+  const realtimeGateway = new TelemetryWsClient();
 
   // 2. Use Cases (Application) with Injected Adapters
   const calculateOeeUseCase = new CalculateOeeUseCase();
@@ -58,12 +107,23 @@ export function createContainer(): AppContainer {
   const simulateMachinePulseUseCase = new SimulateMachinePulseUseCase(machineRepository);
   const manageAlarmsUseCase = new ManageAlarmsUseCase(alarmRepository);
   const mqttEdgeCommandUseCase = new MqttEdgeCommandUseCase(mqttGateway, machineRepository);
+  const getLiveStateUseCase = new GetLiveStateUseCase(liveStateRepository);
+  const listWorkOrdersUseCase = new ListWorkOrdersUseCase(workOrderRepository);
+  const sendDeviceCommandUseCase = new SendDeviceCommandUseCase(deviceCommandGateway);
+  const subscribeTelemetryUseCase = new SubscribeTelemetryUseCase(realtimeGateway);
 
   return {
     machineRepository,
     alarmRepository,
     mqttGateway,
     themeStorage,
+    liveStateRepository,
+    workOrderRepository,
+    deviceCommandGateway,
+    masterDataRepository,
+    telemetryRepository,
+    authGateway,
+    realtimeGateway,
     calculateOeeUseCase,
     getMachinesUseCase,
     updateMachineStatusUseCase,
@@ -72,6 +132,10 @@ export function createContainer(): AppContainer {
     simulateMachinePulseUseCase,
     manageAlarmsUseCase,
     mqttEdgeCommandUseCase,
+    getLiveStateUseCase,
+    listWorkOrdersUseCase,
+    sendDeviceCommandUseCase,
+    subscribeTelemetryUseCase,
   };
 }
 

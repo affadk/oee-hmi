@@ -1,30 +1,55 @@
 // /src/presentation/pages/DashboardPage.tsx
+// Presentation coordinator: wires DI container (via providers) into the
+// application hook, owns fullscreen side effects, renders presentational zones.
+// Must NOT fetch, MUST NOT touch repositories — only hooks + UI composition.
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useOeeDashboard } from '../../application/hooks/useOeeDashboard';
-import { useTheme } from '../../application/hooks/useTheme';
-import { FullscreenOeeView } from '../../components/fullscreen/FullscreenOeeView';
-import { HeaderZone } from '../../components/HeaderZone';
-import { HeroKpiZone } from '../../components/HeroKpiZone';
-import { ProductionZone } from '../../components/ProductionZone';
-import { MachineStatusZone } from '../../components/MachineStatusZone';
-import { LossAnalysisZone } from '../../components/LossAnalysisZone';
-import { TrendZone } from '../../components/TrendZone';
-import { AlarmsZone } from '../../components/AlarmsZone';
-import { LogEventModal } from '../../components/LogEventModal';
-import { FormulaHelpModal } from '../../components/FormulaHelpModal';
-import { MqttEdgeInspectorModal } from '../../components/MqttEdgeInspectorModal';
+import { useTheme } from '../providers/ThemeProvider';
+import { useDiContainer } from '../providers/DiProvider';
+import { useFullscreen } from '../hooks/useFullscreen';
+import { FullscreenOeeView } from '../components/fullscreen/FullscreenOeeView';
+import { HeaderZone } from '../components/HeaderZone';
+import { HeroKpiZone } from '../components/HeroKpiZone';
+import { ProductionZone } from '../components/ProductionZone';
+import { MachineStatusZone } from '../components/MachineStatusZone';
+import { LossAnalysisZone } from '../components/LossAnalysisZone';
+import { TrendZone } from '../components/TrendZone';
+import { AlarmsZone } from '../components/AlarmsZone';
+import { LogEventModal } from '../components/LogEventModal';
+import { FormulaHelpModal } from '../components/FormulaHelpModal';
+import { MqttEdgeInspectorModal } from '../components/MqttEdgeInspectorModal';
 import { LayoutDashboard, Tv, Sun, Moon } from 'lucide-react';
 
-/**
- * Presentation Page: DashboardPage
- * A presentational coordinator that binds Application Hook state to Presentational UI views.
- */
 export const DashboardPage: React.FC = () => {
   const { theme, toggleTheme } = useTheme();
   const isDark = theme === 'dark';
+  const container = useDiContainer();
+  const { isFullscreen, toggleBrowserFullscreen } = useFullscreen();
 
-  const dashboard = useOeeDashboard();
+  const deps = useMemo(() => ({
+    calculateOeeUseCase: container.calculateOeeUseCase,
+    getMachinesUseCase: container.getMachinesUseCase,
+    updateMachineStatusUseCase: container.updateMachineStatusUseCase,
+    logDowntimeUseCase: container.logDowntimeUseCase,
+    logRejectUseCase: container.logRejectUseCase,
+    simulateMachinePulseUseCase: container.simulateMachinePulseUseCase,
+    manageAlarmsUseCase: container.manageAlarmsUseCase,
+    mqttEdgeCommandUseCase: container.mqttEdgeCommandUseCase,
+  }), [container]);
+
+  const dashboard = useOeeDashboard(deps);
+
+  if (dashboard.isLoading || !dashboard.currentMachine || !dashboard.currentMetrics) {
+    return (
+      <div className={`min-h-screen flex items-center justify-center font-mono text-sm ${isDark ? 'bg-[#070d1a] text-slate-300' : 'bg-slate-100 text-slate-600'}`}>
+        Loading OEE dashboard…
+      </div>
+    );
+  }
+
+  const machine = dashboard.currentMachine;
+  const metrics = dashboard.currentMetrics;
 
   return (
     <div
@@ -33,8 +58,7 @@ export const DashboardPage: React.FC = () => {
         isDark ? 'bg-[#070d1a] text-slate-100' : 'bg-slate-100 text-slate-900'
       } ${dashboard.viewMode === 'FULLSCREEN_IMAGE' ? 'h-screen max-h-screen overflow-hidden flex flex-col' : 'min-h-screen'}`}
     >
-      {/* Floating View & Theme Mode Switcher (hidden in fullscreen mode) */}
-      {!dashboard.isFullscreen && (
+      {!isFullscreen && (
         <div
           id="floating-view-switcher"
           className={`fixed bottom-3 left-1/2 -translate-x-1/2 z-40 backdrop-blur-md rounded-full px-2.5 py-1.5 flex items-center gap-1.5 shadow-2xl border transition-colors ${
@@ -71,7 +95,6 @@ export const DashboardPage: React.FC = () => {
 
           <span className={`w-[1px] h-4 ${isDark ? 'bg-slate-700' : 'bg-slate-300'}`}></span>
 
-          {/* Quick Theme Switcher Button */}
           <button
             id="btn-quick-toggle-theme"
             onClick={toggleTheme}
@@ -89,13 +112,12 @@ export const DashboardPage: React.FC = () => {
       )}
 
       {dashboard.viewMode === 'FULLSCREEN_IMAGE' ? (
-        /* FULLSCREEN SINGLE-SCREEN VIEW (Industrial reference layout) */
         <FullscreenOeeView
-          machine={dashboard.currentMachine}
+          machine={machine}
           allMachines={dashboard.machines}
-          metrics={dashboard.currentMetrics}
-          isFullscreen={dashboard.isFullscreen}
-          onToggleFullscreen={dashboard.toggleBrowserFullscreen}
+          metrics={metrics}
+          isFullscreen={isFullscreen}
+          onToggleFullscreen={toggleBrowserFullscreen}
           onOpenMqttModal={dashboard.openMqttModal}
           isSimulating={dashboard.isSimulating}
           onToggleSimulate={dashboard.toggleSimulate}
@@ -108,19 +130,16 @@ export const DashboardPage: React.FC = () => {
           onApplyJobConfig={dashboard.dispatchMqttJobConfig}
         />
       ) : (
-        /* DETAILED AUDIT DASHBOARD VIEW — mengikuti style OEE Shift Overview:
-           shell bg #080e1a / #e9edf4, kartu #0f1b2e / white + border slate-800 / #c9d3df */
         <div
           id="detailed-audit-view-container"
           className={`min-h-screen w-full max-w-full overflow-x-clip flex flex-col font-sans transition-colors ${
             isDark ? 'bg-[#080e1a] text-slate-100' : 'bg-[#e9edf4] text-slate-900'
           }`}
         >
-          {/* Header Zone — Top navy bar + Sub-header ala Shift Overview */}
           <HeaderZone
-            currentMachine={dashboard.currentMachine}
+            currentMachine={machine}
             allMachines={dashboard.machines}
-            metrics={dashboard.currentMetrics}
+            metrics={metrics}
             selectedPlant={dashboard.selectedPlant}
             selectedLine={dashboard.selectedLine}
             selectedShift={dashboard.selectedShift}
@@ -138,38 +157,37 @@ export const DashboardPage: React.FC = () => {
             onToggleTeep={dashboard.toggleTeep}
           />
 
-          {/* Main Content Sections — spacing relatif ala Shift Overview */}
           <main className="flex-1 w-full min-w-0 max-w-full overflow-x-clip px-[1vw] py-[1vh] space-y-[1vh] pb-20">
             <HeroKpiZone
-              metrics={dashboard.currentMetrics}
-              machine={dashboard.currentMachine}
+              metrics={metrics}
+              machine={machine}
               teepEnabled={dashboard.teepEnabled}
               onOpenFormula={dashboard.openFormulaModal}
             />
 
             <ProductionZone
-              metrics={dashboard.currentMetrics}
-              machine={dashboard.currentMachine}
+              metrics={metrics}
+              machine={machine}
             />
 
             <MachineStatusZone
-              machine={dashboard.currentMachine}
+              machine={machine}
               allMachines={dashboard.machines}
-              metrics={dashboard.currentMetrics}
+              metrics={metrics}
               onSelectMachine={dashboard.selectMachine}
               onUpdateMachineStatus={dashboard.updateMachineStatus}
             />
 
             <LossAnalysisZone
-              machine={dashboard.currentMachine}
-              metrics={dashboard.currentMetrics}
+              machine={machine}
+              metrics={metrics}
             />
 
             <TrendZone
-              hourlyTrends={dashboard.currentMachine.hourlyTrends}
-              targetOee={dashboard.currentMachine.targetOee}
-              totalTargetQty={dashboard.currentMachine.jobConfig?.targetQuantity ?? dashboard.currentMachine.targetCount}
-              totalCount={dashboard.currentMachine.telemetry?.tot ?? dashboard.currentMachine.totalCount}
+              hourlyTrends={machine.hourlyTrends}
+              targetOee={machine.targetOee}
+              totalTargetQty={machine.jobConfig?.targetQuantity ?? machine.targetCount}
+              totalCount={machine.telemetry?.tot ?? machine.totalCount}
             />
 
             <AlarmsZone
@@ -187,25 +205,24 @@ export const DashboardPage: React.FC = () => {
           >
             <div className="w-full flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-3">
-                <span>Machine: <strong className={isDark ? 'text-slate-200' : 'text-slate-800'}>{dashboard.currentMachine.name}</strong></span>
-                <span>Line: <strong className={isDark ? 'text-slate-200' : 'text-slate-800'}>{dashboard.currentMachine.line}</strong></span>
+                <span>Machine: <strong className={isDark ? 'text-slate-200' : 'text-slate-800'}>{machine.name}</strong></span>
+                <span>Line: <strong className={isDark ? 'text-slate-200' : 'text-slate-800'}>{machine.line}</strong></span>
                 <span>Status: <strong className="text-emerald-500">ONLINE</strong></span>
               </div>
               <div className="flex items-center gap-3">
-                <span>Planned Time: <strong>{dashboard.currentMetrics.plannedProductionTimeMin || 420}m</strong></span>
-                <span>OEE: <strong className={isDark ? 'text-slate-200' : 'text-slate-800'}>{dashboard.currentMetrics.oeePct?.toFixed(1)}%</strong></span>
-                <span className="hidden sm:inline">A × P × Q = {dashboard.currentMetrics.availabilityPct?.toFixed(1)}% × {dashboard.currentMetrics.performancePct?.toFixed(1)}% × {dashboard.currentMetrics.qualityPct?.toFixed(1)}%</span>
+                <span>Planned Time: <strong>{metrics.plannedProductionTimeMin || 420}m</strong></span>
+                <span>OEE: <strong className={isDark ? 'text-slate-200' : 'text-slate-800'}>{metrics.oeePct?.toFixed(1)}%</strong></span>
+                <span className="hidden sm:inline">A × P × Q = {metrics.availabilityPct?.toFixed(1)}% × {metrics.performancePct?.toFixed(1)}% × {metrics.qualityPct?.toFixed(1)}%</span>
               </div>
             </div>
           </footer>
         </div>
       )}
 
-      {/* Modals */}
       <LogEventModal
         isOpen={dashboard.isLogModalOpen}
         onClose={dashboard.closeLogModal}
-        machineId={dashboard.currentMachine.id}
+        machineId={machine.id}
         onAddDowntime={dashboard.logDowntime}
         onAddReject={dashboard.logReject}
       />
@@ -216,11 +233,10 @@ export const DashboardPage: React.FC = () => {
         highlightMetric={dashboard.formulaMetricHighlight}
       />
 
-      {/* MQTT Edge Controller Inspector Modal */}
       <MqttEdgeInspectorModal
         isOpen={dashboard.isMqttModalOpen}
         onClose={dashboard.closeMqttModal}
-        machine={dashboard.currentMachine}
+        machine={machine}
         onSendCommand={dashboard.dispatchMqttCommand}
         onSendJobConfig={dashboard.dispatchMqttJobConfig}
       />
