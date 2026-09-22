@@ -26,19 +26,31 @@ export const PasXDonutGauge: React.FC<PasXDonutGaugeProps> = ({
   const isDark = theme === 'dark';
 
   const isLarge = size === 'large';
-  // Chart mengisi tinggi container aktual via flex-fill + aspect-ratio (relatif penuh,
-  // bukan proxy vh) — muat di layar kecil maupun fullscreen. Font tetap vh-relatif
-  // karena layout 100dvh sehingga vh proporsional terhadap container.
+  // Diameter viewBox — semua elemen teks dihitung sebagai fraksi diameter
+  // sehingga ukuran font selalu relatif & proporsional terhadap circular chart
+  // (SVG scaling: teks ikut membesar/mengecil bersama chart).
   const diameter = isLarge ? 210 : 176;
-  const valueFontSize = isLarge ? 'clamp(24px, 4.6vh, 48px)' : 'clamp(16px, 2.8vh, 26px)';
-  const labelFontSize = isLarge ? 'clamp(10px, 1.6vh, 16px)' : 'clamp(9px, 1.3vh, 12px)';
-  const strokeWidth = isLarge ? 18 : 16;
+  const strokeWidth = Math.round(diameter * 0.09);
+  // Rasio font relatif terhadap diameter — diperbesar dari sebelumnya:
+  // value ~23% diameter, label ~10.5% diameter.
+  const valueFontSize = diameter * 0.23;
+  const labelFontSize = diameter * 0.105;
+  const textGap = diameter * 0.03;
   const radius = (diameter - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
   const clampedValue = Math.min(100, Math.max(0, value));
   const strokeDashoffset = circumference - (clampedValue / 100) * circumference;
 
   const trackColor = isDark ? '#1e293b' : '#cbd5e1';
+
+  // Blok teks tengah di-center vertikal di sekitar titik tengah chart.
+  // Karena dirender sebagai SVG <text> dalam viewBox yang sama,
+  // ukurannya otomatis relatif & ikut skala bersama circular chart.
+  const cx = diameter / 2;
+  const cy = diameter / 2;
+  const blockHeight = valueFontSize + textGap + labelFontSize;
+  const valueCenterY = cy - blockHeight / 2 + valueFontSize / 2;
+  const labelCenterY = cy + blockHeight / 2 - labelFontSize / 2;
 
   return (
     <div
@@ -48,12 +60,12 @@ export const PasXDonutGauge: React.FC<PasXDonutGaugeProps> = ({
       }`}
       title={`${label}: ${value}% (Click for calculation formula)`}
     >
-      <div className="relative flex items-center justify-center min-h-0 min-w-0" style={{ flex: '1 1 0', aspectRatio: '1 / 1', maxWidth: '100%', maxHeight: '100%' }}>
+      <div className="flex items-center justify-center min-h-0 min-w-0" style={{ flex: '1 1 0', aspectRatio: '1 / 1', maxWidth: '100%', maxHeight: '100%' }}>
         <svg width="100%" height="100%" viewBox={`0 0 ${diameter} ${diameter}`} preserveAspectRatio="xMidYMid meet" className="overflow-visible block">
           {/* Background circle track */}
           <circle
-            cx={diameter / 2}
-            cy={diameter / 2}
+            cx={cx}
+            cy={cy}
             r={radius}
             fill="none"
             stroke={trackColor}
@@ -62,8 +74,8 @@ export const PasXDonutGauge: React.FC<PasXDonutGaugeProps> = ({
 
           {/* Value Progress Arc (starts from 12 o'clock, clockwise) */}
           <circle
-            cx={diameter / 2}
-            cy={diameter / 2}
+            cx={cx}
+            cy={cy}
             r={radius}
             fill="none"
             stroke={color}
@@ -71,27 +83,38 @@ export const PasXDonutGauge: React.FC<PasXDonutGaugeProps> = ({
             strokeDasharray={circumference}
             strokeDashoffset={strokeDashoffset}
             strokeLinecap="butt"
-            transform={`rotate(-90 ${diameter / 2} ${diameter / 2})`}
+            transform={`rotate(-90 ${cx} ${cy})`}
             className="transition-all duration-700 ease-out"
           />
 
-        </svg>
-
-        {/* Center Text (Value % and Label) — font relatif terhadap tinggi container */}
-        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-          <span
-            className="font-sans font-extrabold leading-none tracking-tight"
-            style={{ color, fontSize: valueFontSize }}
+          {/* Center Text — font-size dalam unit viewBox => relatif terhadap chart */}
+          <text
+            x={cx}
+            y={valueCenterY}
+            textAnchor="middle"
+            dominantBaseline="central"
+            fill={color}
+            fontSize={valueFontSize}
+            fontWeight={800}
+            letterSpacing="-0.02em"
+            style={{ fontFamily: 'Inter, ui-sans-serif, system-ui, sans-serif' }}
           >
             {Math.round(value)}%
-          </span>
-          <span
-            className="font-sans font-bold uppercase tracking-wider mt-1"
-            style={{ color, fontSize: labelFontSize }}
+          </text>
+          <text
+            x={cx}
+            y={labelCenterY}
+            textAnchor="middle"
+            dominantBaseline="central"
+            fill={color}
+            fontSize={labelFontSize}
+            fontWeight={700}
+            letterSpacing="0.08em"
+            style={{ fontFamily: 'Inter, ui-sans-serif, system-ui, sans-serif' }}
           >
-            {label}
-          </span>
-        </div>
+            {label.toUpperCase()}
+          </text>
+        </svg>
       </div>
       {rawLines && rawLines.length > 0 ? (
         <div className="flex flex-col items-center space-y-0 font-mono shrink-0" style={{ marginTop: '0.6vh', fontSize: 'clamp(11px, 1.7vh, 14px)', lineHeight: 1.35 }}>

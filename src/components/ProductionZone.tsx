@@ -1,12 +1,7 @@
+// /src/components/ProductionZone.tsx — style OEE Shift Overview
+
 import React from 'react';
-import { 
-  Boxes, 
-  CheckCircle2, 
-  XCircle, 
-  Target, 
-  TrendingUp, 
-  Clock3 
-} from 'lucide-react';
+import { HelpCircle } from 'lucide-react';
 import { CalculatedOeeMetrics, MachineConfig } from '../types';
 import { formatNumber } from '../utils/oeeMath';
 import { useTheme } from '../context/ThemeContext';
@@ -22,188 +17,118 @@ export const ProductionZone: React.FC<ProductionZoneProps> = ({ metrics, machine
 
   const goodRatio = machine.totalCount > 0 ? (machine.goodCount / machine.totalCount) * 100 : 0;
   const rejectRatio = machine.totalCount > 0 ? (machine.rejectCount / machine.totalCount) * 100 : 0;
-
-  // Speed delta
   const cycleTimeDelta = Number((machine.actualCycleTimeSec - machine.idealCycleTimeSec).toFixed(1));
 
+  const tileClass = `rounded-lg p-3 border transition-colors ${
+    isDark ? 'bg-[#132238] border-slate-800' : 'bg-[#eef2f7] border-[#c9d3df]'
+  }`;
+
   return (
-    <section 
-      id="production-kpi-zone" 
-      className={`rounded-xl border p-4 transition-colors ${
-        isDark ? 'bg-slate-900/90 border-slate-800 shadow-lg backdrop-blur-sm' : 'bg-white border-slate-200 shadow-sm'
+    <section
+      id="production-kpi-zone"
+      className={`rounded-xl border p-[clamp(8px,1vh,14px)] shadow-sm transition-colors ${
+        isDark ? 'bg-[#0f1b2e] border-slate-800' : 'bg-white border-[#c9d3df]'
       }`}
     >
-      <div className={`flex items-center justify-between pb-3 mb-3 border-b ${
-        isDark ? 'border-slate-800/80' : 'border-slate-200'
-      }`}>
-        <h2 className={`text-sm font-bold uppercase tracking-wider flex items-center gap-1.5 ${
-          isDark ? 'text-slate-200' : 'text-slate-800'
-        }`}>
-          <Boxes className="w-4 h-4 text-blue-500" />
-          Production Output & Speed Performance
+      <div className="flex flex-wrap items-center justify-between gap-2 pb-[1vh] mb-[0.6vh] border-b border-slate-200 dark:border-slate-800">
+        <h2 className={`text-sm font-bold tracking-tight ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+          Production Output & Speed
         </h2>
         <div className={`text-xs font-mono ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
           Product: <span className={`font-semibold ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>{machine.currentProduct.split(' ')[0]}</span>
+          <span className="ml-2 px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-semibold">
+            Yield {goodRatio.toFixed(1)}%
+          </span>
         </div>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-        {/* 1. Target */}
-        <div className={`rounded-lg p-3 border ${
-          isDark ? 'bg-slate-800/60 border-slate-700/60' : 'bg-slate-50 border-slate-200'
-        }`}>
-          <div className={`text-xs flex items-center gap-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-            <Target className="w-3.5 h-3.5 text-blue-500" />
-            <span>Target Plan</span>
-          </div>
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
+        <div className={tileClass}>
+          <div className={`text-xs font-semibold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Target Plan</div>
           <div className="mt-1 flex items-baseline gap-1">
-            <span className={`text-2xl font-bold font-mono ${isDark ? 'text-white' : 'text-slate-900'}`}>
-              {formatNumber(machine.targetCount)}
-            </span>
+            <span className={`text-2xl font-black font-sans ${isDark ? 'text-white' : 'text-slate-900'}`}>{formatNumber(machine.targetCount)}</span>
             <span className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>pcs</span>
           </div>
-          <div className={`text-[11px] mt-1 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Shift scheduled quota</div>
+          <div className={`text-[11px] font-mono mt-1 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Shift quota</div>
         </div>
 
-        {/* 2. Actual Total Count */}
-        <div className={`rounded-lg p-3 border ${
-          isDark ? 'bg-slate-800/60 border-slate-700/60' : 'bg-slate-50 border-slate-200'
-        }`}>
-          <div className={`text-xs flex items-center gap-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-            <Boxes className={`w-3.5 h-3.5 ${isDark ? 'text-slate-300' : 'text-slate-600'}`} />
-            <span>Actual Total</span>
-          </div>
+        <div className={tileClass}>
+          <div className={`text-xs font-semibold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Actual Total</div>
           <div className="mt-1 flex items-baseline gap-1">
-            <span className={`text-2xl font-bold font-mono ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
-              {formatNumber(machine.totalCount)}
-            </span>
+            <span className={`text-2xl font-black font-sans ${isDark ? 'text-white' : 'text-slate-900'}`}>{formatNumber(machine.totalCount)}</span>
             <span className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>pcs</span>
           </div>
-          <div className={`text-[11px] mt-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Total stroke counter</div>
+          <div className={`text-[11px] font-mono mt-1 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Stroke counter</div>
         </div>
 
-        {/* 3. Good Count */}
-        <div className={`rounded-lg p-3 border ${
-          isDark 
-            ? 'bg-emerald-950/20 border-emerald-500/20' 
-            : 'bg-emerald-50/80 border-emerald-200'
-        }`}>
-          <div className={`text-xs flex items-center gap-1 ${isDark ? 'text-emerald-400' : 'text-emerald-700'}`}>
-            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-            <span>Good Output</span>
-          </div>
+        <div className={`rounded-lg p-3 border ${isDark ? 'bg-emerald-950/30 border-emerald-800/50' : 'bg-emerald-50 border-emerald-300/60'}`}>
+          <div className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">Good Output</div>
           <div className="mt-1 flex items-baseline gap-1">
-            <span className={`text-4xl font-black font-mono ${isDark ? 'text-emerald-300' : 'text-emerald-700'}`}>
-              {formatNumber(machine.goodCount)}
-            </span>
-            <span className={`text-sm font-semibold ${isDark ? 'text-emerald-400/70' : 'text-emerald-600'}`}>pcs</span>
+            <span className="text-2xl font-black font-sans text-emerald-600 dark:text-emerald-400">{formatNumber(machine.goodCount)}</span>
+            <span className="text-xs text-emerald-600/70 dark:text-emerald-400/70">pcs</span>
           </div>
-          <div className={`text-xs font-mono font-semibold mt-1 ${isDark ? 'text-emerald-400/80' : 'text-emerald-700'}`}>
-            {goodRatio.toFixed(1)}% of total
-          </div>
+          <div className="text-xs font-mono font-bold mt-1 text-emerald-600 dark:text-emerald-400">{goodRatio.toFixed(1)}% of total</div>
         </div>
 
-        {/* 4. Reject Count */}
-        <div className={`rounded-lg p-3 border ${
-          isDark 
-            ? 'bg-rose-950/20 border-rose-500/20' 
-            : 'bg-rose-50/80 border-rose-200'
-        }`}>
-          <div className={`text-xs flex items-center gap-1 ${isDark ? 'text-rose-400' : 'text-rose-700'}`}>
-            <XCircle className="w-3.5 h-3.5 text-rose-500" />
-            <span>Reject / Defect</span>
-          </div>
+        <div className={`rounded-lg p-3 border ${isDark ? 'bg-rose-950/30 border-rose-800/50' : 'bg-rose-50 border-rose-300/60'}`}>
+          <div className="text-xs font-semibold text-rose-600 dark:text-rose-400">Reject / Defect</div>
           <div className="mt-1 flex items-baseline gap-1">
-            <span className={`text-4xl font-black font-mono ${isDark ? 'text-rose-300' : 'text-rose-700'}`}>
-              {formatNumber(machine.rejectCount)}
-            </span>
-            <span className={`text-sm font-semibold ${isDark ? 'text-rose-400/70' : 'text-rose-600'}`}>pcs</span>
+            <span className="text-2xl font-black font-sans text-rose-600 dark:text-rose-400">{formatNumber(machine.rejectCount)}</span>
+            <span className="text-xs text-rose-600/70 dark:text-rose-400/70">pcs</span>
           </div>
-          <div className={`text-xs font-mono font-semibold mt-1 ${isDark ? 'text-rose-400/80' : 'text-rose-700'}`}>
-            {rejectRatio.toFixed(1)}% reject rate
+          <div className="text-xs font-mono font-bold mt-1 text-rose-600 dark:text-rose-400">{rejectRatio.toFixed(1)}% reject</div>
+        </div>
+
+        <div className={tileClass}>
+          <div className={`text-xs font-semibold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Achievement</div>
+          <div className="mt-1 flex items-baseline gap-1">
+            <span className="text-2xl font-black font-mono text-amber-500">{metrics.achievementPct}%</span>
+          </div>
+          <div className={`w-full h-2 rounded-full mt-2 overflow-hidden ${isDark ? 'bg-slate-800' : 'bg-slate-200'}`}>
+            <div className="bg-amber-500 h-full rounded-full transition-all duration-500" style={{ width: `${Math.min(100, metrics.achievementPct)}%` }} />
           </div>
         </div>
 
-        {/* 5. Achievement % */}
-        <div className={`rounded-lg p-3 border ${
-          isDark ? 'bg-slate-800/60 border-slate-700/60' : 'bg-slate-50 border-slate-200'
-        }`}>
-          <div className={`text-xs flex items-center gap-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-            <TrendingUp className="w-3.5 h-3.5 text-amber-500" />
-            <span>Achievement</span>
-          </div>
+        <div className={tileClass}>
+          <div className={`text-xs font-semibold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Cycle Time</div>
           <div className="mt-1 flex items-baseline gap-1">
-            <span className={`text-2xl font-bold font-mono ${isDark ? 'text-amber-300' : 'text-amber-700'}`}>
-              {metrics.achievementPct}%
-            </span>
+            <span className="text-xl font-black font-mono text-cyan-600 dark:text-cyan-400">{machine.actualCycleTimeSec}s</span>
+            <span className={`text-[11px] font-mono ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>/ ideal {machine.idealCycleTimeSec}s</span>
           </div>
-          <div className={`w-full h-1.5 rounded-full mt-2 overflow-hidden ${isDark ? 'bg-slate-700' : 'bg-slate-200'}`}>
-            <div 
-              className="bg-amber-500 h-full rounded-full transition-all duration-500" 
-              style={{ width: `${Math.min(100, metrics.achievementPct)}%` }}
-            />
-          </div>
-        </div>
-
-        {/* 6. Cycle Time & Speed Metric */}
-        <div className={`rounded-lg p-3 border ${
-          isDark ? 'bg-slate-800/60 border-slate-700/60' : 'bg-slate-50 border-slate-200'
-        }`}>
-          <div className={`text-xs flex items-center gap-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-            <Clock3 className="w-3.5 h-3.5 text-cyan-500" />
-            <span>Cycle Time</span>
-          </div>
-          <div className="mt-1 flex items-baseline gap-1">
-            <span className={`text-xl font-bold font-mono ${isDark ? 'text-cyan-300' : 'text-cyan-700'}`}>
-              {machine.actualCycleTimeSec}s
-            </span>
-            <span className={`text-[11px] ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>/ ideal {machine.idealCycleTimeSec}s</span>
-          </div>
-          <div className={`text-[10px] mt-1 flex items-center justify-between ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+          <div className={`text-[11px] font-mono mt-1 flex items-center justify-between ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
             <span>Rate: <strong className={isDark ? 'text-slate-200' : 'text-slate-800'}>{machine.actualHourlyRate}/h</strong></span>
-            <span className={
-              cycleTimeDelta <= 0 
-                ? isDark ? 'text-emerald-400' : 'text-emerald-700 font-semibold' 
-                : isDark ? 'text-rose-400 font-semibold' : 'text-rose-700 font-semibold'
-            }>
+            <span className={cycleTimeDelta <= 0 ? 'text-emerald-500 font-bold' : 'text-rose-500 font-bold'}>
               {cycleTimeDelta > 0 ? `+${cycleTimeDelta}s` : `${cycleTimeDelta}s`}
             </span>
           </div>
         </div>
       </div>
 
-      {/* Production Ratio Bar: Good vs Reject */}
-      <div className={`mt-3 pt-3 border-t flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs ${
-        isDark ? 'border-slate-800/80' : 'border-slate-200'
-      }`}>
-        <div className={`flex items-center gap-4 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+      {/* Ratio bar ala Shift Overview: #48a43f + rose-600 */}
+      <div className="mt-3 pt-2 border-t border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs">
+        <div className={`flex items-center gap-4 font-semibold ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
           <span className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-sm bg-emerald-500"></span>
-            Good Output ({formatNumber(machine.goodCount)} pcs)
+            <span className="w-2.5 h-2.5 rounded-xs bg-[#48a43f]"></span>
+            Good ({formatNumber(machine.goodCount)} pcs)
           </span>
           <span className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-sm bg-rose-500"></span>
-            Reject Output ({formatNumber(machine.rejectCount)} pcs)
+            <span className="w-2.5 h-2.5 rounded-xs bg-rose-600"></span>
+            Reject ({formatNumber(machine.rejectCount)} pcs)
           </span>
         </div>
-
         <div className="w-full sm:w-80 flex items-center gap-2">
-          <div className={`h-2 w-full rounded-full overflow-hidden flex ${isDark ? 'bg-slate-800' : 'bg-slate-200'}`}>
-            <div 
-              className="bg-emerald-500 h-full transition-all duration-500" 
-              style={{ width: `${goodRatio}%` }}
-              title={`Good: ${goodRatio.toFixed(1)}%`}
-            />
-            <div 
-              className="bg-rose-500 h-full transition-all duration-500" 
-              style={{ width: `${rejectRatio}%` }}
-              title={`Reject: ${rejectRatio.toFixed(1)}%`}
-            />
+          <div className={`h-[10px] w-full rounded-md overflow-hidden flex shadow-inner ${isDark ? 'bg-slate-800' : 'bg-slate-200'}`}>
+            <div className="bg-[#48a43f] h-full transition-all duration-500" style={{ width: `${goodRatio}%` }} />
+            <div className="bg-rose-600 h-full transition-all duration-500" style={{ width: `${rejectRatio}%` }} />
           </div>
-          <span className={`font-mono text-[11px] whitespace-nowrap ${isDark ? 'text-slate-300' : 'text-slate-700 font-medium'}`}>
-            Yield {goodRatio.toFixed(1)}%
+          <span className={`font-mono text-[11px] font-bold whitespace-nowrap ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>
+            {goodRatio.toFixed(1)}%
           </span>
         </div>
+      </div>
+
+      <div className="hidden">
+        <HelpCircle className="w-4 h-4" />
       </div>
     </section>
   );

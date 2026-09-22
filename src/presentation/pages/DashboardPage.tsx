@@ -108,17 +108,19 @@ export const DashboardPage: React.FC = () => {
           onApplyJobConfig={dashboard.dispatchMqttJobConfig}
         />
       ) : (
-        /* DETAILED AUDIT DASHBOARD VIEW */
+        /* DETAILED AUDIT DASHBOARD VIEW — mengikuti style OEE Shift Overview:
+           shell bg #080e1a / #e9edf4, kartu #0f1b2e / white + border slate-800 / #c9d3df */
         <div
           id="detailed-audit-view-container"
-          className={`min-h-screen flex flex-col transition-colors ${
-            isDark ? 'bg-slate-950 text-slate-100' : 'bg-slate-50 text-slate-900'
+          className={`min-h-screen flex flex-col font-sans transition-colors ${
+            isDark ? 'bg-[#080e1a] text-slate-100' : 'bg-[#e9edf4] text-slate-900'
           }`}
         >
-          {/* Header Zone */}
+          {/* Header Zone — Top navy bar + Sub-header ala Shift Overview */}
           <HeaderZone
             currentMachine={dashboard.currentMachine}
             allMachines={dashboard.machines}
+            metrics={dashboard.currentMetrics}
             selectedPlant={dashboard.selectedPlant}
             selectedLine={dashboard.selectedLine}
             selectedShift={dashboard.selectedShift}
@@ -130,12 +132,14 @@ export const DashboardPage: React.FC = () => {
             onToggleSimulate={dashboard.toggleSimulate}
             onOpenLogModal={dashboard.openLogModal}
             onOpenHelpModal={() => dashboard.openFormulaModal('OEE')}
+            onOpenMqttModal={dashboard.openMqttModal}
+            onUpdateMachineStatus={dashboard.updateMachineStatus}
             teepEnabled={dashboard.teepEnabled}
             onToggleTeep={dashboard.toggleTeep}
           />
 
-          {/* Main Content Sections - Full width across screen */}
-          <main className="flex-1 w-full px-4 sm:px-6 lg:px-8 py-4 space-y-4 pb-20">
+          {/* Main Content Sections — spacing relatif ala Shift Overview */}
+          <main className="flex-1 w-full px-[1vw] py-[1vh] space-y-[1vh] pb-20">
             <HeroKpiZone
               metrics={dashboard.currentMetrics}
               machine={dashboard.currentMachine}
@@ -177,11 +181,22 @@ export const DashboardPage: React.FC = () => {
 
           <footer
             id="audit-view-footer"
-            className={`w-full border-t px-4 sm:px-6 lg:px-8 py-3 text-center text-xs font-mono transition-colors ${
-              isDark ? 'border-slate-900 bg-slate-950/80 text-slate-500' : 'border-slate-200 bg-white text-slate-600'
+            className={`w-full px-[1.2vw] py-[0.8vh] border-t text-xs font-mono transition-colors ${
+              isDark ? 'bg-[#0d1728] border-slate-800 text-slate-400' : 'bg-[#e2e8f0] border-[#c4cbd5] text-slate-600'
             }`}
           >
-            Single-Page OEE Manufacturing Floor Dashboard • ISO 22400 / TPM Compliant • Availability (91.2%) × Performance (94.5%) × Quality (95.6%) = 82.4%
+            <div className="w-full flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <span>Machine: <strong className={isDark ? 'text-slate-200' : 'text-slate-800'}>{dashboard.currentMachine.name}</strong></span>
+                <span>Line: <strong className={isDark ? 'text-slate-200' : 'text-slate-800'}>{dashboard.currentMachine.line}</strong></span>
+                <span>Status: <strong className="text-emerald-500">ONLINE</strong></span>
+              </div>
+              <div className="flex items-center gap-3">
+                <span>Planned Time: <strong>{dashboard.currentMetrics.plannedProductionTimeMin || 420}m</strong></span>
+                <span>OEE: <strong className={isDark ? 'text-slate-200' : 'text-slate-800'}>{dashboard.currentMetrics.oeePct?.toFixed(1)}%</strong></span>
+                <span className="hidden sm:inline">A × P × Q = {dashboard.currentMetrics.availabilityPct?.toFixed(1)}% × {dashboard.currentMetrics.performancePct?.toFixed(1)}% × {dashboard.currentMetrics.qualityPct?.toFixed(1)}%</span>
+              </div>
+            </div>
           </footer>
         </div>
       )}
