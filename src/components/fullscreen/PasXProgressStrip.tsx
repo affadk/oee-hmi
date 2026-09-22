@@ -1,6 +1,6 @@
 // /src/components/fullscreen/PasXProgressStrip.tsx
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useTheme } from '../../context/ThemeContext';
 import { MachineConfig, CalculatedOeeMetrics } from '../../types';
 
@@ -37,37 +37,105 @@ const SHIFT_EVENTS: TimelineEvent[] = [
 const getEventColorTheme = (type: TimelineEvent['type']) => {
   switch (type) {
     case 'Active':
-      return { bannerBg: 'bg-emerald-50 dark:bg-emerald-950/40', bannerBorder: 'border-emerald-400 dark:border-emerald-600', badgeBg: 'bg-[#48a43f]', badgeText: 'text-white', accentText: 'text-emerald-700 dark:text-emerald-300', highlightBorder: '#48a43f' };
+      return { bannerBg: 'bg-emerald-50 dark:bg-[#0a211a]', bannerBorder: 'border-emerald-500/60 dark:border-[#157a55]', badgeBg: 'bg-[#22c55e]', badgeText: 'text-[#052e16]', accentText: 'text-emerald-700 dark:text-emerald-300', highlightBorder: '#22c55e' };
     case 'Breakdown':
-      return { bannerBg: 'bg-rose-50 dark:bg-rose-950/40', bannerBorder: 'border-rose-400 dark:border-rose-600', badgeBg: 'bg-[#dc2626]', badgeText: 'text-white', accentText: 'text-rose-700 dark:text-rose-300', highlightBorder: '#dc2626' };
+      return { bannerBg: 'bg-rose-50 dark:bg-[#241114]', bannerBorder: 'border-rose-500/60 dark:border-[#a12335]', badgeBg: 'bg-[#ef4444]', badgeText: 'text-white', accentText: 'text-rose-700 dark:text-rose-300', highlightBorder: '#ef4444' };
     case 'Changeover':
     case 'Waiting':
-      return { bannerBg: 'bg-amber-50 dark:bg-amber-950/40', bannerBorder: 'border-amber-400 dark:border-amber-600', badgeBg: 'bg-[#eab308]', badgeText: 'text-slate-900 font-bold', accentText: 'text-amber-800 dark:text-amber-300', highlightBorder: '#eab308' };
+      return { bannerBg: 'bg-amber-50 dark:bg-[#211a08]', bannerBorder: 'border-amber-500/60 dark:border-[#8a6d1c]', badgeBg: 'bg-[#eab308]', badgeText: 'text-[#451a03]', accentText: 'text-amber-800 dark:text-amber-300', highlightBorder: '#eab308' };
     default:
-      return { bannerBg: 'bg-slate-50 dark:bg-slate-900/60', bannerBorder: 'border-slate-300 dark:border-slate-700', badgeBg: 'bg-slate-600', badgeText: 'text-white', accentText: 'text-slate-700 dark:text-slate-300', highlightBorder: '#64748b' };
+      return { bannerBg: 'bg-slate-100 dark:bg-[#131a26]', bannerBorder: 'border-slate-400/60 dark:border-slate-600', badgeBg: 'bg-slate-500', badgeText: 'text-white', accentText: 'text-slate-700 dark:text-slate-300', highlightBorder: '#64748b' };
   }
 };
 
-export const PasXProgressStrip: React.FC<PasXProgressStripProps> = () => {
+const parseShiftHM = (hm: string | undefined, fallbackMin: number): number => {
+  if (!hm) return fallbackMin;
+  const m = hm.match(/^(\d{1,2}):(\d{2})/);
+  if (!m) return fallbackMin;
+  return (parseInt(m[1], 10) % 24) * 60 + (parseInt(m[2], 10) % 60);
+};
+
+const formatHM = (totalMin: number): string => {
+  const norm = ((Math.round(totalMin) % 1440) + 1440) % 1440;
+  return `${String(Math.floor(norm / 60)).padStart(2, '0')}:${String(norm % 60).padStart(2, '0')}`;
+};
+
+export const PasXProgressStrip: React.FC<PasXProgressStripProps> = ({ machine }) => {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
-  const [selectedEvent, setSelectedEvent] = useState<TimelineEvent>(SHIFT_EVENTS[4]);
-  const hours = ['22:00', '23:00', '00:00', '01:00', '02:00', '03:00', '04:00', '05:00', '06:00', '07:00', '08:00'];
-  const selectedTheme = getEventColorTheme(selectedEvent.type);
-  const selectedCenterPct = Math.min(98, Math.max(2, ((selectedEvent.startHourFraction + selectedEvent.durationFraction / 2) / 10) * 100));
+  const [selectedEvent, setSelectedEvent] = useState<TimelineEvent | null>(SHIFT_EVENTS[4]);
+
+  // Real shift window (start → end) dari konfigurasi mesin
+  const shiftStartStr = machine?.jobConfig?.shiftStart ?? '22:00';
+  const shiftEndStr = machine?.jobConfig?.shiftEnd ?? '08:00';
+  const startMin = parseShiftHM(shiftStartStr, 22 * 60);
+  const endMinRaw = parseShiftHM(shiftEndStr, 8 * 60);
+  const endMin = endMinRaw <= startMin ? endMinRaw + 24 * 60 : endMinRaw;
+  const windowMin = Math.max(60, endMin - startMin);
+  const windowH = windowMin / 60;
+
+  // Live clock — penanda real-time, refresh tiap detik
+  const [now, setNow] = useState(() => new Date());
+  const mountedRef = useRef<number | null>(null);
+  if (mountedRef.current === null) mountedRef.current = Date.now();
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(t);
+  }, []);
+  const nowMinOfDay = now.getHours() * 60 + now.getMinutes() + now.getSeconds() / 60;
+  let nowRelMin = nowMinOfDay - startMin;
+  if (nowRelMin < 0) nowRelMin += 24 * 60;
+  const realFrac = nowRelMin / windowMin;
+  const realInside = realFrac >= 0 && realFrac <= 1;
+  // Jam operasional demo: bila jam dinding di luar window shift, kursor berjalan
+  // di dalam window mengikuti laju jam nyata (loop), agar penanda selalu tampil.
+  const elapsedMin = Math.max(0, (now.getTime() - (mountedRef.current ?? now.getTime())) / 60000);
+  const demoRelMin = (windowMin * 0.3 + elapsedMin) % windowMin;
+  const useRealCursor = realInside;
+  const cursorRelMin = useRealCursor ? Math.min(nowRelMin, windowMin) : demoRelMin;
+  const livePct = Math.min(99, Math.max(1, (cursorRelMin / windowMin) * 100));
+  const cursorClockMin = useRealCursor ? nowMinOfDay : (((startMin + demoRelMin) % 1440) + 1440) % 1440;
+  const cursorSec = useRealCursor ? now.getSeconds() : Math.floor((demoRelMin * 60) % 60);
+  const liveLabel = `LIVE ${formatHM(cursorClockMin)}:${String(cursorSec).padStart(2, '0')}`;
+  const liveFullStamp = `${now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })} ${formatHM(nowMinOfDay)}:${String(now.getSeconds()).padStart(2, '0')}`;
+
+  // Tick per jam dari start hingga end shift
+  const hours: string[] = [];
+  for (let m = 0; m <= windowMin + 1; m += 60) hours.push(formatHM(startMin + m));
+  const liveHour = formatHM(cursorClockMin - (cursorClockMin % 60));
+
+  const shiftNumber = shiftStartStr === '22:00' || shiftStartStr === '23:00' ? 'Shift 3' : shiftStartStr === '15:00' || shiftStartStr === '14:00' ? 'Shift 2' : 'Shift 1';
+
+  // Segmen event dipetakan proporsional terhadap window shift (bukan 10 jam fixed)
+  const segPct = (evt: TimelineEvent) => {
+    const startPct = Math.min(100, Math.max(0, (evt.startHourFraction / windowH) * 100));
+    const widthPct = Math.max(0, Math.min((evt.durationFraction / windowH) * 100, 100 - startPct));
+    return { startPct, widthPct };
+  };
+  const usedPct = SHIFT_EVENTS.reduce((acc, evt) => acc + segPct(evt).widthPct, 0);
+  const fillerPct = Math.max(0, 100 - usedPct);
+
+  // Auto-follow: bila tidak ada pilihan manual, ikuti segmen pada posisi kursor realtime
+  const cursorH = cursorRelMin / 60;
+  const autoEvent = SHIFT_EVENTS.find(
+    (evt) => cursorH >= evt.startHourFraction && cursorH < evt.startHourFraction + evt.durationFraction
+  ) ?? null;
+  const displayEvent = selectedEvent ?? autoEvent;
+  const isAutoFollow = selectedEvent === null && autoEvent !== null;
+  const displayTheme = displayEvent ? getEventColorTheme(displayEvent.type) : null;
+  const displayCenterPct = displayEvent
+    ? Math.min(98, Math.max(2, ((displayEvent.startHourFraction + displayEvent.durationFraction / 2) / windowH) * 100))
+    : 0;
 
   return (
     <div
       id="shift-progress-fullwidth-card"
-      className={`h-full min-h-0 w-full p-[clamp(8px,1vh,12px)] rounded-xl border shadow-sm transition-colors flex flex-col overflow-hidden ${
-        isDark ? 'bg-[#0f1b2e] border-slate-800' : 'bg-white border-[#c9d3df]'
-      }`}
+      className="h-full min-h-0 w-full flex flex-col overflow-hidden bg-transparent"
     >
-      {/* Header — padding & font relatif vh/vw — min 12px */}
+      {/* Header — tanpa background section, hanya judul + legenda */}
       <div className="shrink-0 flex flex-wrap items-center justify-between gap-2 pb-[0.8vh] border-b border-slate-200 dark:border-slate-800">
         <div className="flex items-center gap-2">
           <h4 className={`text-sm font-bold tracking-tight ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>Progress & Shift Timeline</h4>
-          <span className="text-xs font-mono px-2 py-0.5 rounded bg-blue-500/10 text-blue-600 dark:text-blue-400 font-semibold border border-blue-500/20">Shift 3 (22:00 - 08:00) · 21 Sep 2026 01:25:37</span>
         </div>
         <div className="flex items-center gap-2 text-xs font-semibold shrink-0">
           <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 min-w-[10px] min-h-[10px] rounded-xs bg-[#48a43f]" /><span className={isDark ? 'text-slate-300' : 'text-slate-600'}>Active</span></div>
@@ -76,43 +144,74 @@ export const PasXProgressStrip: React.FC<PasXProgressStripProps> = () => {
         </div>
       </div>
 
+      {/* Sub-header Shift — teks biasa, bukan badge; live stamp real-time */}
+      <div className="shrink-0 pt-[0.6vh] flex flex-wrap items-baseline gap-x-2">
+        <span className={`text-sm font-bold tracking-tight ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>{shiftNumber}</span>
+        <span className={`font-mono text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>({shiftStartStr} - {shiftEndStr}) · {liveFullStamp}</span>
+      </div>
+
       {/* Horizontal grid — detail dibuat kompak proporsional dengan grafik */}
       <div className="flex-1 min-h-0 grid grid-cols-12 gap-[0.8vw] pt-[0.6vh] overflow-hidden items-center">
-        {/* LEFT: Detail — disederhanakan: min 12px */}
+        {/* LEFT: Detail — pilihan manual, atau otomatis mengikuti segmen pada kursor realtime */}
         <div className="col-span-12 lg:col-span-4 min-h-0 flex items-center overflow-hidden self-center">
-          <div className={`border rounded-md px-2.5 py-1.5 flex items-center gap-2 shadow-sm transition-all duration-200 w-full overflow-hidden ${selectedTheme.bannerBg} ${selectedTheme.bannerBorder}`}>
-            <span className={`${selectedTheme.badgeBg} ${selectedTheme.badgeText} px-2 py-1 font-bold rounded text-xs uppercase tracking-wide shadow-xs shrink-0 leading-none`}>{selectedEvent.type}</span>
-            <div className="min-w-0 flex-1 flex flex-col gap-0.5 overflow-hidden">
-              <span className="font-bold text-slate-900 dark:text-slate-100 text-sm leading-none truncate">{selectedEvent.label}</span>
-              <span className="font-mono text-xs leading-none truncate text-slate-600 dark:text-slate-300">
-                {selectedEvent.startTime.split(' - ')[1] || selectedEvent.startTime} — {selectedEvent.endTime.split(' - ')[1] || selectedEvent.endTime} · {selectedEvent.duration}
+          {displayEvent && displayTheme ? (
+          <div className={`border rounded-lg px-3 py-2 flex items-center gap-3 transition-all duration-200 w-full overflow-hidden ${displayTheme.bannerBg} ${displayTheme.bannerBorder}`}>
+            <span className={`${displayTheme.badgeBg} ${displayTheme.badgeText} px-2.5 py-1 font-extrabold rounded-md text-xs uppercase tracking-wide shrink-0 leading-none`}>{displayEvent.type}</span>
+            <div className="min-w-0 flex-1 flex flex-col gap-1 overflow-hidden">
+              <span className="font-bold text-slate-900 dark:text-white text-[15px] leading-tight truncate">{displayEvent.label}</span>
+              <span className="font-mono text-xs leading-none truncate text-slate-500 dark:text-slate-400">
+                {displayEvent.startTime.split(' - ')[1] || displayEvent.startTime} — {displayEvent.endTime.split(' - ')[1] || displayEvent.endTime} · {displayEvent.duration}
+              </span>
+            </div>
+            {isAutoFollow && (
+              <span className="flex items-center gap-1 shrink-0 font-mono text-[10px] font-bold text-blue-600 dark:text-blue-400 whitespace-nowrap" title="Mengikuti posisi waktu berjalan">
+                <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-ping" />LIVE
+              </span>
+            )}
+          </div>
+          ) : (
+          <div className="rounded-lg px-3 py-2 flex items-center gap-3 w-full overflow-hidden border border-dashed border-slate-300 dark:border-slate-700">
+            <span className="px-2.5 py-1 font-extrabold rounded-md text-xs uppercase tracking-wide shrink-0 leading-none bg-slate-200 text-slate-500 dark:bg-slate-800 dark:text-slate-400">—</span>
+            <div className="min-w-0 flex-1 flex flex-col gap-1 overflow-hidden">
+              <span className="font-bold text-slate-500 dark:text-slate-400 text-[15px] leading-tight truncate">Tidak ada segmen terpilih</span>
+              <span className="font-mono text-xs leading-none truncate text-slate-400 dark:text-slate-500">
+                Klik segmen timeline untuk detail · {liveLabel}
               </span>
             </div>
           </div>
+          )}
         </div>
 
         {/* RIGHT: Timeline — 8 cols, tinggi relatif vh */}
         <div className="col-span-12 lg:col-span-8 min-h-0 flex flex-col justify-center gap-[0.6vh] overflow-hidden">
-          {/* Pointer */}
+          {/* Pointer lane — segitiga realtime (biru) + segitiga select (warna event).
+              Segitiga select disembunyikan bila berhimpit dengan segitiga biru
+              agar tidak duplikat; border kotak select tetap menandai segmen. */}
           <div className="relative w-full h-[0.8vh] min-h-[6px] shrink-0 pointer-events-none">
-            <div style={{ left: `${selectedCenterPct}%` }} className="absolute -bottom-0.5 -translate-x-1/2 flex flex-col items-center transition-all duration-300 z-30">
-              <div className="w-0 h-0 border-x-[0.4vw] border-x-transparent border-t-[0.6vh] drop-shadow-md" style={{ borderTopColor: selectedEvent.color }} />
+            <div style={{ left: `${livePct}%` }} className="absolute bottom-0 -translate-x-1/2 flex flex-col items-center transition-all duration-1000 z-40">
+              <div className="w-0 h-0 border-x-[0.5vw] border-x-transparent border-t-[0.7vh] border-t-blue-500 drop-shadow-[0_0_4px_rgba(59,130,246,0.9)]" />
             </div>
+            {displayEvent && Math.abs(displayCenterPct - livePct) >= 2 && (
+            <div style={{ left: `${displayCenterPct}%` }} className="absolute -bottom-0.5 -translate-x-1/2 flex flex-col items-center transition-all duration-300 z-30">
+              <div className="w-0 h-0 border-x-[0.4vw] border-x-transparent border-t-[0.6vh] drop-shadow-md" style={{ borderTopColor: displayEvent.color }} />
+            </div>
+            )}
           </div>
 
-          {/* Timeline bar — tinggi relatif vh */}
+          {/* Timeline bar — skala real window shift start → end, tinggi relatif vh */}
           <div className="w-full h-[clamp(22px,3.2vh,38px)] rounded-md flex bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 shadow-inner relative shrink-0 overflow-hidden">
             {SHIFT_EVENTS.map((evt) => {
-              const widthPct = (evt.durationFraction / 10) * 100;
-              const isSelected = selectedEvent.key === evt.key;
+              const { widthPct } = segPct(evt);
+              const isSelected = selectedEvent?.key === evt.key;
+              const isFollowed = selectedEvent === null && autoEvent?.key === evt.key;
               return (
                 <button
                   key={evt.key}
                   type="button"
-                  onClick={() => setSelectedEvent(evt)}
+                  onClick={() => setSelectedEvent((prev) => (prev?.key === evt.key ? null : evt))}
                   title={`${evt.type} (${evt.duration}): ${evt.label}`}
-                  style={{ width: `${widthPct}%`, backgroundColor: evt.color, boxShadow: isSelected ? `0 0 0 3px #2563eb, 0 0 12px ${evt.color}` : undefined }}
-                  className={`h-full transition-all cursor-pointer border-r border-black/10 focus:outline-none relative shrink-0 ${isSelected ? 'ring-4 ring-blue-600 dark:ring-blue-400 ring-offset-2 ring-offset-white dark:ring-offset-slate-900 z-20 scale-y-[1.12] -translate-y-0.5 rounded-xs brightness-110 shadow-lg' : 'hover:brightness-110 hover:opacity-95'}`}
+                  style={{ width: `${widthPct}%`, backgroundColor: evt.color, boxShadow: isSelected ? `inset 0 0 0 3px ${evt.color}, inset 0 0 0 5px rgba(255,255,255,0.85), 0 0 14px ${evt.color}` : isFollowed ? `inset 0 0 0 2px ${evt.color}` : undefined }}
+                  className={`h-full transition-all cursor-pointer border-r border-black/10 focus:outline-none relative shrink-0 ${isSelected ? 'z-20 brightness-110' : isFollowed ? 'brightness-105' : 'hover:brightness-110 hover:opacity-95'}`}
                 >
                   {isSelected && (
                     <span className="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -123,21 +222,19 @@ export const PasXProgressStrip: React.FC<PasXProgressStripProps> = () => {
                 </button>
               );
             })}
-            <div style={{ width: '13.8%' }} className="h-full bg-slate-200 dark:bg-slate-800 rounded-r-md shrink-0" title="End of shift planned" />
-            {/* Live indicator */}
-            <div className="absolute -top-1.5 bottom-0 w-0.5 bg-amber-400 z-40 shadow-[0_0_8px_rgba(251,191,36,0.9)] pointer-events-none" style={{ left: '34.2%' }} title="Metadata Current Time: 21 Sep 2026 01:25:37">
-              <span className="absolute -top-4 -translate-x-1/2 bg-amber-400 text-slate-950 font-bold font-mono text-[8px] px-1 py-0.5 rounded shadow whitespace-nowrap flex items-center gap-1">
-                <span className="w-1 h-1 rounded-full bg-slate-950 animate-ping" />LIVE 01:25
-              </span>
-            </div>
+            <div style={{ width: `${fillerPct}%` }} className="h-full bg-slate-200 dark:bg-slate-800 rounded-r-md shrink-0" title="End of shift planned" />
+            {/* Live marker biru — garis vertikal waktu berjalan (tanpa label).
+                Berbeda dari select (border kotak + segitiga warna event):
+                garis biru 3px setinggi bar, bergerak otomatis tiap detik. */}
+            <div className="absolute top-0 bottom-0 -translate-x-1/2 w-[3px] bg-gradient-to-b from-sky-300 via-blue-500 to-blue-600 z-40 shadow-[0_0_10px_rgba(59,130,246,0.95)] pointer-events-none transition-all duration-1000" style={{ left: `${livePct}%` }} title={useRealCursor ? `Waktu nyata: ${liveFullStamp}` : `Jam operasional: ${liveLabel}`} />
           </div>
 
           {/* Hour ticks — min 11px */}
           <div className="flex justify-between text-xs font-mono font-semibold text-slate-600 dark:text-slate-400 px-1 shrink-0">
             {hours.map((hr, idx) => {
-              const isLiveHour = hr === '01:00';
+              const isLiveHour = hr === liveHour;
               return (
-                <span key={idx} className={`text-center whitespace-nowrap ${isLiveHour ? 'text-amber-500 dark:text-amber-400 font-extrabold scale-110' : 'font-semibold'}`}>{hr}</span>
+                <span key={idx} className={`text-center whitespace-nowrap ${isLiveHour ? 'text-blue-600 dark:text-blue-400 font-extrabold scale-110' : 'font-semibold'}`}>{hr}</span>
               );
             })}
           </div>
