@@ -305,7 +305,7 @@ export const FullscreenOeeView: React.FC<FullscreenOeeViewProps> = ({
               }`}>
                 {machineName}
               </h1>
-              <span className={`text-xs font-semibold mt-0.5 ${
+              <span className={`text-sm sm:text-base font-bold mt-0.5 ${
                 isDark ? 'text-slate-400' : 'text-slate-600'
               }`}>
                 {machineLine}
@@ -317,80 +317,80 @@ export const FullscreenOeeView: React.FC<FullscreenOeeViewProps> = ({
           <div className="w-full xl:w-fit grid grid-cols-2 sm:grid-cols-4 gap-x-4 sm:gap-x-6 gap-y-2 text-sm">
             {/* Product */}
             <div className="flex flex-col min-w-0">
-              <span className={`text-xs leading-none font-semibold tracking-wide ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+              <span className={`text-sm leading-none font-semibold tracking-wide ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                 Product
               </span>
-              <strong className={`text-sm font-bold truncate mt-1 ${isDark ? 'text-slate-100' : 'text-slate-900'}`} title={productName}>
+              <strong className={`text-lg font-extrabold truncate mt-1 ${isDark ? 'text-slate-100' : 'text-slate-900'}`} title={productName}>
                 {productName}
               </strong>
             </div>
 
             {/* Cycle Time */}
             <div className="flex flex-col min-w-0">
-              <span className={`text-xs leading-none font-semibold tracking-wide ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+              <span className={`text-sm leading-none font-semibold tracking-wide ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                 Cycle Time
               </span>
-              <strong className={`font-mono text-sm font-bold mt-1 ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+              <strong className={`font-mono text-lg font-extrabold mt-1 ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
                 {targetCycleTimeSec}s
               </strong>
             </div>
 
             {/* Operator */}
             <div className="flex flex-col min-w-0">
-              <span className={`text-xs leading-none font-semibold tracking-wide ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+              <span className={`text-sm leading-none font-semibold tracking-wide ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                 Operator
               </span>
-              <strong className={`text-sm font-bold truncate mt-1 ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+              <strong className={`text-lg font-extrabold truncate mt-1 ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
                 {operatorName}
               </strong>
             </div>
 
             {/* Shift */}
             <div className="flex flex-col min-w-0">
-              <span className={`text-xs leading-none font-semibold tracking-wide ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+              <span className={`text-sm leading-none font-semibold tracking-wide ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                 Shift
               </span>
-              <strong className={`font-mono text-sm font-bold mt-1 ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+              <strong className={`font-mono text-lg font-extrabold mt-1 ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
                 {operatorId} · {shiftNumber}
               </strong>
             </div>
 
             {/* Mulai */}
             <div className="flex flex-col min-w-0">
-              <span className={`text-xs leading-none font-semibold tracking-wide ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+              <span className={`text-sm leading-none font-semibold tracking-wide ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                 Mulai
               </span>
-              <strong className={`font-mono text-sm font-bold mt-1 ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+              <strong className={`font-mono text-lg font-extrabold mt-1 ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
                 {shiftStart}
               </strong>
             </div>
 
             {/* Selesai */}
             <div className="flex flex-col min-w-0">
-              <span className={`text-xs leading-none font-semibold tracking-wide ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+              <span className={`text-sm leading-none font-semibold tracking-wide ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                 Selesai
               </span>
-              <strong className={`font-mono text-sm font-bold mt-1 ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+              <strong className={`font-mono text-lg font-extrabold mt-1 ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
                 {shiftEnd}
               </strong>
             </div>
 
             {/* Istirahat */}
             <div className="flex flex-col min-w-0">
-              <span className={`text-xs leading-none font-semibold tracking-wide ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+              <span className={`text-sm leading-none font-semibold tracking-wide ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                 Istirahat
               </span>
-              <strong className={`font-mono text-sm font-bold mt-1 text-amber-600 dark:text-amber-400`} title={`Jam Istirahat: ${breakTimeWindow} (${plannedBreakMin} menit)`}>
+              <strong className={`font-mono text-lg font-extrabold mt-1 text-amber-600 dark:text-amber-400`} title={`Jam Istirahat: ${breakTimeWindow} (${plannedBreakMin} menit)`}>
                 {breakTimeWindow ? `${breakTimeWindow} (${plannedBreakMin}m)` : `${plannedBreakMin}m`}
               </strong>
             </div>
 
             {/* Target Rate */}
             <div className="flex flex-col min-w-0">
-              <span className={`text-xs leading-none font-semibold tracking-wide ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+              <span className={`text-sm leading-none font-semibold tracking-wide ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                 Target Rate
               </span>
-              <strong className={`font-mono text-sm font-bold mt-1 ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+              <strong className={`font-mono text-lg font-extrabold mt-1 ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
                 {theoreticalHourlyOutput} pcs/h
               </strong>
             </div>
