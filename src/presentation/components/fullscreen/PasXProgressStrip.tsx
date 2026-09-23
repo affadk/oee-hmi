@@ -19,7 +19,7 @@ interface PasXProgressStripProps {
 
 interface TimelineEvent {
   key: string;
-  type: 'Breakdown' | 'Active' | 'Changeover' | 'Waiting' | 'Undefined';
+  type: 'Breakdown' | 'Active' | 'Changeover' | 'Waiting' | 'Planned' | 'Undefined';
   label: string;
   startTime: string;
   endTime: string;
@@ -34,6 +34,7 @@ const KIND_COLOR: Record<TimelineKind, string> = {
   Changeover: '#eab308',
   Waiting: '#eab308',
   Breakdown: '#dc2626',
+  Planned: '#2563eb',
   Undefined: '#64748b',
 };
 
@@ -46,6 +47,8 @@ const getEventColorTheme = (type: TimelineEvent['type']) => {
     case 'Changeover':
     case 'Waiting':
       return { bannerBg: 'bg-amber-50 dark:bg-[#211a08]', bannerBorder: 'border-amber-500/60 dark:border-[#8a6d1c]', badgeBg: 'bg-[#eab308]', badgeText: 'text-[#451a03]', accentText: 'text-amber-800 dark:text-amber-300', highlightBorder: '#eab308' };
+    case 'Planned':
+      return { bannerBg: 'bg-blue-50 dark:bg-[#0e1c33]', bannerBorder: 'border-blue-500/60 dark:border-[#1d4ed8]', badgeBg: 'bg-[#2563eb]', badgeText: 'text-white', accentText: 'text-blue-700 dark:text-blue-300', highlightBorder: '#2563eb' };
     default:
       return { bannerBg: 'bg-slate-100 dark:bg-[#131a26]', bannerBorder: 'border-slate-400/60 dark:border-slate-600', badgeBg: 'bg-slate-500', badgeText: 'text-white', accentText: 'text-slate-700 dark:text-slate-300', highlightBorder: '#64748b' };
   }
@@ -165,6 +168,7 @@ export const PasXProgressStrip: React.FC<PasXProgressStripProps> = ({ machine, u
           <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 min-w-[10px] min-h-[10px] rounded-xs bg-[#48a43f]" /><span className={isDark ? 'text-slate-300' : 'text-slate-600'}>Active</span></div>
           <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 min-w-[10px] min-h-[10px] rounded-xs bg-[#eab308]" /><span className={isDark ? 'text-slate-300' : 'text-slate-600'}>Changeover</span></div>
           <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 min-w-[10px] min-h-[10px] rounded-xs bg-[#dc2626]" /><span className={isDark ? 'text-slate-300' : 'text-slate-600'}>Breakdown</span></div>
+          <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 min-w-[10px] min-h-[10px] rounded-xs bg-[#2563eb]" /><span className={isDark ? 'text-slate-300' : 'text-slate-600'}>Planned (Istirahat)</span></div>
         </div>
       </div>
 

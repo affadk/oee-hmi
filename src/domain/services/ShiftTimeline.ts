@@ -6,7 +6,7 @@
 
 import type { MachineConfig } from '../entities/Machine';
 
-export type TimelineKind = 'Active' | 'Breakdown' | 'Changeover' | 'Waiting' | 'Undefined';
+export type TimelineKind = 'Active' | 'Breakdown' | 'Changeover' | 'Waiting' | 'Planned' | 'Undefined';
 
 export interface TimelineSegment {
   key: string;
@@ -78,9 +78,14 @@ export function buildShiftTimeline(machine: MachineConfig, windowMinOverride?: n
   const reasons = machine?.downtimeReasons ?? [];
 
   if (reasons.length === 0) {
-    return [
-      { key: 'active-full', kind: 'Active', label: 'Normal Production Run', durationMinutes: windowMin, startOffsetMin: 0, planned: false },
-    ];
+    return injectPlannedBreak(
+      [
+        { key: 'active-full', kind: 'Active', label: 'Normal Production Run', durationMinutes: windowMin, startOffsetMin: 0, planned: false },
+      ],
+      machine,
+      windowMin,
+      shiftStartStr,
+    );
   }
 
   const totalDT = reasons.reduce((acc, r) => acc + Math.max(0, r.durationMinutes), 0);
@@ -121,12 +126,78 @@ export function buildShiftTimeline(machine: MachineConfig, windowMinOverride?: n
   });
   pushActive(activePerGap + Math.max(0, windowMin - cursor - activePerGap));
 
-  return segments;
+  return injectPlannedBreak(segments, machine, windowMin, shiftStartStr);
+}
+
+/** "02:00 - 03:00" -> { startMin, endMin } (menit sejak tengah malam). Null bila tak terparse. */
+export function parseBreakWindow(breakTimeWindow: string | undefined): { startMin: number; endMin: number } | null {
+  if (!breakTimeWindow) return null;
+  const m = breakTimeWindow.match(/(\d{1,2}):(\d{2})\s*[-–—]\s*(\d{1,2}):(\d{2})/);
+  if (!m) return null;
+  const s = (parseInt(m[1], 10) % 24) * 60 + (parseInt(m[2], 10) % 60);
+  let e = (parseInt(m[3], 10) % 24) * 60 + (parseInt(m[4], 10) % 60);
+  if (e <= s) e += 24 * 60;
+  return { startMin: s, endMin: e };
+}
+
+/**
+ * Sisipkan segmen istirahat terjadwal (planned downtime) pada posisi jam
+ * yang sebenarnya di dalam window shift — bukan disebar rata seperti Active.
+ * Segmen yang tertabrak dibelah; total durasi window tetap terjaga.
+ * Tanpa ini, istirahat (breakTimeWindow/plannedBreakMin) tak pernah tampil
+ * di grafik shift timeline karena timeline hanya dibangun dari downtimeReasons.
+ */
+export function injectPlannedBreak(
+  segments: TimelineSegment[],
+  machine: MachineConfig,
+  windowMin: number,
+  shiftStartStr: string,
+): TimelineSegment[] {
+  const breakWindow = parseBreakWindow(machine?.jobConfig?.breakTimeWindow);
+  if (!breakWindow) return segments;
+  const fromJob = machine?.jobConfig?.plannedBreakMin ?? 0;
+  const breakDur =
+    fromJob > 0 ? fromJob : Math.max(0, breakWindow.endMin - breakWindow.startMin);
+  if (breakDur <= 0) return segments;
+
+  const shiftStartMin = parseShiftHM(shiftStartStr, 22 * 60);
+  let bStart = breakWindow.startMin - shiftStartMin;
+  while (bStart < 0) bStart += 24 * 60;
+  while (bStart >= 24 * 60) bStart -= 24 * 60;
+  if (bStart >= windowMin) return segments;
+  const bEnd = Math.min(bStart + breakDur, windowMin);
+  if (bEnd <= bStart) return segments;
+
+  const out: TimelineSegment[] = [];
+  for (const seg of segments) {
+    const s0 = seg.startOffsetMin;
+    const s1 = seg.startOffsetMin + seg.durationMinutes;
+    if (s1 <= bStart || s0 >= bEnd) {
+      out.push(seg);
+      continue;
+    }
+    if (s0 < bStart) {
+      out.push({ ...seg, durationMinutes: bStart - s0 });
+    }
+    if (s1 > bEnd) {
+      out.push({ ...seg, key: `${seg.key}-post`, startOffsetMin: bEnd, durationMinutes: s1 - bEnd });
+    }
+  }
+  out.push({
+    key: 'planned-break',
+    kind: 'Planned',
+    label: `Istirahat (${machine?.jobConfig?.breakTimeWindow})`,
+    durationMinutes: bEnd - bStart,
+    startOffsetMin: bStart,
+    planned: true,
+  });
+  out.sort((a, b) => a.startOffsetMin - b.startOffsetMin);
+  return out;
 }
 
 /** Sum durations per kind bucket for summary panels (minutes). */
 export function summarizeTimeline(segments: TimelineSegment[]): Record<TimelineKind, number> {
-  const out: Record<TimelineKind, number> = { Active: 0, Breakdown: 0, Changeover: 0, Waiting: 0, Undefined: 0 };
+  const out: Record<TimelineKind, number> = { Active: 0, Breakdown: 0, Changeover: 0, Waiting: 0, Planned: 0, Undefined: 0 };
   for (const s of segments) out[s.kind] += s.durationMinutes;
   return out;
 }

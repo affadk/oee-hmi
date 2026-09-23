@@ -21,6 +21,16 @@ export const EChartsProdVsTarget: React.FC<EChartsProdVsTargetProps> = ({
   // Toggle between Hourly throughput (pcs/jam) vs Cumulative progress (pcs total akumulasi)
   const [viewMode, setViewMode] = useState<'HOURLY' | 'CUMULATIVE'>('HOURLY');
 
+  // Label sumbu jam saja (HH:mm) — konsisten dengan EChartsOeeTrend.
+  const formatHourLabel = (raw: string): string => {
+    if (!raw) return '--';
+    const tIdx = raw.indexOf('T');
+    if (tIdx >= 0 && raw.length >= tIdx + 6) return raw.slice(tIdx + 1, tIdx + 6);
+    const m = raw.match(/(\d{2}:\d{2})/);
+    if (m) return m[1];
+    return raw;
+  };
+
   // Use all hours provided in trend series
   const displayTrends = hourlyTrends;
 
@@ -56,7 +66,7 @@ export const EChartsProdVsTarget: React.FC<EChartsProdVsTargetProps> = ({
     if (!chartRef.current) return;
     const chartInstance = echarts.init(chartRef.current, undefined, { renderer: 'canvas' });
 
-    const hours = displayTrends.map((d) => d.hour);
+    const hours = displayTrends.map((d) => formatHourLabel(d.hour));
     const targetData = viewMode === 'HOURLY' 
       ? displayTrends.map((d) => d.target) 
       : cumulativeData.map((d) => d.target);

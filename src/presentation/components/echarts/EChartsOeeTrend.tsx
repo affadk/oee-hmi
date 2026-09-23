@@ -1,6 +1,6 @@
 // /src/presentation/components/echarts/EChartsOeeTrend.tsx
 
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useMemo } from 'react';
 import * as echarts from 'echarts';
 import { HourlyDataPoint } from '../../../domain/index';
 import { useTheme } from '../../providers/ThemeProvider';
@@ -11,6 +11,10 @@ interface EChartsOeeTrendProps {
   isBuffered?: boolean;
   title?: string;
   height?: number;
+  shiftStart?: string;
+  shiftEnd?: string;
+  showBenchmark?: boolean;
+  breakTimeWindow?: string;
 }
 
 export const EChartsOeeTrend: React.FC<EChartsOeeTrendProps> = ({
@@ -18,23 +22,120 @@ export const EChartsOeeTrend: React.FC<EChartsOeeTrendProps> = ({
   isBuffered = false,
   title = 'OEE Shift Trend',
   height,
+  shiftStart,
+  shiftEnd,
+  showBenchmark = false,
+  breakTimeWindow,
 }) => {
   const chartRef = useRef<HTMLDivElement>(null);
   const { theme } = useTheme();
   const isDark = theme === 'dark';
 
-  const startHour = hourlyTrends.length > 0 ? hourlyTrends[0].hour : '00:00';
-  const endHour = hourlyTrends.length > 0 ? hourlyTrends[hourlyTrends.length - 1].hour : '08:00';
+  // Tampilkan jam saja (HH:mm) — tanggal sudah ada di timestamp header.
+  // Backend mengirim bucket ISO (2026-09-22T10:00:00.000Z), seed memakai "HH:mm".
+  const formatHourLabel = (raw: string): string => {
+    if (!raw) return '--';
+    const tIdx = raw.indexOf('T');
+    if (tIdx >= 0 && raw.length >= tIdx + 6) return raw.slice(tIdx + 1, tIdx + 6);
+    const m = raw.match(/(\d{2}:\d{2})/);
+    if (m) return m[1];
+    return raw;
+  };
+
+  const toMinutes = (hhmm: string): number | null => {
+    const m = hhmm.match(/(\d{1,2}):(\d{2})/);
+    if (!m) return null;
+    return Number(m[1]) * 60 + Number(m[2]);
+  };
+
+  // Urutkan menaik + batasi ke jendela shift (Mulai–Selesai).
+  // Backend mengembalikan 72 bucket terakhir tanpa filter waktu, jadi tanpa ini
+  // grafik tampil acak / lintas hari dan judul (start - end) bisa terbalik.
+  const visibleTrends = useMemo(() => {
+    const sorted = [...hourlyTrends].sort((a, b) => {
+      const ta = Date.parse(a.hour);
+      const tb = Date.parse(b.hour);
+      if (Number.isFinite(ta) && Number.isFinite(tb)) return ta - tb;
+      return a.hour.localeCompare(b.hour);
+    });
+    const sMin = shiftStart ? toMinutes(shiftStart) : null;
+    const eMin = shiftEnd ? toMinutes(shiftEnd) : null;
+    if (sMin == null || eMin == null) return sorted;
+    return sorted.filter((d) => {
+      const t = toMinutes(formatHourLabel(d.hour));
+      if (t == null) return true;
+      if (eMin <= sMin) return t >= sMin || t <= eMin; // shift malam melewati tengah malam
+      return t >= sMin && t <= eMin;
+    });
+  }, [hourlyTrends, shiftStart, shiftEnd]);
+
+  const startHour = visibleTrends.length > 0 ? formatHourLabel(visibleTrends[0].hour) : '00:00';
+  const endHour = visibleTrends.length > 0 ? formatHourLabel(visibleTrends[visibleTrends.length - 1].hour) : '08:00';
+
+  // Jendela istirahat (planned downtime) "02:00 - 03:00" -> menit, untuk markArea + tooltip.
+  // Di luar jendela ini = waktu running.
+  const breakRange = useMemo(() => {
+    if (!breakTimeWindow) return null;
+    const m = breakTimeWindow.match(/(\d{1,2}):(\d{2})\s*[-–—]\s*(\d{1,2}):(\d{2})/);
+    if (!m) return null;
+    const s = (Number(m[1]) % 24) * 60 + (Number(m[2]) % 60);
+    let e = (Number(m[3]) % 24) * 60 + (Number(m[4]) % 60);
+    if (e <= s) e += 24 * 60;
+    return { s, e };
+  }, [breakTimeWindow]);
+
+  const isBreakHour = (hhmm: string): boolean => {
+    if (!breakRange) return false;
+    const t = toMinutes(hhmm);
+    if (t == null) return false;
+    const span = breakRange.e - breakRange.s;
+    if (span >= 24 * 60) return true;
+    // samakan basis hari: geser t ke dekat s bila jendela melewati tengah malam
+    let tt = t;
+    if (breakRange.e > 24 * 60 && tt < breakRange.s) tt += 24 * 60;
+    return tt >= breakRange.s && tt <= breakRange.e;
+  };
 
   useEffect(() => {
     if (!chartRef.current) return;
     const chartInstance = echarts.init(chartRef.current, undefined, { renderer: 'canvas' });
 
-    const hours = hourlyTrends.map((d) => d.hour);
-    const oeeData = hourlyTrends.map((d) => d.oee);
-    const availData = hourlyTrends.map((d) => d.availability);
-    const perfData = hourlyTrends.map((d) => d.performance);
-    const qualData = hourlyTrends.map((d) => d.quality);
+    const hours = visibleTrends.map((d) => formatHourLabel(d.hour));
+    const oeeData = visibleTrends.map((d) => d.oee);
+    const availData = visibleTrends.map((d) => d.availability);
+    const perfData = visibleTrends.map((d) => d.performance);
+    const qualData = visibleTrends.map((d) => d.quality);
+
+    // Arsiran biru pada jam-jam istirahat (planned downtime); sisanya = running.
+    // markArea memakai label kategori sumbu-X yang terlihat agar selalu menempel.
+    const breakLabels = hours.filter((h) => isBreakHour(h));
+    const breakMarkArea =
+      breakLabels.length > 0
+        ? {
+            silent: true,
+            itemStyle: {
+              color: '#2563eb',
+              opacity: 0.12,
+              borderColor: '#2563eb',
+              borderWidth: 1,
+              borderType: 'dashed' as const,
+            },
+            label: {
+              show: true,
+              formatter: 'Istirahat',
+              position: 'insideTop' as const,
+              color: '#60a5fa',
+              fontSize: 10,
+              fontFamily: 'Inter, sans-serif',
+            },
+            data: [
+              [{ xAxis: breakLabels[0] }, { xAxis: breakLabels[breakLabels.length - 1] }] as [
+                { xAxis: string },
+                { xAxis: string },
+              ],
+            ],
+          }
+        : undefined;
 
     const option: echarts.EChartsOption = {
       backgroundColor: 'transparent',
@@ -50,7 +151,8 @@ export const EChartsOeeTrend: React.FC<EChartsOeeTrendProps> = ({
         },
         formatter: (params: any) => {
           if (!Array.isArray(params)) return '';
-          let tip = `<div class="font-bold mb-1 font-mono ${isDark ? 'text-slate-200' : 'text-slate-800'}">Time: ${params[0]?.axisValue}</div>`;
+          const inBreak = isBreakHour(String(params[0]?.axisValue ?? ''));
+          let tip = `<div class="font-bold mb-1 font-mono ${isDark ? 'text-slate-200' : 'text-slate-800'}">Time: ${params[0]?.axisValue} · ${inBreak ? 'Istirahat' : 'Running'}</div>`;
           params.forEach((p: any) => {
             tip += `
               <div class="flex items-center justify-between gap-3 text-xs py-0.5">
@@ -73,6 +175,9 @@ export const EChartsOeeTrend: React.FC<EChartsOeeTrendProps> = ({
         type: 'category',
         boundaryGap: false,
         data: hours,
+        axisTick: {
+          alignWithLabel: true,
+        },
         axisLine: {
           lineStyle: {
             color: isDark ? '#1e293b' : '#cbd5e1',
@@ -82,6 +187,8 @@ export const EChartsOeeTrend: React.FC<EChartsOeeTrendProps> = ({
           color: isDark ? '#94a3b8' : '#475569',
           fontSize: 10,
           fontFamily: 'monospace',
+          hideOverlap: true,
+          margin: 8,
         },
         splitLine: {
           show: false,
@@ -119,6 +226,7 @@ export const EChartsOeeTrend: React.FC<EChartsOeeTrendProps> = ({
             color: '#10b981',
           },
           data: oeeData,
+          ...(breakMarkArea ? { markArea: breakMarkArea } : {}),
         },
         {
           name: 'Availability',
@@ -168,7 +276,9 @@ export const EChartsOeeTrend: React.FC<EChartsOeeTrendProps> = ({
       ],
     };
 
-    chartInstance.setOption(option);
+    // notMerge=true agar sumbu-X selalu mengikuti panjang data terbaru
+    // (realtime): tidak ada sisa label lama yang bikin grafik terpotong di awal.
+    chartInstance.setOption(option, true);
 
     const ro = new ResizeObserver(() => {
       chartInstance.resize();
@@ -179,7 +289,7 @@ export const EChartsOeeTrend: React.FC<EChartsOeeTrendProps> = ({
       ro.disconnect();
       chartInstance.dispose();
     };
-  }, [hourlyTrends, isDark]);
+  }, [visibleTrends, isDark]);
 
   return (
     <div className={`rounded-xl p-3.5 shadow-lg flex flex-col h-full border ${
@@ -199,6 +309,11 @@ export const EChartsOeeTrend: React.FC<EChartsOeeTrendProps> = ({
             <Radio className="w-2.5 h-2.5" />
             {isBuffered ? 'BUFFERED' : 'LIVE'}
           </span>
+          {showBenchmark && (
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-semibold">
+              Target Benchmark 85%
+            </span>
+          )}
         </div>
 
         <div className="flex items-center gap-2.5 sm:gap-3 text-[10px] sm:text-xs">
@@ -214,13 +329,18 @@ export const EChartsOeeTrend: React.FC<EChartsOeeTrendProps> = ({
           <span className={`flex items-center gap-1 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
             <span className="w-2 h-2 rounded-full bg-[#a855f7]"></span> Quality
           </span>
+          {breakRange && (
+            <span className={`flex items-center gap-1 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+              <span className="w-2 h-2 rounded-[2px] bg-[#2563eb]"></span> Istirahat
+            </span>
+          )}
         </div>
       </div>
 
-      {/* Chart Canvas */}
+      {/* Chart Canvas — flex-1 mengisi sisa tinggi kartu (full), bukan fixed px */}
       <div
-        className="flex-1 w-full"
-        style={{ minHeight: height ? `${height}px` : '150px' }}
+        className="flex-1 w-full min-h-0"
+        style={height ? { minHeight: `${height}px` } : { minHeight: 0 }}
         ref={chartRef}
       />
     </div>

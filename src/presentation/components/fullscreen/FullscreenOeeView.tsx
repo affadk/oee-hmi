@@ -1,6 +1,6 @@
 // /src/presentation/components/fullscreen/FullscreenOeeView.tsx
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { MachineConfig, CalculatedOeeMetrics } from '../../../domain/index';
 import { useTheme } from '../../providers/ThemeProvider';
 import {
@@ -12,7 +12,6 @@ import {
   Sun,
   Moon,
   HelpCircle,
-  Activity,
   CheckCircle2,
   ChevronDown,
 } from 'lucide-react';
@@ -88,24 +87,6 @@ const formatStaffed = (totalMin: number): string => {
   const m = Math.max(0, Math.round(totalMin));
   return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
 };
-
-  // Ukur kontainer Production Rate — font skala proporsional terhadap lebar+tinggi
-  // kontainer aktual (bukan viewport), agar tak bertumpuk di luar mode fullscreen
-  const rateCardRef = useRef<HTMLDivElement>(null);
-  const [rateBox, setRateBox] = useState({ w: 0, h: 0 });
-  useEffect(() => {
-    const el = rateCardRef.current;
-    if (!el) return;
-    const ro = new ResizeObserver((entries) => {
-      const r = entries[0].contentRect;
-      setRateBox({ w: r.width, h: r.height });
-    });
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
-  const rateK = rateBox.w > 0 && rateBox.h > 0 ? Math.min(rateBox.w / 340, rateBox.h / 230) : 1;
-  const rateFs = (base: number, min: number, max: number) =>
-    `${Math.min(max, Math.max(min, base * rateK))}px`;
 
   // Live computed OEE metrics
   const oeeValue = metrics.oeePct ?? 65.0;
@@ -621,26 +602,17 @@ const formatStaffed = (totalMin: number): string => {
               </div>
             </div>
 
-            {/* CARD 2: GRAFIK OEE SHIFT TREND — padding & font relatif */}
-            <div
-              className={`p-[clamp(8px,1vh,14px)] rounded-xl border shadow-sm transition-colors flex-1 min-h-0 flex flex-col overflow-hidden ${
-                isDark ? 'bg-[#0f1b2e] border-slate-800' : 'bg-white border-[#c9d3df]'
-              }`}
-            >
-              <div className="flex items-center justify-between mb-[0.6vh] shrink-0">
-                <div className="flex items-center gap-[0.5vw]">
-                  <Activity className="w-4 h-4 text-emerald-500" />
-                  <h3 className={`text-sm font-bold tracking-tight ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>Grafik OEE Shift Trend</h3>
-                </div>
-                <span className="text-xs font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-semibold">Target Benchmark 85%</span>
-              </div>
-
+            {/* CARD 2: GRAFIK OEE SHIFT TREND — header tunggal milik EChartsOeeTrend */}
+            <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
               <div className="flex-1 min-h-0 w-full overflow-hidden">
                 <EChartsOeeTrend
                   hourlyTrends={machine.hourlyTrends}
                   isBuffered={machine.telemetry?.is_buffered}
-                  title="Grafik OEE Trend (Shift)"
-                  height={200}
+                  title="Grafik OEE Shift Trend"
+                  shiftStart={shiftStart}
+                  shiftEnd={shiftEnd}
+                  showBenchmark
+                  breakTimeWindow={breakTimeWindow}
                 />
               </div>
             </div>
@@ -656,7 +628,6 @@ const formatStaffed = (totalMin: number): string => {
             {/* Production Rate — flex-1 relatif */}
             <div
               id="production-rate-card"
-              ref={rateCardRef}
               className={`p-[clamp(8px,1vh,12px)] rounded-xl border shadow-sm transition-colors flex-1 min-h-0 overflow-hidden flex flex-col ${
                 isDark ? 'bg-[#0f1b2e] border-slate-800' : 'bg-white border-[#c9d3df]'
               }`}
@@ -666,37 +637,37 @@ const formatStaffed = (totalMin: number): string => {
                 <span className={`text-xs font-mono font-semibold px-2 py-0.5 rounded border ${isDark ? 'bg-slate-800 text-slate-300 border-slate-700' : 'bg-slate-100 text-slate-700 border-slate-200'}`}>CT: {targetCycleTimeSec}s · Target: {targetRate} pcs/h</span>
               </div>
 
-              {/* Layered body: chart di belakang, angka di depan — maksimalkan ruang tengah */}
+              {/* Layered body: chart di belakang, angka di depan — ukuran dibatasi agar tidak terlalu besar */}
               <div className="relative flex-1 min-h-0 overflow-hidden">
-                {/* Chart layer (belakang) — tinggi mengikuti container, jangkar bawah tengah */}
-                <div className="absolute inset-0 flex items-end justify-center pb-[0.2vh] pointer-events-none" aria-hidden="true">
-                  <div className="h-full max-h-full" style={{ aspectRatio: '196 / 108', maxWidth: '100%' }}>
+                {/* Chart layer (belakang) — diperbesar, jangkar bawah tengah */}
+                <div className="absolute inset-x-0 bottom-[0.5vh] top-[26%] flex items-end justify-center pb-[0.2vh] pointer-events-none" aria-hidden="true">
+                  <div className="max-h-full" style={{ width: 'min(90%, 320px)', aspectRatio: '196 / 108' }}>
                     <PasXTachometerGauge currentRate={currentRate} targetRate={targetRate} />
                   </div>
                 </div>
 
-                {/* Numbers layer (depan) — nilai besar, label kecil */}
+                {/* Numbers layer (depan) — font compact, tidak skala kontainer */}
                 <div className="absolute inset-x-0 top-0 z-10 flex items-start justify-between px-[0.5vw] pt-[0.4vh] pointer-events-none">
                   <div className="flex flex-col drop-shadow-sm">
-                    <span className={`font-black font-sans leading-none ${isDark ? 'text-white' : 'text-slate-900'}`} style={{ fontSize: rateFs(36, 16, 48) }}>{currentRate}</span>
-                    <span className={`font-semibold mt-1 ${isDark ? 'text-slate-300' : 'text-slate-600'}`} style={{ fontSize: rateFs(14, 11, 18) }}>Current Rate (pcs/h)</span>
-                    <span className={`font-mono mt-0.5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`} style={{ fontSize: rateFs(13, 11, 17) }}>Actual: {actualCycleTimeSec}s/pcs</span>
+                    <span className={`text-[clamp(20px,1.8vw,30px)] font-black font-sans leading-none ${isDark ? 'text-white' : 'text-slate-900'}`}>{currentRate}</span>
+                    <span className={`text-xs font-semibold mt-1 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>Current Rate (pcs/h)</span>
+                    <span className={`text-xs font-mono mt-0.5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Actual: {actualCycleTimeSec}s/pcs</span>
                   </div>
                   <div className="flex flex-col items-end drop-shadow-sm text-right">
-                    <span className={`font-black font-sans leading-none ${isDark ? 'text-white' : 'text-slate-900'}`} style={{ fontSize: rateFs(36, 16, 48) }}>{targetRate}</span>
-                    <span className={`font-semibold mt-1 ${isDark ? 'text-slate-300' : 'text-slate-600'}`} style={{ fontSize: rateFs(14, 11, 18) }}>Target Rate (pcs/h)</span>
-                    <span className={`font-mono mt-0.5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`} style={{ fontSize: rateFs(13, 11, 17) }}>Ideal: {targetCycleTimeSec}s/pcs</span>
+                    <span className={`text-[clamp(20px,1.8vw,30px)] font-black font-sans leading-none ${isDark ? 'text-white' : 'text-slate-900'}`}>{targetRate}</span>
+                    <span className={`text-xs font-semibold mt-1 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>Target Rate (pcs/h)</span>
+                    <span className={`text-xs font-mono mt-0.5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Ideal: {targetCycleTimeSec}s/pcs</span>
                   </div>
                 </div>
 
-                {/* Speed Eff — pojok kanan bawah, nilai dominan */}
+                {/* Speed Eff — pojok kanan bawah, ukuran sedang */}
                 <div className="absolute bottom-[0.4vh] right-[0.5vw] z-10 flex flex-col items-end drop-shadow-sm text-right pointer-events-none">
-                  <span className={`font-mono font-black leading-none ${speedEffColor}`} style={{ fontSize: rateFs(40, 18, 54) }}>{speedEffPct}%</span>
-                  <span className={`font-semibold mt-0.5 ${isDark ? 'text-slate-300' : 'text-slate-600'}`} style={{ fontSize: rateFs(14, 11, 18) }}>Speed Eff</span>
+                  <span className={`font-mono font-black leading-none text-[clamp(22px,2.2vw,34px)] ${speedEffColor}`}>{speedEffPct}%</span>
+                  <span className={`text-xs font-semibold mt-0.5 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>Speed Eff</span>
                 </div>
               </div>
 
-              <div className="flex items-center justify-center font-mono font-semibold mt-[0.4vh] pt-[0.6vh] border-t border-slate-100 dark:border-slate-800 shrink-0" style={{ fontSize: rateFs(14, 10, 17) }}>
+              <div className="flex items-center justify-center text-xs font-mono font-semibold mt-[0.4vh] pt-[0.6vh] border-t border-slate-100 dark:border-slate-800 shrink-0">
                 <span className={isDark ? 'text-slate-300' : 'text-slate-600'}>
                   3600 / {targetCycleTimeSec}s = {targetRate} pcs/h
                 </span>
