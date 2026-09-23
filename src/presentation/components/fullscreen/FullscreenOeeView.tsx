@@ -21,6 +21,7 @@ import { PasXDonutGauge, PasXTachometerGauge } from './PasXGauges';
 import { PasXProgressStrip } from './PasXProgressStrip';
 import { TimeSummaryPanel } from './TimeSummaryPanel';
 import { EChartsOeeTrend } from '../echarts/EChartsOeeTrend';
+import { fluid } from '../../utils/fluidType';
 
 interface FullscreenOeeViewProps {
   machine: MachineConfig;
@@ -633,11 +634,11 @@ const formatStaffed = (totalMin: number): string => {
               }`}
             >
               <div className="flex items-center justify-between mb-[0.6vh] shrink-0">
-                <h3 className={`text-sm font-bold tracking-tight ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>Production Rate</h3>
-                <span className={`text-xs font-mono font-semibold px-2 py-0.5 rounded border ${isDark ? 'bg-slate-800 text-slate-300 border-slate-700' : 'bg-slate-100 text-slate-700 border-slate-200'}`}>CT: {targetCycleTimeSec}s · Target: {targetRate} pcs/h</span>
+                <h3 className={`font-bold tracking-tight ${isDark ? 'text-slate-100' : 'text-slate-900'}`} style={{ fontSize: fluid(14, 2.1, 19) }}>Production Rate</h3>
+                <span className={`font-mono font-semibold px-2 py-0.5 rounded border ${isDark ? 'bg-slate-800 text-slate-300 border-slate-700' : 'bg-slate-100 text-slate-700 border-slate-200'}`} style={{ fontSize: fluid(11, 1.6, 14) }}>CT: {targetCycleTimeSec}s · Target: {targetRate} pcs/h</span>
               </div>
 
-              {/* Layered body: chart di belakang, angka di depan — ukuran dibatasi agar tidak terlalu besar */}
+              {/* Layered body: chart di belakang, angka di depan — teks fluid vmin */}
               <div className="relative flex-1 min-h-0 overflow-hidden">
                 {/* Chart layer (belakang) — diperbesar, jangkar bawah tengah */}
                 <div className="absolute inset-x-0 bottom-[0.5vh] top-[26%] flex items-end justify-center pb-[0.2vh] pointer-events-none" aria-hidden="true">
@@ -646,28 +647,28 @@ const formatStaffed = (totalMin: number): string => {
                   </div>
                 </div>
 
-                {/* Numbers layer (depan) — font compact, tidak skala kontainer */}
+                {/* Numbers layer (depan) — angka besar fluid */}
                 <div className="absolute inset-x-0 top-0 z-10 flex items-start justify-between px-[0.5vw] pt-[0.4vh] pointer-events-none">
                   <div className="flex flex-col drop-shadow-sm">
-                    <span className={`text-[clamp(20px,1.8vw,30px)] font-black font-sans leading-none ${isDark ? 'text-white' : 'text-slate-900'}`}>{currentRate}</span>
-                    <span className={`text-xs font-semibold mt-1 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>Current Rate (pcs/h)</span>
-                    <span className={`text-xs font-mono mt-0.5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Actual: {actualCycleTimeSec}s/pcs</span>
+                    <span className={`font-black font-sans leading-none ${isDark ? 'text-white' : 'text-slate-900'}`} style={{ fontSize: fluid(26, 4.2, 44) }}>{currentRate}</span>
+                    <span className={`font-semibold mt-1 ${isDark ? 'text-slate-300' : 'text-slate-600'}`} style={{ fontSize: fluid(11, 1.7, 15) }}>Current Rate (pcs/h)</span>
+                    <span className={`font-mono mt-0.5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`} style={{ fontSize: fluid(11, 1.6, 14) }}>Actual: {actualCycleTimeSec}s/pcs</span>
                   </div>
                   <div className="flex flex-col items-end drop-shadow-sm text-right">
-                    <span className={`text-[clamp(20px,1.8vw,30px)] font-black font-sans leading-none ${isDark ? 'text-white' : 'text-slate-900'}`}>{targetRate}</span>
-                    <span className={`text-xs font-semibold mt-1 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>Target Rate (pcs/h)</span>
-                    <span className={`text-xs font-mono mt-0.5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Ideal: {targetCycleTimeSec}s/pcs</span>
+                    <span className={`font-black font-sans leading-none ${isDark ? 'text-white' : 'text-slate-900'}`} style={{ fontSize: fluid(26, 4.2, 44) }}>{targetRate}</span>
+                    <span className={`font-semibold mt-1 ${isDark ? 'text-slate-300' : 'text-slate-600'}`} style={{ fontSize: fluid(11, 1.7, 15) }}>Target Rate (pcs/h)</span>
+                    <span className={`font-mono mt-0.5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`} style={{ fontSize: fluid(11, 1.6, 14) }}>Ideal: {targetCycleTimeSec}s/pcs</span>
                   </div>
                 </div>
 
-                {/* Speed Eff — pojok kanan bawah, ukuran sedang */}
+                {/* Speed Eff — pojok kanan bawah, nilai dominan */}
                 <div className="absolute bottom-[0.4vh] right-[0.5vw] z-10 flex flex-col items-end drop-shadow-sm text-right pointer-events-none">
-                  <span className={`font-mono font-black leading-none text-[clamp(22px,2.2vw,34px)] ${speedEffColor}`}>{speedEffPct}%</span>
-                  <span className={`text-xs font-semibold mt-0.5 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>Speed Eff</span>
+                  <span className={`font-mono font-black leading-none ${speedEffColor}`} style={{ fontSize: fluid(28, 4.6, 48) }}>{speedEffPct}%</span>
+                  <span className={`font-semibold mt-0.5 ${isDark ? 'text-slate-300' : 'text-slate-600'}`} style={{ fontSize: fluid(11, 1.7, 15) }}>Speed Eff</span>
                 </div>
               </div>
 
-              <div className="flex items-center justify-center text-xs font-mono font-semibold mt-[0.4vh] pt-[0.6vh] border-t border-slate-100 dark:border-slate-800 shrink-0">
+              <div className="flex items-center justify-center font-mono font-semibold mt-[0.4vh] pt-[0.6vh] border-t border-slate-100 dark:border-slate-800 shrink-0" style={{ fontSize: fluid(11, 1.6, 14) }}>
                 <span className={isDark ? 'text-slate-300' : 'text-slate-600'}>
                   3600 / {targetCycleTimeSec}s = {targetRate} pcs/h
                 </span>

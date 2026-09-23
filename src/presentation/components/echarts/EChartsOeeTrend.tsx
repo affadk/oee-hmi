@@ -1,10 +1,11 @@
 // /src/presentation/components/echarts/EChartsOeeTrend.tsx
 
-import React, { useRef, useEffect, useMemo } from 'react';
+import React, { useRef, useState, useEffect, useMemo } from 'react';
 import * as echarts from 'echarts';
 import { HourlyDataPoint } from '../../../domain/index';
 import { useTheme } from '../../providers/ThemeProvider';
 import { Radio } from 'lucide-react';
+import { fluid, containerScale, scaledFont } from '../../utils/fluidType';
 
 interface EChartsOeeTrendProps {
   hourlyTrends: HourlyDataPoint[];
@@ -72,6 +73,14 @@ export const EChartsOeeTrend: React.FC<EChartsOeeTrendProps> = ({
   const startHour = visibleTrends.length > 0 ? formatHourLabel(visibleTrends[0].hour) : '00:00';
   const endHour = visibleTrends.length > 0 ? formatHourLabel(visibleTrends[visibleTrends.length - 1].hour) : '08:00';
 
+  // Ukur kontainer aktual (bukan viewport): font canvas ECharts harus angka,
+  // jadi skala dihitung dari box terukur terhadap referensi desain 860x250.
+  const [box, setBox] = useState({ w: 0, h: 0 });
+  const trendK = containerScale(box.w, box.h, 860, 250);
+  const fsAxis = scaledFont(12, trendK, 10, 17);
+  const fsTip = scaledFont(13, trendK, 11, 17);
+  const fsMark = scaledFont(12, trendK, 10, 16);
+
   // Jendela istirahat (planned downtime) "02:00 - 03:00" -> menit, untuk markArea + tooltip.
   // Di luar jendela ini = waktu running.
   const breakRange = useMemo(() => {
@@ -125,7 +134,7 @@ export const EChartsOeeTrend: React.FC<EChartsOeeTrendProps> = ({
               formatter: 'Istirahat',
               position: 'insideTop' as const,
               color: '#60a5fa',
-              fontSize: 10,
+              fontSize: fsMark,
               fontFamily: 'Inter, sans-serif',
             },
             data: [
@@ -146,7 +155,7 @@ export const EChartsOeeTrend: React.FC<EChartsOeeTrendProps> = ({
         borderWidth: 1,
         textStyle: {
           color: isDark ? '#e2e8f0' : '#0f172a',
-          fontSize: 11,
+          fontSize: fsTip,
           fontFamily: 'Inter, sans-serif',
         },
         formatter: (params: any) => {
@@ -185,7 +194,7 @@ export const EChartsOeeTrend: React.FC<EChartsOeeTrendProps> = ({
         },
         axisLabel: {
           color: isDark ? '#94a3b8' : '#475569',
-          fontSize: 10,
+          fontSize: fsAxis,
           fontFamily: 'monospace',
           hideOverlap: true,
           margin: 8,
@@ -202,7 +211,7 @@ export const EChartsOeeTrend: React.FC<EChartsOeeTrendProps> = ({
         axisLabel: {
           formatter: '{value}%',
           color: isDark ? '#94a3b8' : '#475569',
-          fontSize: 10,
+          fontSize: fsAxis,
         },
         splitLine: {
           lineStyle: {
@@ -280,16 +289,27 @@ export const EChartsOeeTrend: React.FC<EChartsOeeTrendProps> = ({
     // (realtime): tidak ada sisa label lama yang bikin grafik terpotong di awal.
     chartInstance.setOption(option, true);
 
+    const el = chartRef.current;
+    const measure = () => {
+      const r = el.getBoundingClientRect();
+      setBox((prev) =>
+        Math.abs(prev.w - r.width) < 1 && Math.abs(prev.h - r.height) < 1
+          ? prev
+          : { w: r.width, h: r.height },
+      );
+    };
+    measure();
     const ro = new ResizeObserver(() => {
       chartInstance.resize();
+      measure();
     });
-    ro.observe(chartRef.current);
+    ro.observe(el);
 
     return () => {
       ro.disconnect();
       chartInstance.dispose();
     };
-  }, [visibleTrends, isDark]);
+  }, [visibleTrends, isDark, box.w, box.h]);
 
   return (
     <div className={`rounded-xl p-3.5 shadow-lg flex flex-col h-full border ${
@@ -298,25 +318,25 @@ export const EChartsOeeTrend: React.FC<EChartsOeeTrendProps> = ({
       {/* Header with Title & Legend */}
       <div className="flex flex-wrap items-center justify-between mb-1 pb-1 gap-2">
         <div className="flex items-center gap-2">
-          <h3 className={`font-bold text-xs sm:text-sm tracking-wide ${isDark ? 'text-white' : 'text-slate-900'}`}>
-            {title} <span className={`font-mono text-xs font-normal ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>({startHour} - {endHour})</span>
+          <h3 className={`font-bold tracking-wide ${isDark ? 'text-white' : 'text-slate-900'}`} style={{ fontSize: fluid(13, 1.9, 17) }}>
+            {title} <span className={`font-mono font-normal ${isDark ? 'text-slate-400' : 'text-slate-500'}`} style={{ fontSize: fluid(11, 1.6, 14) }}>({startHour} - {endHour})</span>
           </h3>
-          <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full flex items-center gap-1 font-semibold border ${
+          <span className={`font-mono px-2 py-0.5 rounded-full flex items-center gap-1 font-semibold border ${
             isBuffered
               ? isDark ? 'bg-amber-950/60 text-amber-400 border-amber-800/60' : 'bg-amber-50 text-amber-700 border-amber-300'
               : isDark ? 'bg-emerald-950/60 text-emerald-400 border-emerald-800/60' : 'bg-emerald-50 text-emerald-700 border-emerald-300'
-          }`}>
+          }`} style={{ fontSize: fluid(10, 1.4, 13) }}>
             <Radio className="w-2.5 h-2.5" />
             {isBuffered ? 'BUFFERED' : 'LIVE'}
           </span>
           {showBenchmark && (
-            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-semibold">
+            <span className="font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-semibold" style={{ fontSize: fluid(10, 1.4, 13) }}>
               Target Benchmark 85%
             </span>
           )}
         </div>
 
-        <div className="flex items-center gap-2.5 sm:gap-3 text-[10px] sm:text-xs">
+        <div className="flex items-center gap-2.5 sm:gap-3" style={{ fontSize: fluid(10, 1.5, 14) }}>
           <span className={`flex items-center gap-1 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
             <span className="w-2 h-2 rounded-full bg-[#10b981]"></span> OEE
           </span>
