@@ -27,6 +27,25 @@ export type DowntimeCategory =
   | 'CLEANING_5S'
   | 'OTHER';
 
+/**
+ * Kategori downtime yang dihitung sebagai planned stop (mengurangi shift
+ * time, bukan run time — ISO 22400). Changeover terjadwal
+ * (SETUP_AND_ADJUSTMENT) termasuk planned, sejajar break/maintenance.
+ * Satu-satunya sumber kebenaran — dipakai GetDowntimeReasonsUseCase dan
+ * BackendMachineRepository agar tidak divergen lagi.
+ */
+export const PLANNED_DOWNTIME_CATEGORIES: ReadonlySet<DowntimeCategory> = new Set([
+  'PLANNED_MAINTENANCE',
+  'REST_BREAK',
+  'CLEANING_5S',
+  'SETUP_AND_ADJUSTMENT',
+]);
+
+export function isPlannedDowntimeCategory(category: DowntimeCategory | string | null | undefined): boolean {
+  if (!category) return false;
+  return (PLANNED_DOWNTIME_CATEGORIES as ReadonlySet<string>).has(category);
+}
+
 export interface DowntimeEvent {
   id: number;
   deviceId: string | null;

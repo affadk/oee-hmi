@@ -83,6 +83,12 @@ export const FullscreenOeeView: React.FC<FullscreenOeeViewProps> = ({
     .map((n) => String(n).padStart(2, '0'))
     .join(':');
 
+/** 395 -> "06:35" (durasi staffed shift). */
+const formatStaffed = (totalMin: number): string => {
+  const m = Math.max(0, Math.round(totalMin));
+  return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+};
+
   // Ukur kontainer Production Rate — font skala proporsional terhadap lebar+tinggi
   // kontainer aktual (bukan viewport), agar tak bertumpuk di luar mode fullscreen
   const rateCardRef = useRef<HTMLDivElement>(null);
@@ -156,7 +162,7 @@ export const FullscreenOeeView: React.FC<FullscreenOeeViewProps> = ({
   // Output Counters
   const targetPcs = machine.jobConfig?.targetQuantity ?? machine.targetCount ?? 0;
   const actualPcs = machine.telemetry?.tot ?? machine.totalCount ?? 0;
-  const rejectPcs = machine.telemetry?.rej ?? machine.rejectCount ?? 201;
+  const rejectPcs = machine.telemetry?.rej ?? machine.rejectCount ?? 0;
   const goodPcs = Math.max(0, actualPcs - rejectPcs);
   const deltaPcs = actualPcs - targetPcs;
 
@@ -183,7 +189,9 @@ export const FullscreenOeeView: React.FC<FullscreenOeeViewProps> = ({
   return (
     <div id="oee-edge-dashboard" className={outerShellClass}>
       <div id="oee-viewport-shell" className={innerShellClass}>
-      {/* QR BATCH SCANNER MODAL */}
+      {/* QR BATCH SCANNER MODAL — lane simulasi saja. Lane backend memakai
+          ProductionSetupModal (data WO/produk/operator nyata). */}
+      {!useBackend && (
       <BatchQrScannerModal
         isOpen={isQrModalOpen}
         onClose={() => setIsQrModalOpen(false)}
@@ -192,6 +200,7 @@ export const FullscreenOeeView: React.FC<FullscreenOeeViewProps> = ({
         onSwitchMachine={onSwitchMachine}
         onApplyJobConfig={onApplyJobConfig}
       />
+      )}
 
       {/* 1. TOP HEADER — shrink-0, padding relatif vh/vw — readability: min 12px */}
       <header className="bg-[#1a3464] text-white px-[1.2vw] py-[0.8vh] flex items-center justify-between text-[clamp(12px,0.85vw,14px)] font-semibold shadow-md shrink-0 w-full">
@@ -222,7 +231,8 @@ export const FullscreenOeeView: React.FC<FullscreenOeeViewProps> = ({
             <ChevronDown className="w-3.5 h-3.5 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-slate-600" />
           </div>
 
-          {/* QR Scanner Trigger — bumped to text-sm for factory readability */}
+          {/* QR Scanner Trigger — lane simulasi saja */}
+          {!useBackend && (
           <button
             type="button"
             onClick={() => setIsQrModalOpen(true)}
@@ -232,8 +242,11 @@ export const FullscreenOeeView: React.FC<FullscreenOeeViewProps> = ({
             <QrCode className="w-4 h-4" />
             <span className="hidden lg:inline font-mono">Scan QR</span>
           </button>
+          )}
 
-          {/* Edge Telemetry Modal */}
+          {/* Edge Telemetry Modal — lane simulasi saja (draft MQTT/broker lokal).
+              Lane backend memakai Perangkat + Setup Produksi (REST nyata). */}
+          {!useBackend && (
           <button
             type="button"
             onClick={onOpenMqttModal}
@@ -243,6 +256,7 @@ export const FullscreenOeeView: React.FC<FullscreenOeeViewProps> = ({
             <Radio className="w-4 h-4 text-emerald-400" />
             <span className="hidden lg:inline font-mono">Edge I/O</span>
           </button>
+          )}
 
           {/* Live simulation toggle */}
           {!useBackend && (
@@ -290,7 +304,9 @@ export const FullscreenOeeView: React.FC<FullscreenOeeViewProps> = ({
             {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
           </button>
 
-          {/* MQTT Edge Controller - Poin 4: Edge Health — bumped minimal 12px */}
+          {/* MQTT Edge Controller health — lane simulasi saja (backend tidak
+              punya endpoint health; lihat BACKEND_GAP_REPORT.md G3). */}
+          {!useBackend && (
           <button
             type="button"
             onClick={onOpenMqttModal}
@@ -316,6 +332,7 @@ export const FullscreenOeeView: React.FC<FullscreenOeeViewProps> = ({
               ({health.tasks_healthy}/{health.tasks_total})
             </span>
           </button>
+          )}
         </div>
       </header>
 
@@ -700,7 +717,7 @@ export const FullscreenOeeView: React.FC<FullscreenOeeViewProps> = ({
 
         {/* LOWER: Progress & Shift Timeline — horizontal grid, tinggi relatif vh, tetap proporsional */}
         <div id="shift-progress-fullwidth" className="shrink-0 h-[clamp(110px,16vh,190px)] min-h-0 w-full overflow-hidden">
-          <PasXProgressStrip machine={machine} metrics={metrics} />
+          <PasXProgressStrip machine={machine} metrics={metrics} useBackend={useBackend} />
         </div>
       </main>
 
@@ -714,12 +731,13 @@ export const FullscreenOeeView: React.FC<FullscreenOeeViewProps> = ({
           <div className="flex items-center gap-3">
             <span>Machine: <strong className={isDark ? 'text-slate-200' : 'text-slate-800'}>{machine.name}</strong></span>
             <span>Line: <strong className={isDark ? 'text-slate-200' : 'text-slate-800'}>{machine.line}</strong></span>
-            <span>Status: <strong className="text-emerald-500">ONLINE</strong></span>
+            <span>Status: <strong className={machine.connectionStatus === 'ONLINE' ? 'text-emerald-500' : 'text-rose-500'}>{machine.connectionStatus || '—'}</strong></span>
           </div>
 
           <div className="flex items-center gap-3">
-            <span>Planned Time: <strong>{metrics.plannedProductionTimeMin || 420}m</strong></span>
-            <span>Staffed: <strong>06:35</strong></span>
+            <span>Planned Time: <strong>{metrics.plannedProductionTimeMin}m</strong></span>
+            <span>Staffed: <strong>{formatStaffed(metrics.plannedProductionTimeMin + (machine.plannedDowntimeMinutes || 0))}</strong></span>
+            {!useBackend && (
             <button
               onClick={onOpenMqttModal}
               className="text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1 font-semibold cursor-pointer"
@@ -727,6 +745,7 @@ export const FullscreenOeeView: React.FC<FullscreenOeeViewProps> = ({
               <Radio className="w-3 h-3" />
               STM32H723 Edge I/O
             </button>
+            )}
           </div>
         </div>
       </footer>

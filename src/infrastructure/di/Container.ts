@@ -43,9 +43,7 @@ import { LogRejectUseCase } from '../../application/use-cases/LogRejectUseCase';
 import { SimulateMachinePulseUseCase } from '../../application/use-cases/SimulateMachinePulseUseCase';
 import { ManageAlarmsUseCase } from '../../application/use-cases/ManageAlarmsUseCase';
 import { MqttEdgeCommandUseCase } from '../../application/use-cases/MqttEdgeCommandUseCase';
-import { GetLiveStateUseCase } from '../../application/use-cases/GetLiveStateUseCase';
 import { ListWorkOrdersUseCase } from '../../application/use-cases/ListWorkOrdersUseCase';
-import { SendDeviceCommandUseCase } from '../../application/use-cases/SendDeviceCommandUseCase';
 import { SubscribeTelemetryUseCase } from '../../application/use-cases/SubscribeTelemetryUseCase';
 import { GetDowntimeReasonsUseCase } from '../../application/use-cases/GetDowntimeReasonsUseCase';
 import { GetHourlyTrendsUseCase } from '../../application/use-cases/GetHourlyTrendsUseCase';
@@ -83,9 +81,7 @@ export interface AppContainer {
   mqttEdgeCommandUseCase: MqttEdgeCommandUseCase;
 
   // Use cases (backend lane)
-  getLiveStateUseCase: GetLiveStateUseCase;
   listWorkOrdersUseCase: ListWorkOrdersUseCase;
-  sendDeviceCommandUseCase: SendDeviceCommandUseCase;
   subscribeTelemetryUseCase: SubscribeTelemetryUseCase;
   getDowntimeReasonsUseCase: GetDowntimeReasonsUseCase;
   getHourlyTrendsUseCase: GetHourlyTrendsUseCase;
@@ -126,7 +122,7 @@ export function createContainer(): AppContainer {
     : new InMemoryMachineRepository();
 
   const alarmRepository = useBackend
-    ? new BackendAlarmRepository(telemetryRepository)
+    ? new BackendAlarmRepository(telemetryRepository, masterDataRepository)
     : new InMemoryAlarmRepository();
 
   const mqttGateway = useBackend
@@ -144,9 +140,7 @@ export function createContainer(): AppContainer {
   const simulateMachinePulseUseCase = new SimulateMachinePulseUseCase(machineRepository);
   const manageAlarmsUseCase = new ManageAlarmsUseCase(alarmRepository);
   const mqttEdgeCommandUseCase = new MqttEdgeCommandUseCase(mqttGateway, machineRepository);
-  const getLiveStateUseCase = new GetLiveStateUseCase(liveStateRepository);
   const listWorkOrdersUseCase = new ListWorkOrdersUseCase(workOrderRepository);
-  const sendDeviceCommandUseCase = new SendDeviceCommandUseCase(deviceCommandGateway);
   const subscribeTelemetryUseCase = new SubscribeTelemetryUseCase(realtimeGateway);
   const getDowntimeReasonsUseCase = new GetDowntimeReasonsUseCase(telemetryRepository);
   const getHourlyTrendsUseCase = new GetHourlyTrendsUseCase(telemetryRepository);
@@ -175,9 +169,7 @@ export function createContainer(): AppContainer {
     simulateMachinePulseUseCase,
     manageAlarmsUseCase,
     mqttEdgeCommandUseCase,
-    getLiveStateUseCase,
     listWorkOrdersUseCase,
-    sendDeviceCommandUseCase,
     subscribeTelemetryUseCase,
     getDowntimeReasonsUseCase,
     getHourlyTrendsUseCase,

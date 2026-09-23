@@ -6,6 +6,7 @@
 import type { IAlarmRepository } from '../../domain/ports/IAlarmRepository';
 import type { MachineAlarmEvent, AlarmType, AlarmStatus } from '../../domain/entities/Alarm';
 import type { OperationalEvent } from '../../domain/entities/backend/Telemetry';
+import type { IMasterDataRepository } from '../../domain/ports/IOeeBackend';
 import { OeeHttpTelemetryRepository } from '../api/oeeApiClient';
 
 const TYPE_MAP: Record<string, AlarmType> = {
@@ -44,16 +45,39 @@ function mapOperationalEventToAlarm(event: OperationalEvent): MachineAlarmEvent 
 
 export class BackendAlarmRepository implements IAlarmRepository {
   private readonly telemetryRepo: OeeHttpTelemetryRepository;
+  private readonly masterDataRepo: IMasterDataRepository | null;
 
-  constructor(telemetryRepo?: OeeHttpTelemetryRepository) {
+  constructor(telemetryRepo?: OeeHttpTelemetryRepository, masterDataRepo?: IMasterDataRepository) {
     this.telemetryRepo = telemetryRepo ?? new OeeHttpTelemetryRepository();
+    this.masterDataRepo = masterDataRepo ?? null;
   }
 
   async getAllAlarms(): Promise<MachineAlarmEvent[]> {
     try {
-      // Fetch operational events for all devices (empty deviceId = all)
-      const result = await this.telemetryRepo.getOperationalEvents('', undefined, undefined, 200, undefined, false);
-      return result.data.map(mapOperationalEventToAlarm);
+      // Route backend GET /operational-events/:deviceId mewajibkan deviceId
+      // non-kosong — ambil daftar device dari registry lalu query per device.
+      const deviceIds = await this.resolveDeviceIds();
+      if (deviceIds.length === 0) return [];
+      const settled = await Promise.all(
+        deviceIds.map((deviceId) =>
+          this.telemetryRepo
+            .getOperationalEvents(deviceId, undefined, undefined, 50, undefined, false)
+            .catch(() => ({ data: [] as OperationalEvent[], meta: { limit: 50, hasMore: false, nextCursor: null, count: 0 } }))
+        )
+      );
+      const alarms = settled.flatMap((r) => r.data.map(mapOperationalEventToAlarm));
+      alarms.sort((a, b) => (a.timestamp < b.timestamp ? 1 : a.timestamp > b.timestamp ? -1 : 0));
+      return alarms.slice(0, 200);
+    } catch {
+      return [];
+    }
+  }
+
+  private async resolveDeviceIds(): Promise<string[]> {
+    if (!this.masterDataRepo) return [];
+    try {
+      const devices = await this.masterDataRepo.listDevices();
+      return devices.map((d) => d.deviceId).filter((id) => !!id);
     } catch {
       return [];
     }

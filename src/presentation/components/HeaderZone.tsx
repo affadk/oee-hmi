@@ -173,8 +173,8 @@ export const HeaderZone: React.FC<HeaderZoneProps> = ({
             <span className="hidden lg:inline font-mono">Log Event</span>
           </button>
 
-          {/* Edge I/O */}
-          {onOpenMqttModal && (
+          {/* Edge I/O — lane simulasi saja (lihat FullscreenOeeView). */}
+          {!useBackend && onOpenMqttModal && (
             <button
               type="button"
               onClick={onOpenMqttModal}
@@ -261,7 +261,8 @@ export const HeaderZone: React.FC<HeaderZoneProps> = ({
             {isDark ? <Sun className="w-3.5 h-3.5 text-amber-300" /> : <Moon className="w-3.5 h-3.5 text-white" />}
           </button>
 
-          {/* Edge health */}
+          {/* Edge health — lane simulasi saja (tanpa endpoint health di backend, GAP G3). */}
+          {!useBackend && (
           <button
             type="button"
             onClick={onOpenMqttModal}
@@ -278,6 +279,7 @@ export const HeaderZone: React.FC<HeaderZoneProps> = ({
             </span>
             <span className="font-bold text-sm tracking-tight">Edge: {isHealthy ? 'OK' : 'WARN'}</span>
           </button>
+          )}
         </div>
       </header>
 

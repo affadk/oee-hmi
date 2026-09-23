@@ -19,6 +19,7 @@ import type { LiveStateSnapshot, LiveMachineState } from '../../domain/entities/
 import type { MachineRecord } from '../../domain/entities/backend/Device';
 import type { WorkOrderResolveResult } from '../../domain/entities/backend/WorkOrder';
 import type { DowntimeEvent } from '../../domain/entities/backend/Telemetry';
+import { isPlannedDowntimeCategory } from '../../domain/entities/backend/Telemetry';
 import type { HourlyTrendPoint, PageMeta } from '../../domain/ports/IOeeBackend';
 import { endpoints } from '../api/endpoints';
 import { httpRequest } from '../api/httpClient';
@@ -84,9 +85,7 @@ function mapDowntimeEventToReasonItem(event: DowntimeEvent, index: number): Down
     durationMinutes: event.endTime
       ? Math.max(1, Math.round((new Date(event.endTime).getTime() - new Date(event.startTime).getTime()) / 60000))
       : 1,
-    type: event.category === 'PLANNED_MAINTENANCE' || event.category === 'REST_BREAK' || event.category === 'CLEANING_5S'
-      ? 'PLANNED'
-      : 'UNPLANNED',
+    type: isPlannedDowntimeCategory(event.category) ? 'PLANNED' : 'UNPLANNED',
   };
 }
 
@@ -151,9 +150,16 @@ export class BackendMachineRepository implements IMachineRepository {
       ]);
 
       machine.downtimeReasons = downtimeResult.data.map((e, i) => mapDowntimeEventToReasonItem(e, i));
+      // Target per jam diturunkan dari WO (target_qty / jam shift) — bukan mock.
+      // Reject breakdown TIDAK difabrikasi: backend belum punya endpoint-nya
+      // (lihat docs/BACKEND_GAP_REPORT.md G1), jadi dikosongkan.
+      const windowHours = Math.max(1, machine.shiftDurationMinutes / 60);
+      const hourlyTarget = machine.jobConfig.targetQuantity > 0
+        ? Math.round(machine.jobConfig.targetQuantity / windowHours)
+        : 0;
       machine.hourlyTrends = hourlyResult.data.map((point) => ({
         hour: point.bucket,
-        target: 0,
+        target: hourlyTarget,
         actual: point.totalCount,
         good: point.goodCount,
         reject: point.rejectCount,
@@ -164,14 +170,7 @@ export class BackendMachineRepository implements IMachineRepository {
         status: mapLiveStateToMachineStatus(snapshot.currentState),
       }));
 
-      // Derive reject reasons from downtime + reject count
-      if (machine.rejectCount > 0) {
-        machine.rejectReasons = [
-          { id: 'rej-1', label: 'Process Defect', count: Math.round(machine.rejectCount * 0.6) },
-          { id: 'rej-2', label: 'Material Issue', count: Math.round(machine.rejectCount * 0.3) },
-          { id: 'rej-3', label: 'Other', count: Math.round(machine.rejectCount * 0.1) },
-        ];
-      }
+      machine.rejectReasons = [];
 
       results.push(machine);
     }

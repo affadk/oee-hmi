@@ -13,6 +13,8 @@ import {
 interface PasXProgressStripProps {
   machine: MachineConfig;
   metrics: CalculatedOeeMetrics;
+  /** true = lane backend: kursor murni jam dinding (tanpa loop demo). */
+  useBackend?: boolean;
 }
 
 interface TimelineEvent {
@@ -61,7 +63,7 @@ const formatHM = (totalMin: number): string => {
   return `${String(Math.floor(norm / 60)).padStart(2, '0')}:${String(norm % 60).padStart(2, '0')}`;
 };
 
-export const PasXProgressStrip: React.FC<PasXProgressStripProps> = ({ machine }) => {
+export const PasXProgressStrip: React.FC<PasXProgressStripProps> = ({ machine, useBackend = false }) => {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   const [selectedEvent, setSelectedEvent] = useState<TimelineEvent | null>(null);
@@ -110,12 +112,14 @@ export const PasXProgressStrip: React.FC<PasXProgressStripProps> = ({ machine })
   if (nowRelMin < 0) nowRelMin += 24 * 60;
   const realFrac = nowRelMin / windowMin;
   const realInside = realFrac >= 0 && realFrac <= 1;
-  // Jam operasional demo: bila jam dinding di luar window shift, kursor berjalan
+  // Lane backend: kursor murni jam dinding. Di luar window shift, kursor
+  // dijepit ke tepi (tanpa loop demo yang memalsukan posisi LIVE).
+  // Lane simulasi: bila jam dinding di luar window, kursor berjalan
   // di dalam window mengikuti laju jam nyata (loop), agar penanda selalu tampil.
   const elapsedMin = Math.max(0, (now.getTime() - (mountedRef.current ?? now.getTime())) / 60000);
   const demoRelMin = (windowMin * 0.3 + elapsedMin) % windowMin;
-  const useRealCursor = realInside;
-  const cursorRelMin = useRealCursor ? Math.min(nowRelMin, windowMin) : demoRelMin;
+  const useRealCursor = useBackend || realInside;
+  const cursorRelMin = useRealCursor ? Math.min(Math.max(nowRelMin, 0), windowMin) : demoRelMin;
   const livePct = Math.min(99, Math.max(1, (cursorRelMin / windowMin) * 100));
   const cursorClockMin = useRealCursor ? nowMinOfDay : (((startMin + demoRelMin) % 1440) + 1440) % 1440;
   const cursorSec = useRealCursor ? now.getSeconds() : Math.floor((demoRelMin * 60) % 60);

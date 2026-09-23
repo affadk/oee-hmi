@@ -5,6 +5,7 @@
 import type { ITelemetryRepository } from '../../domain/ports/IOeeBackend';
 import type { DowntimeReasonItem } from '../../domain/entities/Machine';
 import type { DowntimeEvent } from '../../domain/entities/backend/Telemetry';
+import { isPlannedDowntimeCategory } from '../../domain/entities/backend/Telemetry';
 
 export class GetDowntimeReasonsUseCase {
   constructor(private readonly telemetryRepo: ITelemetryRepository) {}
@@ -21,17 +22,8 @@ export class GetDowntimeReasonsUseCase {
       // Changeover terjadwal (SETUP_AND_ADJUSTMENT) = PLANNED, sejajar
       // REST_BREAK / PLANNED_MAINTENANCE / CLEANING_5S (kontrak ISO 22400 di
       // LossAnalysisZone: planned mengurangi shift time). Sisanya UNPLANNED.
-      type: PLANNED_DOWNTIME_CATEGORIES.has(event.category ?? 'OTHER')
-        ? 'PLANNED'
-        : 'UNPLANNED',
+      // Kebenaran tunggal: isPlannedDowntimeCategory (domain/entities/backend/Telemetry).
+      type: isPlannedDowntimeCategory(event.category) ? 'PLANNED' : 'UNPLANNED',
     }));
   }
 }
-
-/** Kategori backend yang dihitung sebagai planned stop (bukan run-time loss). */
-const PLANNED_DOWNTIME_CATEGORIES: ReadonlySet<string> = new Set([
-  'PLANNED_MAINTENANCE',
-  'REST_BREAK',
-  'CLEANING_5S',
-  'SETUP_AND_ADJUSTMENT',
-]);

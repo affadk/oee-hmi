@@ -29,8 +29,13 @@ interface RawLiveState {
 
 const KNOWN_STATES: LiveMachineState[] = ['RUNNING','IDLE','DOWN','SETUP','PLANNED_STOP','UNCONFIGURED','READY','BATCH_FINISHED','PLANNED_DT','UNPLANNED_DT'];
 
+// Backend FSM memakai PLANNED_DOWNTIME/UNPLANNED_DOWNTIME (FsmStateEnum);
+// domain memakai PLANNED_DT/UNPLANNED_DT. Normalkan di batas DTO agar
+// mesin downtime tidak jatuh ke UNCONFIGURED (= tampil IDLE).
 function normalizeState(raw: unknown): LiveMachineState {
   const s = String(raw ?? 'UNCONFIGURED').toUpperCase();
+  if (s === 'PLANNED_DOWNTIME') return 'PLANNED_DT';
+  if (s === 'UNPLANNED_DOWNTIME') return 'UNPLANNED_DT';
   return (KNOWN_STATES as string[]).includes(s) ? (s as LiveMachineState) : 'UNCONFIGURED';
 }
 

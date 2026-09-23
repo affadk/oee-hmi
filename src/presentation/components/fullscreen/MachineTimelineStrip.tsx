@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { useTheme } from '../../providers/ThemeProvider';
 import { MachineConfig, CalculatedOeeMetrics } from '../../../domain/index';
 import { buildShiftTimeline } from '../../../domain/services/ShiftTimeline';
@@ -56,6 +56,19 @@ export const MachineTimelineStrip: React.FC<MachineTimelineStripProps> = ({ mach
     return `${String(normalizedH).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
   };
 
+  // Kursor waktu nyata dari jam dinding (bukan mock 01:25).
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(t);
+  }, []);
+  const nowMinOfDay = now.getHours() * 60 + now.getMinutes() + now.getSeconds() / 60;
+  let nowRelH = nowMinOfDay / 60 - startH;
+  if (nowRelH < 0) nowRelH += 24;
+  const cursorPct = Math.min(100, Math.max(0, (nowRelH / totalShiftHours) * 100));
+  const nowLabel = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+  const nowStamp = now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+
   return (
     <div className={`p-3 rounded-xl border flex flex-col justify-between shadow-md h-full ${
       isDark ? 'bg-[#0b1528] border-[#162744]' : 'bg-white border-slate-200'
@@ -95,14 +108,14 @@ export const MachineTimelineStrip: React.FC<MachineTimelineStripProps> = ({ mach
           ))}
         </div>
 
-        {/* Live Cursor for Metadata Current Time 01:25:37 */}
-        <div 
+        {/* Live Cursor — posisi jam dinding nyata pada window shift */}
+        <div
           className="absolute -top-1 bottom-0 w-0.5 bg-amber-400 z-10 shadow-[0_0_8px_rgba(251,191,36,0.9)] pointer-events-none"
-          style={{ left: '34.2%' }}
-          title="Metadata Current Time: 21 Sep 2026 01:25:37"
+          style={{ left: `${cursorPct}%` }}
+          title={`Waktu nyata: ${nowStamp} ${nowLabel}`}
         >
           <span className="absolute -top-3.5 -translate-x-1/2 bg-amber-400 text-slate-950 font-bold font-mono text-[8px] px-1 py-0.2 rounded shadow whitespace-nowrap">
-            NOW 01:25
+            NOW {nowLabel}
           </span>
         </div>
       </div>
@@ -111,7 +124,7 @@ export const MachineTimelineStrip: React.FC<MachineTimelineStripProps> = ({ mach
       <div className={`flex justify-between items-center text-[10px] font-mono mt-2 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
         <span className={`font-semibold ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>{shiftStart} (Start)</span>
         <span>{formatH(0.25)}</span>
-        <span className={`font-bold ${isDark ? 'text-amber-400' : 'text-amber-700'}`}>01:25 (Live)</span>
+        <span className={`font-bold ${isDark ? 'text-amber-400' : 'text-amber-700'}`}>{nowLabel} (Live)</span>
         <span className={isDark ? 'text-blue-400' : 'text-blue-700'}>{breakStart} (Break)</span>
         <span>{formatH(0.75)}</span>
         <span className={`font-semibold ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>{shiftEnd} (End)</span>

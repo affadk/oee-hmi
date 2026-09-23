@@ -4,7 +4,7 @@ import React, { useMemo } from 'react';
 import { Clock } from 'lucide-react';
 import { useTheme } from '../../providers/ThemeProvider';
 import { CalculatedOeeMetrics, MachineConfig } from '../../../domain/index';
-import { buildShiftTimeline, summarizeTimeline } from '../../../domain/services/ShiftTimeline';
+import { mapDowntimeToKind } from '../../../domain/services/ShiftTimeline';
 
 interface TimeAccountsPanelProps {
   metrics: CalculatedOeeMetrics;
@@ -15,32 +15,39 @@ export const TimeAccountsPanel: React.FC<TimeAccountsPanelProps> = ({ metrics, m
   const { theme } = useTheme();
   const isDark = theme === 'dark';
 
-  const plannedTimeMin = metrics.plannedProductionTimeMin || 420;
-  const runTimeMin = metrics.runTimeMin || 378;
-  const downtimeMin = metrics.downtimeMin || 42;
+  const plannedTimeMin = metrics.plannedProductionTimeMin || 0;
+  const runTimeMin = metrics.runTimeMin || 0;
+  const downtimeMin = metrics.downtimeMin || 0;
+  const plannedBreakMin = machine?.plannedDowntimeMinutes ?? 0;
 
-  // Angka nyata dari data mesin: changeover = label (bisa PLANNED terjadwal),
+  // Akun waktu DITURUNKAN dari data nyata (metrics + downtimeReasons),
+  // bukan angka mock. Kind mengikuti pemetaan timeline yang sama
+  // (mapDowntimeToKind): meal/break terjadwal ikut jalur Changeover (amber),
   // breakdown/waiting = unplanned. Tidak ada angka hardcode per jam.
   const accounts = useMemo(() => {
-    const reasons = machine?.downtimeReasons ?? [];
-    const isChangeover = (r: { category: string; label: string }) =>
-      /changeover|setup|adjust|splice|foil|calibrat|die|tool/i.test(`${r.category} ${r.label}`);
-    const isWaiting = (r: { category: string; label: string }) =>
-      /waiting|material|supply|starv|verif/i.test(`${r.category} ${r.label}`);
-    const changeover = Math.round(reasons.filter(isChangeover).reduce((acc, r) => acc + r.durationMinutes, 0));
-    const waiting = Math.round(reasons.filter((r) => !isChangeover(r) && isWaiting(r)).reduce((acc, r) => acc + r.durationMinutes, 0));
-    const breakdown = Math.round(
-      reasons.filter((r) => !isChangeover(r) && !isWaiting(r) && r.type !== 'PLANNED' && r.category !== 'Planned')
-        .reduce((acc, r) => acc + r.durationMinutes, 0),
+    let breakdown = 0;
+    let waiting = 0;
+    let changeover = 0;
+    for (const r of machine?.downtimeReasons ?? []) {
+      const mins = Math.max(0, r.durationMinutes);
+      const kind = mapDowntimeToKind(r.category, r.label, r.type);
+      if (kind === 'Waiting') waiting += mins;
+      else if (kind === 'Changeover') changeover += mins;
+      else if (kind === 'Breakdown') breakdown += mins;
+    }
+    const staffedMin = machine?.shiftDurationMinutes ?? plannedTimeMin + plannedBreakMin;
+    const undefinedMin = Math.max(
+      0,
+      Math.round(staffedMin - runTimeMin - breakdown - waiting - changeover),
     );
-    const plannedBreak = Math.round(
-      reasons.filter((r) => !isChangeover(r) && !isWaiting(r) && (r.type === 'PLANNED' || r.category === 'Planned'))
-        .reduce((acc, r) => acc + r.durationMinutes, 0),
-    );
-    const staffedMin = machine?.shiftDurationMinutes ?? plannedTimeMin + (machine?.plannedDowntimeMinutes ?? 60);
-    const undefinedMin = Math.max(0, Math.round(staffedMin - runTimeMin - breakdown - waiting - changeover - plannedBreak));
-    return { breakdown, waiting, changeover, plannedBreak, staffedMin, undefinedMin };
-  }, [machine?.downtimeReasons, machine?.shiftDurationMinutes, machine?.plannedDowntimeMinutes, plannedTimeMin, runTimeMin]);
+    return {
+      breakdown: Math.round(breakdown),
+      waiting: Math.round(waiting),
+      changeover: Math.round(changeover),
+      staffedMin: Math.round(staffedMin),
+      undefinedMin,
+    };
+  }, [machine?.downtimeReasons, machine?.shiftDurationMinutes, plannedTimeMin, plannedBreakMin, runTimeMin]);
 
   // Format hours and minutes helper
   const formatHm = (min: number) => {
@@ -75,47 +82,47 @@ export const TimeAccountsPanel: React.FC<TimeAccountsPanelProps> = ({ metrics, m
 
       {/* Account Items List */}
       <div className="space-y-1.5 text-xs font-mono flex-1 flex flex-col justify-center">
-        {/* Active: 03:39 [green bar] */}
+        {/* Active */}
         <div className="flex items-center justify-between gap-3">
           <span className={isDark ? 'text-slate-300' : 'text-slate-700'}>Active</span>
           <div className="flex items-center gap-2">
-            <span className={`font-bold ${isDark ? 'text-emerald-400' : 'text-slate-900'}`}>03:39</span>
+            <span className={`font-bold ${isDark ? 'text-emerald-400' : 'text-slate-900'}`}>{formatHm(runTimeMin)}</span>
             <div className="w-12 sm:w-16 h-2.5 rounded-xs bg-[#48a43f]" title="Active operating time" />
           </div>
         </div>
 
-        {/* Undefined: 00:00 */}
+        {/* Undefined */}
         <div className="flex items-center justify-between gap-3">
           <span className={isDark ? 'text-slate-400' : 'text-slate-600'}>Undefined</span>
           <div className="flex items-center gap-2">
-            <span className={isDark ? 'text-slate-400' : 'text-slate-800'}>00:00</span>
+            <span className={isDark ? 'text-slate-400' : 'text-slate-800'}>{formatHm(accounts.undefinedMin)}</span>
             <div className="w-12 sm:w-16 h-2.5 rounded-xs opacity-0" />
           </div>
         </div>
 
-        {/* Breakdown: 00:28 [red bar] */}
+        {/* Breakdown */}
         <div className="flex items-center justify-between gap-3">
           <span className={isDark ? 'text-slate-300' : 'text-slate-700'}>Breakdown</span>
           <div className="flex items-center gap-2">
-            <span className="font-bold text-rose-600 dark:text-rose-400">00:28</span>
+            <span className="font-bold text-rose-600 dark:text-rose-400">{formatHm(accounts.breakdown)}</span>
             <div className="w-12 sm:w-16 h-2.5 rounded-xs bg-[#dc2626]" title="Machine breakdown" />
           </div>
         </div>
 
-        {/* Waiting: 00:14 [yellow bar] */}
+        {/* Waiting */}
         <div className="flex items-center justify-between gap-3">
           <span className={isDark ? 'text-slate-300' : 'text-slate-700'}>Waiting</span>
           <div className="flex items-center gap-2">
-            <span className="font-bold text-amber-600 dark:text-amber-400">00:14</span>
+            <span className="font-bold text-amber-600 dark:text-amber-400">{formatHm(accounts.waiting)}</span>
             <div className="w-12 sm:w-16 h-2.5 rounded-xs bg-[#eab308]" title="Waiting time" />
           </div>
         </div>
 
-        {/* Changeover: 01:48 [yellow bar] */}
+        {/* Changeover */}
         <div className="flex items-center justify-between gap-3">
           <span className={isDark ? 'text-slate-300' : 'text-slate-700'}>Changeover</span>
           <div className="flex items-center gap-2">
-            <span className="font-bold text-amber-600 dark:text-amber-400">01:48</span>
+            <span className="font-bold text-amber-600 dark:text-amber-400">{formatHm(accounts.changeover)}</span>
             <div className="w-12 sm:w-16 h-2.5 rounded-xs bg-[#eab308]" title="Changeover time" />
           </div>
         </div>
@@ -126,7 +133,7 @@ export const TimeAccountsPanel: React.FC<TimeAccountsPanelProps> = ({ metrics, m
         }`}>
           <span className={`font-semibold ${isDark ? 'text-slate-300' : 'text-slate-800'}`}>Staffed time</span>
           <div className="flex items-center gap-2">
-            <span className={`font-bold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>06:35</span>
+            <span className={`font-bold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>{formatHm(accounts.staffedMin)}</span>
             <div className="w-12 sm:w-16 h-2.5 rounded-xs bg-slate-500" title="Total staffed time" />
           </div>
         </div>

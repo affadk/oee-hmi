@@ -52,6 +52,25 @@ export const DashboardPage: React.FC = () => {
 
   const dashboard = useOeeDashboard(deps);
 
+  if (dashboard.loadError && !dashboard.currentMachine && !dashboard.isLoading) {
+    return (
+      <div className={`min-h-screen flex items-center justify-center p-6 ${isDark ? 'bg-[#070d1a] text-slate-300' : 'bg-slate-100 text-slate-600'}`}>
+        <div className={`max-w-md w-full rounded-xl border p-6 text-center shadow-xl ${isDark ? 'bg-[#0d1728] border-slate-800' : 'bg-white border-slate-300'}`}>
+          <h2 className={`font-bold text-base ${isDark ? 'text-white' : 'text-slate-900'}`}>Backend tidak terjangkau</h2>
+          <p className="mt-2 text-xs font-mono break-words">{dashboard.loadError}</p>
+          <p className="mt-2 text-xs opacity-80">Periksa docker gateway / proxy, lalu coba lagi. {dashboard.useBackend ? '' : 'Aktifkan VITE_USE_BACKEND=true untuk lane backend.'}</p>
+          <button
+            type="button"
+            onClick={dashboard.retryLoad}
+            className="mt-4 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold cursor-pointer"
+          >
+            Coba lagi
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (dashboard.isLoading || !dashboard.currentMachine || !dashboard.currentMetrics) {
     return (
       <div className={`min-h-screen flex items-center justify-center font-mono text-sm ${isDark ? 'bg-[#070d1a] text-slate-300' : 'bg-slate-100 text-slate-600'}`}>
@@ -226,7 +245,7 @@ export const DashboardPage: React.FC = () => {
               <div className="flex items-center gap-3">
                 <span>Machine: <strong className={isDark ? 'text-slate-200' : 'text-slate-800'}>{machine.name}</strong></span>
                 <span>Line: <strong className={isDark ? 'text-slate-200' : 'text-slate-800'}>{machine.line}</strong></span>
-                <span>Status: <strong className="text-emerald-500">ONLINE</strong></span>
+                <span>Status: <strong className={machine.connectionStatus === 'ONLINE' ? 'text-emerald-500' : 'text-rose-500'}>{machine.connectionStatus || '—'}</strong></span>
               </div>
               <div className="flex items-center gap-3">
                 <span>Planned Time: <strong>{metrics.plannedProductionTimeMin || 420}m</strong></span>
@@ -244,6 +263,8 @@ export const DashboardPage: React.FC = () => {
         machineId={machine.id}
         onAddDowntime={dashboard.logDowntime}
         onAddReject={dashboard.logReject}
+        isBackendMode={dashboard.useBackend}
+        labelableDowntimes={dashboard.labelableDowntimes}
       />
 
       <FormulaHelpModal
@@ -252,6 +273,9 @@ export const DashboardPage: React.FC = () => {
         highlightMetric={dashboard.formulaMetricHighlight}
       />
 
+      {/* MQTT Edge Inspector — lane simulasi saja. Lane backend memakai
+          Perangkat + Setup Produksi (REST nyata). */}
+      {!dashboard.useBackend && (
       <MqttEdgeInspectorModal
         isOpen={dashboard.isMqttModalOpen}
         onClose={dashboard.closeMqttModal}
@@ -260,6 +284,7 @@ export const DashboardPage: React.FC = () => {
         onSendJobConfig={dashboard.dispatchMqttJobConfig}
         useBackend={dashboard.useBackend}
       />
+      )}
 
       <DeviceConfigModal
         isOpen={dashboard.isDeviceConfigModalOpen}

@@ -8,10 +8,20 @@
 // which in dev go through vite server.proxy to the gateway — no CORS change
 // needed on the backend stack.
 
-function readEnv(key: string, fallback = ''): string {
+type EnvKey = 'VITE_API_BASE_URL' | 'VITE_WS_TELEMETRY_URL' | 'VITE_API_TOKEN' | 'VITE_USE_BACKEND';
+
+// PENTING: tiap variabel WAJIB diakses sebagai `import.meta.env.VITE_X`
+// statis per-baris. Akses dinamis (`meta.env?.[key]`) TIDAK diganti Vite
+// saat transform/build — hasilnya selalu fallback (bug: flag backend
+// tidak pernah bisa true). Lihat docs/AUDIT_JALUR_SIMULASI_VS_BACKEND.md.
+function readEnv(key: EnvKey, fallback = ''): string {
   try {
-    const meta = import.meta as unknown as { env?: Record<string, string | undefined> };
-    return meta.env?.[key] ?? fallback;
+    const v =
+      key === 'VITE_API_BASE_URL' ? import.meta.env.VITE_API_BASE_URL :
+      key === 'VITE_WS_TELEMETRY_URL' ? import.meta.env.VITE_WS_TELEMETRY_URL :
+      key === 'VITE_API_TOKEN' ? import.meta.env.VITE_API_TOKEN :
+      import.meta.env.VITE_USE_BACKEND;
+    return v ?? fallback;
   } catch {
     return fallback;
   }

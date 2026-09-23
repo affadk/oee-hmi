@@ -72,6 +72,8 @@ export interface UseOeeDashboardReturn {
   teepEnabled: boolean;
   alarms: MachineAlarmEvent[];
   isLoading: boolean;
+  loadError: string;
+  retryLoad: () => void;
   isLogModalOpen: boolean;
   isHelpModalOpen: boolean;
   isMqttModalOpen: boolean;
@@ -166,6 +168,8 @@ export function useOeeDashboard(deps: OeeDashboardDeps): UseOeeDashboardReturn {
   const [isSimulating, setIsSimulating] = useState<boolean>(!useBackend);
   const [teepEnabled, setTeepEnabled] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [loadError, setLoadError] = useState<string>('');
+  const [retrySeq, setRetrySeq] = useState<number>(0);
 
   const [alarms, setAlarms] = useState<MachineAlarmEvent[]>([]);
 
@@ -210,12 +214,16 @@ export function useOeeDashboard(deps: OeeDashboardDeps): UseOeeDashboardReturn {
           setMachines(machineList);
           if (machineList.length > 0) setCurrentMachineId((prev) => prev || machineList[0].id);
           setAlarms(alarmList);
+          setLoadError('');
         }
       } catch (err) {
         if (!isMounted) return;
         // Only log if not aborted
         if (err instanceof Error && err.name !== 'AbortError') {
           console.error('Failed to initialize dashboard data:', err);
+          // Backend tidak terjangkau / data kosong: tampilkan error eksplisit
+          // alih-alih loading abadi (lihat F5 laporan audit).
+          setLoadError(err.message || 'Gagal memuat data dashboard.');
         }
       } finally {
         if (isMounted) setIsLoading(false);
@@ -227,7 +235,7 @@ export function useOeeDashboard(deps: OeeDashboardDeps): UseOeeDashboardReturn {
       isMounted = false;
       abortController?.abort();
     };
-  }, [getMachinesUseCase, manageAlarmsUseCase, useBackend]);
+  }, [getMachinesUseCase, manageAlarmsUseCase, useBackend, retrySeq]);
 
   const currentMachine = useMemo(() => {
     return machines.find((m) => m.id === currentMachineId) ?? machines[0] ?? null;
@@ -290,15 +298,9 @@ export function useOeeDashboard(deps: OeeDashboardDeps): UseOeeDashboardReturn {
                   ...m,
                   downtimeReasons,
                   hourlyTrends,
-                  // Derive reject reasons from downtime + reject count
-                  rejectReasons:
-                    m.rejectCount > 0
-                      ? [
-                          { id: 'rej-1', label: 'Process Defect', count: Math.round(m.rejectCount * 0.6) },
-                          { id: 'rej-2', label: 'Material Issue', count: Math.round(m.rejectCount * 0.3) },
-                          { id: 'rej-3', label: 'Other', count: Math.round(m.rejectCount * 0.1) },
-                        ]
-                      : [],
+                  // Backend belum punya endpoint reject-breakdown (GAP G1):
+                  // jangan fabrikasi 60/30/10 — kosongkan sampai endpoint ada.
+                  rejectReasons: [],
                 }
               : m
           )
@@ -732,6 +734,11 @@ export function useOeeDashboard(deps: OeeDashboardDeps): UseOeeDashboardReturn {
   }, [authGateway]);
   const toggleSimulate = useCallback(() => setIsSimulating((prev) => !prev), []);
   const toggleTeep = useCallback(() => setTeepEnabled((prev) => !prev), []);
+  const retryLoad = useCallback(() => {
+    setLoadError('');
+    setIsLoading(true);
+    setRetrySeq((s) => s + 1);
+  }, []);
 
   return {
     machines,
@@ -748,6 +755,8 @@ export function useOeeDashboard(deps: OeeDashboardDeps): UseOeeDashboardReturn {
     teepEnabled,
     alarms,
     isLoading,
+    loadError,
+    retryLoad,
     isLogModalOpen,
     isHelpModalOpen,
     isMqttModalOpen,
