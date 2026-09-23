@@ -100,7 +100,7 @@ export const PasXProgressStrip: React.FC<PasXProgressStripProps> = ({ machine, u
       };
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [machine?.downtimeReasons, machine?.jobConfig?.shiftStart, machine?.jobConfig?.shiftEnd, windowMin]);
+  }, [machine?.downtimeReasons, machine?.jobConfig?.shiftStart, machine?.jobConfig?.shiftEnd, machine?.jobConfig?.breakTimeWindow, machine?.jobConfig?.plannedBreakMin, windowMin]);
 
   // Live clock — penanda real-time, refresh tiap detik
   const [now, setNow] = useState(() => new Date());
@@ -145,11 +145,14 @@ export const PasXProgressStrip: React.FC<PasXProgressStripProps> = ({ machine, u
   const usedPct = SHIFT_EVENTS.reduce((acc, evt) => acc + segPct(evt).widthPct, 0);
   const fillerPct = Math.max(0, 100 - usedPct);
 
-  // Auto-follow: bila tidak ada pilihan manual, ikuti segmen pada posisi kursor realtime
+  // Auto-follow: bila tidak ada pilihan manual, ikuti segmen pada posisi kursor realtime.
+  // Fallback ke segmen terdekat (pertama/terakhir) agar banner live tidak pernah
+  // menghilang saat kursor tepat di tepi window (mis. jam dinding di luar shift
+  // pada lane backend yang kursornya dijepit ke tepi).
   const cursorH = cursorRelMin / 60;
   const autoEvent = SHIFT_EVENTS.find(
     (evt) => cursorH >= evt.startHourFraction && cursorH < evt.startHourFraction + evt.durationFraction
-  ) ?? null;
+  ) ?? (cursorH >= windowH ? SHIFT_EVENTS[SHIFT_EVENTS.length - 1] : SHIFT_EVENTS[0]) ?? null;
   const displayEvent = selectedEvent ?? autoEvent;
   const isAutoFollow = selectedEvent === null && autoEvent !== null;
   const displayTheme = displayEvent ? getEventColorTheme(displayEvent.type) : null;
