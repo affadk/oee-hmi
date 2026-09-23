@@ -18,9 +18,20 @@ export class GetDowntimeReasonsUseCase {
       durationMinutes: event.endTime
         ? Math.max(1, Math.round((new Date(event.endTime).getTime() - new Date(event.startTime).getTime()) / 60000))
         : 1,
-      type: event.category === 'PLANNED_MAINTENANCE' || event.category === 'REST_BREAK' || event.category === 'CLEANING_5S'
+      // Changeover terjadwal (SETUP_AND_ADJUSTMENT) = PLANNED, sejajar
+      // REST_BREAK / PLANNED_MAINTENANCE / CLEANING_5S (kontrak ISO 22400 di
+      // LossAnalysisZone: planned mengurangi shift time). Sisanya UNPLANNED.
+      type: PLANNED_DOWNTIME_CATEGORIES.has(event.category ?? 'OTHER')
         ? 'PLANNED'
         : 'UNPLANNED',
     }));
   }
 }
+
+/** Kategori backend yang dihitung sebagai planned stop (bukan run-time loss). */
+const PLANNED_DOWNTIME_CATEGORIES: ReadonlySet<string> = new Set([
+  'PLANNED_MAINTENANCE',
+  'REST_BREAK',
+  'CLEANING_5S',
+  'SETUP_AND_ADJUSTMENT',
+]);

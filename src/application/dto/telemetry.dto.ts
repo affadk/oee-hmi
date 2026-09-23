@@ -181,16 +181,45 @@ export function mapHourlyTrendResultDto(raw: unknown): { data: HourlyTrendPoint[
 }
 
 export function mapDowntimeEventDto(raw: RawDowntime): DowntimeEvent {
+  const operatorReason = raw.operatorReason ?? raw.operator_reason ?? raw.reason ?? null;
   return {
     id: toFiniteNumber(raw.id),
     deviceId: raw.deviceId ?? raw.device_id ?? null,
     machineId: raw.machineId ?? raw.machine_id ?? null,
-    category: raw.category ?? null,
-    operatorReason: raw.operatorReason ?? raw.operator_reason ?? raw.reason ?? null,
+    // Backend GET /downtime-events tidak mengembalikan kolom `category` terpisah —
+    // kategori Six Big Losses hanya ada sebagai prefix "[CATEGORY] ..." di
+    // `operatorReason` (lihat services/downtime.ts: format "[CATEGORY] reason").
+    // Ekstrak di sini agar pemisah planned/unplanned + label changeover tetap jalan.
+    category: raw.category ?? parseCategoryFromReason(operatorReason),
+    operatorReason,
     startTime: raw.startTime ?? raw.start_time ?? new Date(0).toISOString(),
     endTime: raw.endTime ?? raw.end_time ?? null,
   };
 }
+
+/** "[SETUP_AND_ADJUSTMENT] Ganti roll ..." -> "SETUP_AND_ADJUSTMENT", else null. */
+export function parseCategoryFromReason(reason: string | null | undefined): DowntimeCategory | null {
+  if (!reason) return null;
+  const m = reason.match(/^\s*\[([A-Z0-9_]+)\]/);
+  if (!m) return null;
+  const cat = m[1];
+  return (KNOWN_DOWNTIME_CATEGORIES as readonly string[]).includes(cat)
+    ? (cat as DowntimeCategory)
+    : null;
+}
+
+const KNOWN_DOWNTIME_CATEGORIES = [
+  'EQUIPMENT_FAILURE',
+  'SETUP_AND_ADJUSTMENT',
+  'IDLING_AND_MINOR_STOPPAGE',
+  'REDUCED_SPEED',
+  'PROCESS_DEFECT',
+  'MATERIAL_SHORTAGE',
+  'PLANNED_MAINTENANCE',
+  'REST_BREAK',
+  'CLEANING_5S',
+  'OTHER',
+] as const;
 
 export function mapDowntimeResultDto(raw: unknown): { data: DowntimeEvent[]; meta: PageMeta } {
   const unwrapped = unwrapList<RawDowntime>(raw);

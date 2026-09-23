@@ -15,7 +15,7 @@ Dua page di `src/presentation/pages/DashboardPage.tsx`:
 
 | `viewMode` | Nama page | Karakter kebutuhan data |
 |---|---|---|
-| `FULLSCREEN_IMAGE` | **OEE Shift Overview** (`FullscreenOeeView.tsx`) | Read-heavy, live (<1–2 dtk), 1 mesin fokus + selector N mesin. Butuh: header shift (WO/produk/operator/jam/break), gauge OEE/AVA/PER/QUA, progress Actual vs Target, Production Rate, Time Summary, OEE Shift Trend, Shift Timeline (`PasXProgressStrip` — production window only, tanpa overlay downtime), status mesin + tombol lantai. |
+| `FULLSCREEN_IMAGE` | **OEE Shift Overview** (`FullscreenOeeView.tsx`) | Read-heavy, live (<1–2 dtk), 1 mesin fokus + selector N mesin. Butuh: header shift (WO/produk/operator/jam/break), gauge OEE/AVA/PER/QUA, progress Actual vs Target, Production Rate, Time Summary, OEE Shift Trend, Shift Timeline (`PasXProgressStrip` — kanvas shift window + overlay downtime Active/Changeover/Breakdown/Waiting dari data nyata), status mesin + tombol lantai. |
 | `DETAILED_AUDIT` | **Detailed Audit Dashboard** (`HeaderZone` + `HeroKpiZone` + `ProductionZone` + `MachineStatusZone` + `LossAnalysisZone` + `TrendZone` + `AlarmsZone`) | Audit-heavy, historis + filter waktu, pagination cursor, export bukti. Butuh: KPI A×P×Q, Six Big Losses waterfall, reject analysis, hourly trend, alarm/audit trail, footer rekonsiliasi. |
 
 **Keputusan akhir setelah 3 looping (detail di §1):**
@@ -71,7 +71,7 @@ Metode: verifikasi ulang terhadap `schema.ts`, `schemas/telemetry.ts`, `schemas/
 | Semua `GET` existing (§B,§C.1,§C.3,§I,§J,§K) | **REUSE tanpa perubahan** | Cukup untuk v1; sudah ada filter `from/to`, cursor, envelope, rate limit. |
 | `POST` command/WO/reason (§C,§D,§J.3) | **REUSE tanpa perubahan** | Tetap LAN-only + RBAC + audit fail-closed. Page audit hanya read; aksi label downtime tetap via endpoint existing. |
 | `GET /api/v1/oee/shift-summary` | **BARU (Fase 2, aditif)** | Satu panggilan ganti 4–5 panggilan (live-state + resolve + hourly/aggregate + downtime/active). Hitungan A/P/Q shift di server dari `oee_telemetry_logs` + `work_orders` sehingga konsisten antar TV Andon/HMI/remote. |
-| `GET /api/v1/oee/shift-timeline` | **BARU (Fase 2, aditif)** | Segmen state produksi per production window untuk `PasXProgressStrip` tanpa join di klien. Downtime tidak di-overlay; ditampilkan terpisah sebagai warning. |
+| `GET /api/v1/oee/shift-timeline` | **BARU (Fase 2, aditif)** | Segmen state + overlay downtime per shift window untuk `PasXProgressStrip`/`MachineTimelineStrip` tanpa join di klien. Changeover = label `SETUP_AND_ADJUSTMENT`, bukan FSM baru. |
 | `GET /api/v1/downtime-events/summary?group_by=category` | **DITUNDA (opsional Fase 3)** | v1 cukup agregasi klien dari `GET /downtime-events/:device` (maks 100/page, cursor). Endpoint ini hanya optimasi saat loss waterfall跨 shift besar. |
 | WS filter server-side `?device_id=&machine_id=` | **DITUNDA (opsional)** | v1 filter di klien (broadcast kecil, <120 koneksi/menit). Ditambahkan hanya jika traffic WS > ambang. |
 | WS event `DOWNTIME_*`, `SHIFT_*` baru | **DOKUMENTASIKAN sebagai advisory** | Server boleh menambah `type` baru kapan saja; klien wajib ignore-unknown (sudah begitu di `telemetryWsClient`). Tidak perlu versi WS. |
@@ -97,8 +97,8 @@ Urutan load awal (paralel, `AbortSignal` per page):
 5. GET /api/v1/telemetry/:device_id/hourly?from=:shiftStart&to=:now&limit=24
 6. GET /api/v1/downtime-events/active              → badge Active/Down + unclassified guard
 7. WS /ws/telemetry                                → live tick (lihat §6)
-8. GET /api/v1/oee/shift-timeline?machine_id=:m&from=:productionStart&to=:productionEnd&bucket=5m&include_events=true&envelope=true
-   └─ productionStart = WO dispatch_at atau first RUNNING dalam shift; productionEnd = MIN(shift_end, WO completed_at, now)
+8. GET /api/v1/oee/shift-timeline?machine_id=:m&from=:shiftStart&to=:now&bucket=5m&include_downtime=true&include_events=true&envelope=true
+   └─ Fase 2; selama belum ada, fallback klien: buildShiftTimeline dari aggregate + downtime + operational-events (§3.2)
 ```
 
 Polling: **jangan polling `hourly`/`aggregate` tiap detik.** Pola baku: WS untuk tick 1 dtk (gauge/rate/progress), REST `aggregate` refresh tiap 30–60 dtk, `hourly` tiap 5 menit, `live-state` hanya saat reconnect/fallback. `shift-timeline` refresh tiap 5–10 menit atau saat WS menerima `WORK_ORDER_*` lifecycle event.
@@ -173,9 +173,9 @@ Error: `400 VALIDATION_ERROR` (window >24 jam / format salah), `404 MACHINE_NOT_
 
 ### 3.2 `GET /api/v1/oee/shift-timeline`
 
-Segmen state produksi untuk `PasXProgressStrip`/`MachineTimelineStrip` tanpa downtime overlay. Sumber: `oee_telemetry_logs.current_state` (downsample) + `operational_events`.
+Segmen timeline per shift window untuk `PasXProgressStrip`/`MachineTimelineStrip`: kanvas = shift window, overlay = downtime (`downtime_events` + label `[CATEGORY]`) + batas WO (`operational_events`). Sumber: `oee_telemetry_logs.current_state` (downsample) + `downtime_events` + `operational_events`.
 
-**Prinsip: Timeline chart hanya mencerminkan rencana real produksi.** Window timeline = production window (first RUNNING → last RUNNING atau WO completion), BUKAN shift window penuh. Downtime (planned/unplanned) TIDAK memecah timeline; downtime ditampilkan terpisah sebagai warning di dashboard.
+**Prinsip: timeline mencerminkan shift window + overlay downtime.** Changeover (`SETUP_AND_ADJUSTMENT`) adalah label downtime (jalur amber), bukan FSM baru — firmware hanya mengirim `st 0..5`. Klien boleh fallback ke komposisi `aggregate + downtime + operational-events` bila endpoint ini belum ada (implementasi `buildShiftTimeline` saat ini memakai jalur fallback tersebut).
 
 ```http
 GET /api/v1/oee/shift-timeline?machine_id=CNC-MILLING-01&from=2026-09-21T22:00:00%2B07:00&to=2026-09-22T06:00:00%2B07:00&bucket=5m&include_events=true&envelope=true
@@ -187,19 +187,17 @@ Respons `200`:
 {
   "data": [
     { "from": "2026-09-21T22:00:00+07:00", "to": "2026-09-21T22:05:00+07:00", "state": "RUNNING", "oee": 81.2 },
-    { "from": "2026-09-21T22:05:00+07:00", "to": "2026-09-21T22:10:00+07:00", "state": "READY", "oee": null }
+    { "from": "2026-09-21T22:05:00+07:00", "to": "2026-09-21T22:20:00+07:00", "state": "DOWN", "downtime_id": 42, "category": "SETUP_AND_ADJUSTMENT", "reason": "Ganti roll film", "planned": true }
   ],
   "meta": { "limit": 288, "hasMore": false, "nextCursor": null, "count": 2 }
 }
 ```
 
-Query: `bucket` enum `1m|5m|15m` default `5m`; `include_events` boolean default `true`; `envelope` boolean. Batas: maks 288 segmen (24 jam / 5 mnt); lebih granular pakai `aggregate?bucket=1m`.
+Query: `bucket` enum `1m|5m|15m` default `5m`; `include_downtime`, `include_events` boolean default `true`; `envelope` boolean. Batas: maks 288 segmen (24 jam / 5 mnt); lebih granular pakai `aggregate?bucket=1m`.
 
-**Production window detection:** Jika `from`/`to` tidak diberikan, server hitung dari `work_orders.dispatch_at` (start) hingga `MIN(work_orders.completed_at, shift_end, now)` (end). Jika tidak ada WO ACTIVE, fallback ke shift window.
+**Production vs shift window:** OEE (`shift-summary`) dihitung per shift window; timeline memakai shift window yang sama sebagai kanvas dengan overlay downtime. Tidak ada kanvas "production window" terpisah.
 
-**State yang muncul di timeline:** `RUNNING`, `READY`, `BATCH_FINISHED`. State `PLANNED_DOWNTIME`/`UNPLANNED_DOWNTIME` TIDAK muncul — timeline tetap menampilkan state terakhir sebelum down.
-
-**Hubungan dengan downtime:** Saat mesin down (planned/unplanned), timeline chart tetap tanpa perubahan (menampilkan state terakhir). Dashboard menampilkan warning downtime melalui badge + panel terpisah (`GET /downtime-events/active` + `GET /downtime-events/:device_id`). Changeover (`SETUP_AND_ADJUSTMENT`) adalah bagian dari downtime dan TIDAK ditampilkan di timeline.
+**Kategori → timeline:** `SETUP_AND_ADJUSTMENT` (changeover) → jalur amber `Changeover`; `EQUIPMENT_FAILURE` dkk → `Breakdown` (merah); `MATERIAL_SHORTAGE`/waiting → `Waiting` (amber). Planned = `PLANNED_MAINTENANCE|REST_BREAK|CLEANING_5S|SETUP_AND_ADJUSTMENT`; sisanya unplanned. Backend tidak mengembalikan kolom `category` terpisah — klien mengekstrak prefix `[CATEGORY]` dari `operatorReason` (`mapDowntimeEventDto` + `parseCategoryFromReason`).
 
 ---
 
@@ -228,15 +226,17 @@ planned_break_min, planned_operating_sec dari WO resolve
 Jika shift_end <= shift_start → to = date+1 (lewat tengah malam)
 planned_sec   = planned_operating_sec
 run_sec       = Σ run_time (telemetry) ∩ window − overlap break (disederhanakan: kurangi planned_break_min)
-downtime_sec  = planned_sec − run_sec (dibatasi ≥0); split planned/unplanned dari downtime_events.category
-               (PLANNED_MAINTENANCE|REST_BREAK|CLEANING_5S → planned_dt, sisanya unplanned_dt)
+downtime_sec  = planned_sec − run_sec (dibatasi ≥0); split planned/unplanned dari kategori downtime
+               (PLANNED_MAINTENANCE|REST_BREAK|CLEANING_5S|SETUP_AND_ADJUSTMENT → planned_dt, sisanya unplanned_dt).
+               Kategori diekstrak dari prefix `[CATEGORY]` pada `downtime_events.operator_reason`
+               karena API tidak mengembalikan kolom `category` terpisah.
 availability  = run / planned × 100
 performance   = (actual × ideal_cycle) / run × 100  (ideal_cycle = std_cycle_time_sec produk)
 quality       = good / actual × 100
 oee           = a × p × q / 10_000
 ```
 
-Production window untuk timeline = first RUNNING until last RUNNING atau WO completion dalam shift. Shift window untuk OEE = shift_start sampai shift_end (termasuk planned downtime). Kedua window ini boleh berbeda; timeline hanya menampilkan production window.
+Production window untuk timeline = shift window yang sama dengan overlay downtime (Active/Changeover/Breakdown/Waiting). Changeover (`SETUP_AND_ADJUSTMENT`) tampil sebagai segmen amber di timeline sekaligus baris planned di Loss Analysis waterfall.
 
 Target default bila master tak ada: OEE 85, Ava 90, Per 95, Qua 98. Warna gauge: `≥target` emerald, `≥target−5` amber, else rose (kontrak `FullscreenOeeView` existing).
 
@@ -295,7 +295,7 @@ Aturan render:
 
 | Page | WS | REST pendamping |
 |---|---|---|
-| Shift Overview | WAJIB connect; update gauge/rate/progress tiap frame live; skip buffered | `aggregate` 30–60 dtk, `hourly` 5 mnt, `shift-timeline` 5–10 mnt, downtime/active 30 dtk (warning panel terpisah, timeline TIDAK di-overlay downtime) |
+| Shift Overview | WAJIB connect; update gauge/rate/progress tiap frame live; skip buffered | `aggregate` 30–60 dtk, `hourly` 5 mnt, `shift-timeline` 5–10 mnt (atau saat event `WORK_ORDER_*`/`DOWNTIME_REASON_LABELED`), `downtime/active` 30 dtk untuk badge |
 | Detailed Audit | OPSIONAL connect (badge live + tombol Refresh); default tampilkan snapshot REST agar stabil diaudit | Full pagination `hourly` + `downtime` + `operational-events`; `export` untuk bukti |
 
 ---
@@ -321,9 +321,9 @@ Urutan implementasi:
 - [ ] Reconnect WS ≤30 dtk dengan resync REST sekali; close `4429` di-backoff.
 - [ ] Remote `:8080` tetap read-only (aksi `403`); mutasi hanya LAN+JWT.
 - [ ] Tidak ada perubahan kontrak endpoint existing (uji regresi `endpoints.ts`).
-- [ ] Timeline hanya menampilkan production window (first RUNNING → last RUNNING), tidak termasuk planned downtime/unplanned downtime.
-- [ ] Saat mesin down, timeline chart tetap tanpa perubahan; dashboard menampilkan warning downtime terpisah.
-- [ ] Changeover (`SETUP_AND_ADJUSTMENT`) muncul di Loss Analysis waterfall, tidak di timeline chart.
+- [ ] Timeline menampilkan shift window + overlay downtime (Active/Changeover/Breakdown/Waiting) dari data nyata, bukan mock.
+- [ ] Saat mesin down, segmen downtime muncul di timeline + badge/panel; changeover (`SETUP_AND_ADJUSTMENT`) tampil sebagai segmen amber + baris PLANNED di Loss Analysis.
+- [ ] Kategori downtime terisi dari prefix `[CATEGORY]` (`parseCategoryFromReason`); tidak ada `category: null` untuk event yang sudah di-label.
 
 ---
 
