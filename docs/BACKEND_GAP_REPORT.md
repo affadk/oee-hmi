@@ -69,9 +69,41 @@
 - **Workaround kini:** disembunyikan; reject hanya via complete WO.
 
 ## G8 — Pemicu UI untuk RESET_COUNTER di lane backend (Prioritas: SEDANG)
-
 - **Kondisi:** `POST /devices/:id/command` mendukung `RESET_COUNTER` (SUPERVISOR/ADMIN, LAN), dan `BackendMachineRepository.resetCounters` sudah memanggilnya — tetapi satu-satunya pemicu UI (`FloorPushButtonsPanel`, `MqttEdgeInspectorModal`) disembunyikan di lane backend.
 - **Usulan (frontend, tanpa backend baru):** tambahkan aksi Reset (dengan guard konfirmasi + RBAC) di `MachineStatusZone`/`DeviceConfigModal` saat backend. Dicatat di sini agar tidak terlupakan.
+
+## G9 — Status mesin per bucket pada hourly trends (Prioritas: SEDANG)
+
+- **Kebutuhan UI:** `EChartsOeeTrend` menandai jam istirahat (arsir biru + tooltip `Istirahat`/`Running`) dan periode running pada grafik OEE Shift Trend.
+- **Kondisi kini:** item `GET /telemetry/:id/hourly` hanya membawa angka OEE (`oee/availability/performance/quality`, `totalCount/goodCount/rejectCount`) tanpa status per bucket. Frontend memetakan `status` dari snapshot `live-state` saat itu juga — sama untuk semua bucket — dan menandai running sebagai komplemen jendela istirahat (`breakTimeWindow`). Periode down per jam yang sebenarnya tidak bisa ditandai.
+- **Dampak:** arsir biru hanya menandai istirahat terjadwal; jam-jam breakdown/unplanned tetap terlihat "running" di grafik.
+- **Usulan:** tambah status dominan per bucket pada respons hourly (aditif, non-breaking):
+  ```json
+  { "bucket": "2026-09-22T02:00:00+07:00", "oee": 63.8, "state": "RUNNING", "planned": false }
+  { "bucket": "2026-09-22T02:00:00+07:00", "oee": 0.0, "state": "DOWN", "planned": false, "downtime_id": 42 }
+  ```
+  `state` = FSM dominan bucket (`RUNNING`/`DOWN`/…), `planned` = apakah bucket jatuh dalam planned stop (istirahat/maintenance terjadwal). Sumber: `oee_telemetry_logs.current_state` (downsample) + `downtime_events`.
+- **Workaround kini:** running = komplemen jendela istirahat; akurat untuk planned, buta untuk unplanned per jam.
+
+## G10 — Jendela istirahat terstruktur (Prioritas: SEDANG)
+
+- **Kebutuhan UI:** `buildShiftTimeline` (`injectPlannedBreak`) menyisipkan segmen biru `Planned (Istirahat)` pada posisi jam sebenarnya di shift timeline; `EChartsOeeTrend` mengarsir jendela yang sama via `markArea`.
+- **Kondisi kini:** backend hanya mengirim string bebas `break_window` (`"02:00 - 03:00"`) + `planned_break_min` via `work-orders/:id/resolve`. Frontend mem-parse string itu sisi klien (`parseBreakWindow`); bila string kosong/`—`/format lain, segmen/arsir istirahat tidak tampil (sengaja tidak difabrikasi posisinya).
+- **Usulan:** kembalikan jendela istirahat terstruktur, mis. pada `resolve`/`shift-summary`:
+  ```json
+  "break": { "start": "02:00", "end": "03:00", "minutes": 60 }
+  ```
+  plus `window: { from, to, tz }` yang sudah dispec di `OEE_SHIFT_OVERVIEW_AND_AUDIT_API_SPEC.md §3.1`. Frontend tetap fallback ke parse string selama field ini belum ada.
+- **Workaround kini:** parse string klien; tanpa window valid, istirahat disembunyikan (bukan ditebak).
+
+## G11 — Seri per-jam terlingkup shift (Prioritas: RENDAH)
+
+- **Kebutuhan UI:** `EChartsOeeTrend` menampilkan grafik penuh mengikuti window shift (Mulai–Selesai), terurut menaik, tanpa sisa label lama saat data realtime bergerak.
+- **Kondisi kini:** `GET /telemetry/:id/hourly` mendukung `from`/`to`/`limit`, tetapi frontend memanggil tanpa `from`/`to` (72 bucket terakhir) lalu mengurut + memfilter ke window shift sisi klien (`visibleTrends`, `setOption notMerge`). Berfungsi, tetapi memindahkan 72 bucket lintas hari setiap refresh 5 menit dan logika window terduplikasi di klien.
+- **Usulan (salah satu):**
+  1. Frontend teruskan window shift ke query existing (`hourly?from=:shiftStart&to=:now&limit=24`, pola §2.1 spec) — tanpa perubahan backend; atau
+  2. `shift-summary` Fase 2 menyertakan `hourly[]` yang sudah terlingkup + terurut per shift (konsisten dengan `window` respons yang sama), sehingga grafik OEE cukup satu panggilan.
+- **Workaround kini:** filter + sort klien; sudah benar, hanya boros dan duplikatif.
 
 ---
 
@@ -83,6 +115,9 @@
 | G2 | `target_per_hour` di shift-summary/resolve | SEDANG | Diturunkan klien dari WO |
 | G3 | `GET /devices/:id/health` (cache) | SEDANG | Badge disembunyikan |
 | G8 | Pemicu RESET_COUNTER di UI backend | SEDANG | Aksi tersedia di API, tanpa tombol |
+| G9 | `state`+`planned` per bucket hourly | SEDANG | Running = komplemen istirahat |
+| G10 | `break{start,end,minutes}` terstruktur | SEDANG | Parse string `break_window` |
+| G11 | Seri per-jam terlingkup shift | RENDAH | Filter + sort klien |
 | G4 | `PATCH /operational-events/:id/ack` | RENDAH | Ack lokal |
 | G5 | `GET /operational-events` global | RENDAH | Fan-out per device |
 | G6 | Dokumentasikan himpunan FSM | RENDAH | Dinormalkan klien |
