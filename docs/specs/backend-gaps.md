@@ -120,11 +120,10 @@ Audit 24 Sep 2026 — diverifikasi melawan pemanggil aktual di `src/` (bukan kla
 | # | Endpoint (ada) | Kondisi kini | Tindakan frontend |
 |---|---|---|---|
 | B1 | `GET /work-orders/:id` | Adapter + `ListWorkOrdersUseCase.detail()` ada, **0 pemanggil UI** | Putuskan: pakai (mis. detail di ProductionSetupModal) atau hapus |
-| B2 | `GET /telemetry/:id` (raw history) | ✅ Selesai 24 Sep 2026 — fallback overlay live bila aggregate gagal (`useLiveTrend` + `GetTelemetryHistoryUseCase`) |
-| B3 | `GET /downtime-events/active` | ✅ Selesai 24 Sep 2026 — badge "N aktif" di `AlarmsZone` via `GetActiveDowntimesUseCase` (gagal → badge disembunyikan, boot error tetap via `loadError`) |
-| B4 | `GET /products`, `GET /operators` | 🔶 Sebagian — QR backend mencocokkan WO via pending list (tanpa master); katalog statis tetap untuk lane simulasi. Opsi lanjut: ganti katalog QR simulasi dengan master backend |
-| B5 | `GET /telemetry/:id/aggregate` | ✅ Selesai 24 Sep 2026 — overlay "Live 5m" di `EChartsOeeTrend` via `GetTelemetryAggregateUseCase` + `useLiveTrend` (windowed shift, limit 96) |
-| B6 | `GET /telemetry/:id/export` | Tidak ada tombol export di UI (DoD §8 menuntut csv\|ndjson) | Tambah tombol Export audit atau coret dari DoD |
+| B2 | `GET /telemetry/:id` (raw history) | `getHistory` 0 pemanggil langsung | ✅ Selesai 24 Sep 2026 — fallback overlay live bila aggregate gagal (`useLiveTrend` + `GetTelemetryHistoryUseCase`) |
+| B3 | `GET /downtime-events/active` | `getActiveDowntimes` 0 pemanggil | ✅ Selesai 24 Sep 2026 — badge "N aktif" di `AlarmsZone` via `GetActiveDowntimesUseCase` (gagal → disembunyikan) |
+| B4 | `GET /products`, `GET /operators` | Registry hanya devices+machines; QR pakai katalog statis | 🔶 Sebagian — QR backend cocokkan WO via pending list (tanpa master); opsi lanjut: ganti katalog QR simulasi |
+| B5 | `GET /telemetry/:id/aggregate` | Spec §2; frontend hanya hourly + WS | ✅ Selesai 24 Sep 2026 — overlay "Live 5m" di `EChartsOeeTrend` (`GetTelemetryAggregateUseCase`, windowed, limit 96) |
 | B6 | `GET /telemetry/:id/export` | Tidak ada tombol export di UI (DoD §8 menuntut csv\|ndjson) | Tambah tombol Export audit atau coret dari DoD |
 | B7 | `GET /health` | Tidak pernah dipanggil; footer rekonsiliasi (§2.2) belum ada | Sambungkan (ws_clients, buffer_pending) atau coret |
 
