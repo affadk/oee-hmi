@@ -1,7 +1,7 @@
 // /src/application/use-cases/ManageAlarmsUseCase.ts
 
 import { IAlarmRepository } from '../../domain/ports/IAlarmRepository';
-import { MachineAlarmEvent, AlarmStatus } from '../../domain/entities/Alarm';
+import { MachineAlarmEvent } from '../../domain/entities/Alarm';
 
 export class ManageAlarmsUseCase {
   constructor(private readonly alarmRepo: IAlarmRepository) {}

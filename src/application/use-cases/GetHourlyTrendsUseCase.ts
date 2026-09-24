@@ -1,29 +1,8 @@
 // /src/application/use-cases/GetHourlyTrendsUseCase.ts
 // Fetches hourly OEE trend data for a specific device.
 
-import type { ITelemetryRepository } from '../../domain/ports/IOeeBackend';
+import type { ITelemetryRepository, HourlyTrendPoint } from '../../domain/ports/IOeeBackend';
 import type { HourlyDataPoint } from '../../domain/entities/Machine';
-import type { HourlyTrendPoint, PageMeta } from '../../domain/ports/IOeeBackend';
-import type { LiveMachineState } from '../../domain/entities/backend/LiveState';
-
-function mapLiveStateToMachineStatus(state: LiveMachineState): 'RUNNING' | 'IDLE' | 'DOWN' | 'SETUP' | 'PLANNED_STOP' {
-  switch (state) {
-    case 'RUNNING':
-      return 'RUNNING';
-    case 'READY':
-    case 'UNCONFIGURED':
-    case 'BATCH_FINISHED':
-      return 'IDLE';
-    case 'PLANNED_STOP':
-    case 'PLANNED_DT':
-      return 'PLANNED_STOP';
-    case 'UNPLANNED_DT':
-    case 'SETUP':
-      return 'SETUP';
-    default:
-      return 'IDLE';
-  }
-}
 
 export class GetHourlyTrendsUseCase {
   constructor(private readonly telemetryRepo: ITelemetryRepository) {}

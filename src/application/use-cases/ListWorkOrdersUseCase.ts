@@ -1,7 +1,7 @@
 // /src/application/use-cases/ListWorkOrdersUseCase.ts
 
 import type { IWorkOrderRepository } from '../../domain/ports/IOeeBackend';
-import type { WorkOrderListItem, WorkOrderQuery, WorkOrderResolveResult, WorkOrderStatus } from '../../domain/entities/backend/WorkOrder';
+import type { WorkOrderListItem, WorkOrderQuery, WorkOrderResolveResult } from '../../domain/entities/backend/WorkOrder';
 
 export class ListWorkOrdersUseCase {
   constructor(private readonly workOrders: IWorkOrderRepository) {}
@@ -27,7 +27,8 @@ export class ListWorkOrdersUseCase {
   }
 
   complete(woId: string, finalRejectCount: number, notes?: string): Promise<void> {
-    if (finalRejectCount < 0) throw new Error('finalRejectCount must be >= 0.');
+    if (!woId) throw new Error('woId is required.');
+    if (!Number.isFinite(finalRejectCount) || finalRejectCount < 0) throw new Error('finalRejectCount must be a finite number >= 0.');
     return this.workOrders.complete(woId, finalRejectCount, notes);
   }
 

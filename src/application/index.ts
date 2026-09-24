@@ -12,9 +12,7 @@ export * from './use-cases/ManageAlarmsUseCase';
 export * from './use-cases/MqttEdgeCommandUseCase';
 
 // Use Cases (backend lane — REST + WS)
-export * from './use-cases/GetLiveStateUseCase';
 export * from './use-cases/ListWorkOrdersUseCase';
-export * from './use-cases/SendDeviceCommandUseCase';
 export * from './use-cases/SubscribeTelemetryUseCase';
 export * from './use-cases/ListLabelableDowntimesUseCase';
 export * from './use-cases/LabelDowntimeReasonUseCase';
@@ -29,4 +27,12 @@ export * from './dto/telemetry.dto';
 // NOTE: hooks must receive collaborators via arguments or via presentation
 // providers — they must NOT import infrastructure/di or seed data directly.
 export * from './hooks/useOeeDashboard';
-export * from './hooks/useTheme';
+export * from './hooks/useAuthSession';
+export * from './hooks/useMachinesQuery';
+export * from './hooks/useSupplementalSync';
+export * from './hooks/useTelemetrySubscription';
+export * from './hooks/useSimulationTicker';
+export * from './hooks/useMachineActions';
+export * from './hooks/useDeviceRegistry';
+export * from './hooks/useWorkOrders';
+export * from './hooks/useDashboardUi';

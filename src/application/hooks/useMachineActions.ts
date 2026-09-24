@@ -1,0 +1,214 @@
+// /src/application/hooks/useMachineActions.ts
+// Focused hook: machine mutations (status, downtime, reject, alarms, MQTT
+// edge commands + job config). Thin use-case composition over repository ports.
+// LAYER RULES: domain ports + React only — no infrastructure/*, no seeds, no DOM.
+
+import { useCallback } from 'react';
+import type { MachineConfig, MachineStatus, DowntimeReasonItem } from '../../domain/entities/Machine';
+import type { MachineAlarmEvent } from '../../domain/entities/Alarm';
+import type { DowntimeCategory, DowntimeEvent } from '../../domain/entities/backend/Telemetry';
+import { isPlannedDowntimeCategory } from '../../domain/entities/backend/Telemetry';
+import type { UpdateMachineStatusUseCase } from '../use-cases/UpdateMachineStatusUseCase';
+import type { LogDowntimeUseCase } from '../use-cases/LogDowntimeUseCase';
+import type { LogRejectUseCase } from '../use-cases/LogRejectUseCase';
+import type { ManageAlarmsUseCase } from '../use-cases/ManageAlarmsUseCase';
+import type { MqttEdgeCommandUseCase } from '../use-cases/MqttEdgeCommandUseCase';
+import { buildJobConfigPayload, deriveActualRate } from '../use-cases/MqttEdgeCommandUseCase';
+import type { LabelDowntimeReasonUseCase } from '../use-cases/LabelDowntimeReasonUseCase';
+
+export type BackendDowntimeLabelInput = Omit<DowntimeReasonItem, 'id' | 'equivalentLossPcs'> & {
+  backendEventId?: number;
+  notes?: string;
+};
+
+export interface MachineActionsDeps {
+  useBackend: boolean;
+  currentMachineId: string;
+  currentMachine: MachineConfig | null;
+  updateMachineStatusUseCase: UpdateMachineStatusUseCase;
+  logDowntimeUseCase: LogDowntimeUseCase;
+  logRejectUseCase: LogRejectUseCase;
+  manageAlarmsUseCase: ManageAlarmsUseCase;
+  mqttEdgeCommandUseCase: MqttEdgeCommandUseCase;
+  labelDowntimeReasonUseCase: LabelDowntimeReasonUseCase;
+  runProtected: (action: () => Promise<void>) => Promise<void>;
+  setMachines: React.Dispatch<React.SetStateAction<MachineConfig[]>>;
+  setAlarms: React.Dispatch<React.SetStateAction<MachineAlarmEvent[]>>;
+  setLabelableDowntimes: React.Dispatch<React.SetStateAction<DowntimeEvent[]>>;
+  closeMqttModal: () => void;
+}
+
+export interface MachineActionsApi {
+  updateMachineStatus: (status: MachineStatus) => Promise<void>;
+  logDowntime: (event: BackendDowntimeLabelInput) => Promise<void>;
+  logReject: (reasonLabel: string, count: number) => Promise<void>;
+  acknowledgeAlarm: (alarmId: string) => Promise<void>;
+  resolveAlarm: (alarmId: string) => Promise<void>;
+  dispatchMqttCommand: (command: 'RESET_COUNTER' | 'PAUSE' | 'RESUME') => Promise<void>;
+  dispatchMqttJobConfig: (
+    wo: string,
+    product: string,
+    operator: string,
+    target: number,
+    cycleTimeSec?: number,
+    shiftOverride?: { shiftStart: string; shiftEnd: string; breakWindow: string; breakMin: number }
+  ) => Promise<void>;
+}
+
+export function useMachineActions(deps: MachineActionsDeps): MachineActionsApi {
+  const {
+    useBackend,
+    currentMachineId,
+    currentMachine,
+    updateMachineStatusUseCase,
+    logDowntimeUseCase,
+    logRejectUseCase,
+    manageAlarmsUseCase,
+    mqttEdgeCommandUseCase,
+    labelDowntimeReasonUseCase,
+    runProtected,
+    setMachines,
+    setAlarms,
+    setLabelableDowntimes,
+    closeMqttModal,
+  } = deps;
+
+  const updateMachineStatus = useCallback(async (newStatus: MachineStatus) => {
+    await runProtected(async () => {
+      const { updatedMachine, createdAlarm } = await updateMachineStatusUseCase.execute(
+        currentMachineId,
+        newStatus
+      );
+      setMachines((prev) => prev.map((m) => (m.id === currentMachineId ? updatedMachine : m)));
+      if (createdAlarm) {
+        setAlarms((prev) => [createdAlarm, ...prev]);
+      }
+    });
+  }, [runProtected, updateMachineStatusUseCase, currentMachineId, setMachines, setAlarms]);
+
+  const logDowntime = useCallback(async (event: BackendDowntimeLabelInput) => {
+    if (useBackend) {
+      if (typeof event.backendEventId !== 'number') return;
+      await runProtected(async () => {
+        await labelDowntimeReasonUseCase.execute(
+          event.backendEventId as number,
+          event.category as DowntimeCategory,
+          event.label,
+          event.notes,
+        );
+        setLabelableDowntimes((prev) => prev.filter((item) => item.id !== event.backendEventId));
+        setMachines((prev) =>
+          prev.map((m) =>
+            m.id === currentMachineId
+              ? {
+                  ...m,
+                  downtimeReasons: [
+                    ...(m.downtimeReasons ?? []),
+                    {
+                      id: `dt-${event.backendEventId}`,
+                      label: event.label,
+                      category: String(event.category),
+                      durationMinutes: event.durationMinutes,
+                      type: isPlannedDowntimeCategory(event.category) ? 'PLANNED' : 'UNPLANNED',
+                    },
+                  ],
+                }
+              : m
+          )
+        );
+      });
+      return;
+    }
+
+    const { updatedMachine, createdAlarm } = await logDowntimeUseCase.execute(
+      currentMachineId,
+      event
+    );
+    setMachines((prev) => prev.map((m) => (m.id === currentMachineId ? updatedMachine : m)));
+    setAlarms((prev) => [createdAlarm, ...prev]);
+  }, [currentMachineId, labelDowntimeReasonUseCase, logDowntimeUseCase, runProtected, setLabelableDowntimes, setAlarms, setMachines, useBackend]);
+
+  const logReject = useCallback(async (reasonLabel: string, count: number) => {
+    if (useBackend) return;
+    const updatedMachine = await logRejectUseCase.execute(
+      currentMachineId,
+      reasonLabel,
+      count
+    );
+    setMachines((prev) => prev.map((m) => (m.id === currentMachineId ? updatedMachine : m)));
+  }, [logRejectUseCase, currentMachineId, useBackend, setMachines]);
+
+  const acknowledgeAlarm = useCallback(async (alarmId: string) => {
+    await runProtected(async () => {
+      const updated = await manageAlarmsUseCase.acknowledgeAlarm(alarmId);
+      setAlarms((prev) => prev.map((a) => (a.id === alarmId ? updated : a)));
+    });
+  }, [runProtected, manageAlarmsUseCase, setAlarms]);
+
+  const resolveAlarm = useCallback(async (alarmId: string) => {
+    await runProtected(async () => {
+      const updated = await manageAlarmsUseCase.resolveAlarm(alarmId);
+      setAlarms((prev) => prev.map((a) => (a.id === alarmId ? updated : a)));
+    });
+  }, [runProtected, manageAlarmsUseCase, setAlarms]);
+
+  const dispatchMqttCommand = useCallback(async (command: 'RESET_COUNTER' | 'PAUSE' | 'RESUME') => {
+    await runProtected(async () => {
+      const { updatedMachine } = await mqttEdgeCommandUseCase.dispatchCommand(
+        currentMachineId,
+        command
+      );
+      if (updatedMachine) {
+        setMachines((prev) => prev.map((m) => (m.id === updatedMachine.id ? updatedMachine : m)));
+      }
+    });
+  }, [runProtected, mqttEdgeCommandUseCase, currentMachineId, setMachines]);
+
+  const dispatchMqttJobConfig = useCallback(async (
+    wo: string,
+    product: string,
+    operator: string,
+    target: number,
+    cycleTimeSec?: number,
+    shiftOverride?: { shiftStart: string; shiftEnd: string; breakWindow: string; breakMin: number }
+  ) => {
+    if (!currentMachine) return;
+    const stdCycleSec = cycleTimeSec ?? currentMachine.idealCycleTimeSec ?? currentMachine.jobConfig?.standardCycleTimeSec ?? 9.0;
+    const payload = buildJobConfigPayload({
+      workOrder: wo,
+      productName: product,
+      operatorDisplay: operator,
+      targetQty: target,
+      stdCycleTimeSec: stdCycleSec,
+      shiftOverride,
+      fallbackShiftStart: currentMachine.jobConfig?.shiftStart,
+      fallbackShiftEnd: currentMachine.jobConfig?.shiftEnd,
+      fallbackPlannedBreakMin: currentMachine.plannedDowntimeMinutes,
+      fallbackPlannedOperatingSec: (currentMachine.shiftDurationMinutes - currentMachine.plannedDowntimeMinutes) * 60,
+    });
+
+    await runProtected(async () => {
+      const { updatedMachine } = await mqttEdgeCommandUseCase.setJobConfig(currentMachineId, payload);
+
+      const syncedMachine: MachineConfig = {
+        ...updatedMachine,
+        idealCycleTimeSec: stdCycleSec,
+        actualHourlyRate: deriveActualRate(stdCycleSec),
+        jobConfig: { ...updatedMachine.jobConfig, standardCycleTimeSec: stdCycleSec },
+      };
+
+      setMachines((prev) => prev.map((m) => (m.id === currentMachineId ? syncedMachine : m)));
+      closeMqttModal();
+    });
+  }, [runProtected, mqttEdgeCommandUseCase, currentMachineId, currentMachine, setMachines, closeMqttModal]);
+
+  return {
+    updateMachineStatus,
+    logDowntime,
+    logReject,
+    acknowledgeAlarm,
+    resolveAlarm,
+    dispatchMqttCommand,
+    dispatchMqttJobConfig,
+  };
+}

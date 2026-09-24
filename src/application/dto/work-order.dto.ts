@@ -2,6 +2,7 @@
 // Boundary DTO: raw REST JSON → domain WorkOrderListItem.
 
 import type { WorkOrderListItem, WorkOrderResolveResult, WorkOrderStatus } from '../../domain/entities/backend/WorkOrder';
+import { toFiniteNumber } from '../../domain/entities/backend/LiveState';
 
 interface RawWorkOrder {
   wo_id?: string; woId?: string;
@@ -70,11 +71,6 @@ export function mapWorkOrderListDto(raw: unknown): WorkOrderListItem[] {
     return ((raw as { data: RawWorkOrder[] }).data).map(mapWorkOrderDto);
   }
   return [];
-}
-
-function toFiniteNumber(value: unknown, fallback = 0): number {
-  const n = typeof value === 'string' ? Number(value) : (value as number);
-  return Number.isFinite(n) ? n : fallback;
 }
 
 export function mapWorkOrderResolveDto(raw: RawWorkOrderResolve): WorkOrderResolveResult {

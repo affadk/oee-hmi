@@ -12,7 +12,7 @@ export class GetDowntimeReasonsUseCase {
 
   async execute(deviceId: string): Promise<DowntimeReasonItem[]> {
     const result = await this.telemetryRepo.getDowntimes(deviceId, undefined, undefined, 100, undefined, false);
-    return result.data.map((event: DowntimeEvent, index: number) => ({
+    return result.data.map((event: DowntimeEvent) => ({
       id: `dt-${event.id}`,
       label: event.operatorReason ?? event.category ?? 'Unknown',
       category: event.category ?? 'OTHER',

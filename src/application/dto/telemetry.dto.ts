@@ -9,7 +9,9 @@ import type {
   WsLifecycleEvent,
   WsTelemetryFrame,
 } from '../../domain/entities/backend/Telemetry';
+import { ALL_DOWNTIME_CATEGORIES } from '../../domain/entities/backend/Telemetry';
 import type { HourlyTrendPoint, PageMeta } from '../../domain/ports/IOeeBackend';
+import { toFiniteNumber } from '../../domain/entities/backend/LiveState';
 
 interface RawFrame {
   timestamp?: number; ts?: number;
@@ -82,11 +84,6 @@ interface RawLifecycleEvent {
   data?: { wo_id?: string; woId?: string; status?: string };
 }
 
-function toFiniteNumber(value: unknown, fallback = 0): number {
-  const n = typeof value === 'string' ? Number(value) : (value as number);
-  return Number.isFinite(n) ? n : fallback;
-}
-
 function unwrapList<T>(raw: unknown): { data: T[]; meta: PageMeta } {
   if (raw && typeof raw === 'object' && 'data' in raw) {
     const envelope = raw as { data?: unknown; meta?: Partial<PageMeta> };
@@ -109,35 +106,37 @@ export function mapTelemetryFrameDto(raw: RawFrame): WsTelemetryFrame {
   const oee = raw.oee ?? {};
   const plc = raw.plc_modbus ?? {};
   const hw = raw.hw_diag ?? {};
+  const total = toFiniteNumber(counters.total ?? counters.tot ?? raw.tot);
+  const reject = toFiniteNumber(counters.reject ?? counters.rej ?? raw.rej);
   return {
-    timestamp: raw.timestamp ?? raw.ts ?? Math.floor(Date.now() / 1000),
+    timestamp: toFiniteNumber(raw.timestamp ?? raw.ts, Math.floor(Date.now() / 1000)),
     deviceId: raw.device_id ?? raw.deviceId ?? '',
     machineId: raw.machine_id ?? raw.machineId ?? '',
     woId: raw.wo_id ?? raw.woId ?? null,
     fsmState: raw.fsm_state ?? raw.currentState ?? 'UNKNOWN',
     counters: {
-      total: counters.total ?? counters.tot ?? raw.tot ?? 0,
-      good: counters.good ?? 0,
-      reject: counters.reject ?? counters.rej ?? raw.rej ?? 0,
-      lastCycleSec: counters.last_cycle_sec ?? counters.lastCycleSec ?? (raw.cyc != null ? raw.cyc / 100 : 0),
+      total,
+      good: toFiniteNumber(counters.good, Math.max(0, total - reject)),
+      reject,
+      lastCycleSec: toFiniteNumber(counters.last_cycle_sec ?? counters.lastCycleSec ?? (raw.cyc != null ? raw.cyc / 100 : 0)),
     },
     timeMetricsSec: {
-      operatingTime: timeMetrics.operating_time ?? timeMetrics.operatingTime ?? 0,
-      runTime: timeMetrics.run_time ?? timeMetrics.runTime ?? raw.run ?? 0,
-      downtime: timeMetrics.downtime ?? raw.dt ?? 0,
+      operatingTime: toFiniteNumber(timeMetrics.operating_time ?? timeMetrics.operatingTime),
+      runTime: toFiniteNumber(timeMetrics.run_time ?? timeMetrics.runTime ?? raw.run),
+      downtime: toFiniteNumber(timeMetrics.downtime ?? raw.dt),
     },
     oee: {
-      availability: oee.availability ?? (raw.a != null ? raw.a / 100 : 0),
-      performance: oee.performance ?? (raw.p != null ? raw.p / 100 : 0),
-      quality: oee.quality ?? (raw.q != null ? raw.q / 100 : 0),
-      totalOee: oee.total_oee ?? oee.totalOee ?? raw.oee_x100 ?? 0,
+      availability: toFiniteNumber(oee.availability ?? (raw.a != null ? raw.a / 100 : 0)),
+      performance: toFiniteNumber(oee.performance ?? (raw.p != null ? raw.p / 100 : 0)),
+      quality: toFiniteNumber(oee.quality ?? (raw.q != null ? raw.q / 100 : 0)),
+      totalOee: toFiniteNumber(oee.total_oee ?? oee.totalOee ?? (raw.oee_x100 != null ? raw.oee_x100 / 100 : 0)),
     },
     plcModbus: {
-      spindleRpm: plc.spindle_rpm ?? plc.spindleRpm ?? raw.rpm ?? 0,
-      tempC: plc.temp_c ?? plc.tempC ?? (raw.tmp != null ? raw.tmp / 10 : 0),
-      alarmCode: plc.alarm_code ?? plc.alarmCode ?? raw.alm ?? 0,
+      spindleRpm: toFiniteNumber(plc.spindle_rpm ?? plc.spindleRpm ?? raw.rpm),
+      tempC: toFiniteNumber(plc.temp_c ?? plc.tempC ?? (raw.tmp != null ? raw.tmp / 10 : 0)),
+      alarmCode: toFiniteNumber(plc.alarm_code ?? plc.alarmCode ?? raw.alm),
     },
-    hwDiag: { uptimeSec: hw.uptime_sec ?? hw.uptimeSec ?? 0, freeHeap: hw.free_heap ?? hw.freeHeap ?? 0 },
+    hwDiag: { uptimeSec: toFiniteNumber(hw.uptime_sec ?? hw.uptimeSec), freeHeap: toFiniteNumber(hw.free_heap ?? hw.freeHeap) },
     isBuffered: raw.is_buffered ?? raw.isBuffered ?? false,
   };
 }
@@ -202,24 +201,11 @@ export function parseCategoryFromReason(reason: string | null | undefined): Down
   if (!reason) return null;
   const m = reason.match(/^\s*\[([A-Z0-9_]+)\]/);
   if (!m) return null;
-  const cat = m[1];
-  return (KNOWN_DOWNTIME_CATEGORIES as readonly string[]).includes(cat)
+  const cat = m[1] ?? '';
+  return (ALL_DOWNTIME_CATEGORIES as readonly string[]).includes(cat)
     ? (cat as DowntimeCategory)
     : null;
 }
-
-const KNOWN_DOWNTIME_CATEGORIES = [
-  'EQUIPMENT_FAILURE',
-  'SETUP_AND_ADJUSTMENT',
-  'IDLING_AND_MINOR_STOPPAGE',
-  'REDUCED_SPEED',
-  'PROCESS_DEFECT',
-  'MATERIAL_SHORTAGE',
-  'PLANNED_MAINTENANCE',
-  'REST_BREAK',
-  'CLEANING_5S',
-  'OTHER',
-] as const;
 
 export function mapDowntimeResultDto(raw: unknown): { data: DowntimeEvent[]; meta: PageMeta } {
   const unwrapped = unwrapList<RawDowntime>(raw);
