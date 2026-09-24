@@ -26,8 +26,13 @@ export class InMemoryAlarmRepository implements IAlarmRepository {
       throw new Error(`Alarm with id ${alarmId} not found.`);
     }
 
-    const updated = {
-      ...this.alarms[index],
+    const current = this.alarms[index];
+    if (!current) {
+      throw new Error(`Alarm with id ${alarmId} not found.`);
+    }
+
+    const updated: MachineAlarmEvent = {
+      ...current,
       status,
     };
     this.alarms[index] = updated;

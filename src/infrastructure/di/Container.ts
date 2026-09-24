@@ -7,6 +7,7 @@ import { IMachineRepository } from '../../domain/ports/IMachineRepository';
 import { IAlarmRepository } from '../../domain/ports/IAlarmRepository';
 import { IMqttGateway } from '../../domain/ports/IMqttGateway';
 import { IThemeStoragePort } from '../../domain/ports/IThemeStorage';
+import type { IAuthTokenStorage } from '../../domain/ports/IAuthTokenStorage';
 import type {
   IAuthGateway,
   IDeviceCommandGateway,
@@ -24,6 +25,7 @@ import { NoOpMqttGateway } from '../adapters/NoOpMqttGateway';
 import { BackendMachineRepository } from '../adapters/BackendMachineRepository';
 import { BackendAlarmRepository } from '../adapters/BackendAlarmRepository';
 import { LocalStorageThemeAdapter } from '../storage/LocalStorageThemeAdapter';
+import { AuthTokenStorageAdapter } from '../storage/AuthTokenStorageAdapter';
 import {
   OeeHttpAuthGateway,
   OeeHttpDeviceCommandGateway,
@@ -60,6 +62,7 @@ export interface AppContainer {
   alarmRepository: IAlarmRepository;
   mqttGateway: IMqttGateway;
   themeStorage: IThemeStoragePort;
+  authTokenStorage: IAuthTokenStorage;
 
   // Ports / Backend lane (real IIoT OEE REST + WS, see API_DOCUMENTATION.md)
   liveStateRepository: ILiveStateRepository;
@@ -96,8 +99,9 @@ export interface AppContainer {
  * infrastructure adapters and injects them into application use cases.
  *
  * Data source is controlled by VITE_USE_BACKEND:
- * - false (default): simulation lane with InMemory repositories + MqttEdgeSimulatorAdapter
- * - true: backend lane with HTTP repositories + TelemetryWsClient
+ * - 'true': backend lane with HTTP repositories + TelemetryWsClient
+ *   (.env.example ships 'true'; no env file at all falls back to 'false')
+ * - otherwise: simulation lane with InMemory repositories + MqttEdgeSimulatorAdapter
  */
 export function createContainer(): AppContainer {
   const useBackend = env.useBackend;
@@ -108,7 +112,8 @@ export function createContainer(): AppContainer {
   const deviceCommandGateway = new OeeHttpDeviceCommandGateway();
   const masterDataRepository = new OeeHttpMasterDataRepository();
   const telemetryRepository = new OeeHttpTelemetryRepository();
-  const authGateway = new OeeHttpAuthGateway();
+  const authTokenStorage = new AuthTokenStorageAdapter();
+  const authGateway = new OeeHttpAuthGateway(authTokenStorage);
   const realtimeGateway = new TelemetryWsClient();
 
   const machineRepository = useBackend
@@ -154,6 +159,7 @@ export function createContainer(): AppContainer {
     alarmRepository,
     mqttGateway,
     themeStorage,
+    authTokenStorage,
     liveStateRepository,
     workOrderRepository,
     deviceCommandGateway,

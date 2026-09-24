@@ -19,7 +19,7 @@ export class MqttEdgeSimulatorAdapter implements IMqttGateway {
     };
   }
 
-  public async getEdgeHealth(machineId: string): Promise<MqttHealthPayload> {
+  public async getEdgeHealth(_machineId: string): Promise<MqttHealthPayload> {
     return {
       timestamp: Date.now(),
       heap_free: 184320,
@@ -31,7 +31,7 @@ export class MqttEdgeSimulatorAdapter implements IMqttGateway {
     };
   }
 
-  public async getLatestTelemetry(machineId: string): Promise<MqttTelemetryPayload | null> {
+  public async getLatestTelemetry(_machineId: string): Promise<MqttTelemetryPayload | null> {
     return {
       ts: Math.floor(Date.now() / 1000),
       st: 2, // RUNNING

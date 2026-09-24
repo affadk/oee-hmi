@@ -16,6 +16,8 @@ import type {
 import type { LiveStateSnapshot } from '../../domain/entities/backend/LiveState';
 import type { DeviceCommandInput, DeviceRecord, MachineRecord, OperatorRecord, ProductRecord } from '../../domain/entities/backend/Device';
 import type { DeviceMetadataPatch, MachineMetadataPatch } from '../../domain/ports/IOeeBackend';
+import type { IAuthTokenStorage } from '../../domain/ports/IAuthTokenStorage';
+import { AuthTokenStorageAdapter } from '../storage/AuthTokenStorageAdapter';
 import type { DowntimeCategory, DowntimeEvent, OperationalEvent, TelemetryHistoryPoint } from '../../domain/entities/backend/Telemetry';
 import type { HourlyTrendPoint, PageMeta } from '../../domain/ports/IOeeBackend';
 import type { WorkOrderListItem, WorkOrderQuery, WorkOrderResolveResult } from '../../domain/entities/backend/WorkOrder';
@@ -52,13 +54,9 @@ export class OeeHttpLiveStateRepository implements ILiveStateRepository {
 }
 
 export class OeeHttpWorkOrderRepository implements IWorkOrderRepository {
-  private statusFilter: WorkOrderQuery['status'];
-  updateStatusFilter(status: WorkOrderQuery['status']): void {
-    this.statusFilter = status;
-  }
   async list(query: WorkOrderQuery = {}, signal?: AbortSignal): Promise<WorkOrderListItem[]> {
     const path = withQuery(endpoints.workOrders(), {
-      status: query.status ?? this.statusFilter,
+      status: query.status,
       machine_id: query.machineId,
       product_id: query.productId,
       operator_id: query.operatorId,
@@ -207,6 +205,8 @@ export class OeeHttpTelemetryRepository implements ITelemetryRepository {
 }
 
 export class OeeHttpAuthGateway implements IAuthGateway {
+  constructor(private readonly tokens: IAuthTokenStorage = new AuthTokenStorageAdapter()) {}
+
   async loginWithPin(pin: string, operatorId?: string, stationId?: string): Promise<AuthSession> {
     const raw = await httpRequest<{
       token: string;
@@ -216,11 +216,7 @@ export class OeeHttpAuthGateway implements IAuthGateway {
       method: 'POST',
       body: { pin, operator_id: operatorId, station_id: stationId },
     });
-    try {
-      window.localStorage.setItem('oee_api_token', raw.token);
-    } catch {
-      // storage unavailable — token stays in memory only
-    }
+    this.tokens.setToken(raw.token);
     return {
       token: raw.token,
       expiresIn: raw.expires_in,
@@ -233,17 +229,9 @@ export class OeeHttpAuthGateway implements IAuthGateway {
     };
   }
   logout(): void {
-    try {
-      window.localStorage.removeItem('oee_api_token');
-    } catch {
-      // ignore
-    }
+    this.tokens.clearToken();
   }
   getToken(): string | null {
-    try {
-      return window.localStorage.getItem('oee_api_token') ?? null;
-    } catch {
-      return null;
-    }
+    return this.tokens.getToken();
   }
 }

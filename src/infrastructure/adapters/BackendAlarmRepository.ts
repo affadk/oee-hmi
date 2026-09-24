@@ -6,8 +6,7 @@
 import type { IAlarmRepository } from '../../domain/ports/IAlarmRepository';
 import type { MachineAlarmEvent, AlarmType, AlarmStatus } from '../../domain/entities/Alarm';
 import type { OperationalEvent } from '../../domain/entities/backend/Telemetry';
-import type { IMasterDataRepository } from '../../domain/ports/IOeeBackend';
-import { OeeHttpTelemetryRepository } from '../api/oeeApiClient';
+import type { IMasterDataRepository, ITelemetryRepository } from '../../domain/ports/IOeeBackend';
 
 const TYPE_MAP: Record<string, AlarmType> = {
   'PLC_ALARM': 'Breakdown',
@@ -44,13 +43,10 @@ function mapOperationalEventToAlarm(event: OperationalEvent): MachineAlarmEvent 
 }
 
 export class BackendAlarmRepository implements IAlarmRepository {
-  private readonly telemetryRepo: OeeHttpTelemetryRepository;
-  private readonly masterDataRepo: IMasterDataRepository | null;
-
-  constructor(telemetryRepo?: OeeHttpTelemetryRepository, masterDataRepo?: IMasterDataRepository) {
-    this.telemetryRepo = telemetryRepo ?? new OeeHttpTelemetryRepository();
-    this.masterDataRepo = masterDataRepo ?? null;
-  }
+  constructor(
+    private readonly telemetryRepo: ITelemetryRepository,
+    private readonly masterDataRepo: IMasterDataRepository | null = null,
+  ) {}
 
   async getAllAlarms(): Promise<MachineAlarmEvent[]> {
     try {

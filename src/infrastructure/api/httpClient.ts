@@ -4,6 +4,7 @@
 // catch these without ever touching fetch/Response.
 
 import { env } from '../config/env';
+import { AuthTokenStorageAdapter } from '../storage/AuthTokenStorageAdapter';
 
 export interface HttpOptions {
   method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
@@ -23,31 +24,35 @@ export class BackendHttpError extends Error {
   }
 }
 
+const tokenStorage = new AuthTokenStorageAdapter();
+
 function resolveToken(explicit?: string | null): string | null {
   if (explicit) return explicit;
-  try {
-    return window.localStorage.getItem('oee_api_token') ?? (env.apiToken || null);
-  } catch {
-    return env.apiToken || null;
-  }
+  return tokenStorage.getToken() ?? (env.apiToken || null);
 }
 
 export async function httpRequest<T>(path: string, options: HttpOptions = {}): Promise<T> {
   const token = resolveToken(options.token);
+  const hasBody = options.body !== undefined;
   const res = await fetch(`${env.apiBaseUrl}${path}`, {
     method: options.method ?? 'GET',
     headers: {
-      'Content-Type': 'application/json',
+      ...(hasBody ? { 'Content-Type': 'application/json' } : {}),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
-    body: options.body === undefined ? undefined : JSON.stringify(options.body),
+    body: hasBody ? JSON.stringify(options.body) : undefined,
     signal: options.signal,
   });
 
   if (res.status === 204) return undefined as T;
 
   const isJson = (res.headers.get('content-type') ?? '').includes('json');
-  const payload = isJson ? await res.json().catch(() => null) : await res.text().catch(() => null);
+  let payload: unknown;
+  try {
+    payload = isJson ? await res.json() : await res.text();
+  } catch {
+    throw new BackendHttpError(res.status, 'INVALID_RESPONSE', `Invalid response body for ${path}`);
+  }
 
   if (!res.ok) {
     const code = (payload as { error?: string } | null)?.error ?? `HTTP_${res.status}`;

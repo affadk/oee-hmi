@@ -15,4 +15,3 @@ export * from './api/oeeApiClient';
 export * from './realtime/telemetryWsClient';
 export * from './config/env';
 export * from './di/Container';
-export * from './di/DiContext';

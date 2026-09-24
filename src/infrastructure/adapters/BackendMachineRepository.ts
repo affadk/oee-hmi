@@ -13,21 +13,13 @@ import type {
   ITelemetryRepository,
 } from '../../domain/ports/IOeeBackend';
 import type { IMachineRepository } from '../../domain/ports/IMachineRepository';
-import type { MachineConfig, MachineStatus, DowntimeReasonItem, RejectReasonItem } from '../../domain/entities/Machine';
+import type { MachineConfig, MachineStatus, DowntimeReasonItem } from '../../domain/entities/Machine';
 import type { MqttTelemetryPayload, MqttJobConfigPayload } from '../../domain/entities/MqttContracts';
 import type { LiveStateSnapshot, LiveMachineState } from '../../domain/entities/backend/LiveState';
 import type { MachineRecord } from '../../domain/entities/backend/Device';
 import type { WorkOrderResolveResult } from '../../domain/entities/backend/WorkOrder';
 import type { DowntimeEvent } from '../../domain/entities/backend/Telemetry';
 import { isPlannedDowntimeCategory } from '../../domain/entities/backend/Telemetry';
-import type { HourlyTrendPoint, PageMeta } from '../../domain/ports/IOeeBackend';
-import { endpoints } from '../api/endpoints';
-import { httpRequest } from '../api/httpClient';
-
-function toFiniteNumber(value: unknown, fallback = 0): number {
-  const n = typeof value === 'string' ? Number(value) : (value as number);
-  return Number.isFinite(n) ? n : fallback;
-}
 
 function mapLiveStateToMachineStatus(state: LiveMachineState): MachineStatus {
   switch (state) {
@@ -62,7 +54,7 @@ function mapLiveStateToTelemetry(snapshot: LiveStateSnapshot): MqttTelemetryPayl
       : 4,
     tot: snapshot.totalCount,
     rej: snapshot.rejectCount,
-    cyc: snapshot.lastCycleTimeSec != null ? Math.round(snapshot.lastCycleTimeSec * 10) : 90,
+    cyc: snapshot.lastCycleTimeSec != null ? Math.round(snapshot.lastCycleTimeSec * 100) : 900,
     run: snapshot.runTimeSec,
     dt: snapshot.downtimeSec,
     oee: Math.round(snapshot.oee * 100),
@@ -77,7 +69,7 @@ function mapLiveStateToTelemetry(snapshot: LiveStateSnapshot): MqttTelemetryPayl
   };
 }
 
-function mapDowntimeEventToReasonItem(event: DowntimeEvent, index: number): DowntimeReasonItem {
+function mapDowntimeEventToReasonItem(event: DowntimeEvent): DowntimeReasonItem {
   return {
     id: `dt-${event.id}`,
     label: event.operatorReason ?? event.category ?? 'Unknown',
@@ -133,54 +125,83 @@ export class BackendMachineRepository implements IMachineRepository {
       machineMap.set(m.machineId, m);
     }
 
-    const results: MachineConfig[] = [];
-    for (const snapshot of snapshots) {
-      const machineRecord = machineMap.get(snapshot.machineId ?? '');
-      if (!machineRecord) continue;
+    // One parallel round for the whole fleet (was: sequential await per snapshot).
+    const built = await Promise.all(
+      snapshots.map(async (snapshot) => {
+        const machineRecord = machineMap.get(snapshot.machineId ?? '');
+        if (!machineRecord) return null;
+        try {
+          return await this.buildOneSnapshot(snapshot, machineRecord);
+        } catch {
+          return null;
+        }
+      }),
+    );
 
-      const resolved = await this.resolveWorkOrderForSnapshot(snapshot).catch(() => null);
-      const jobConfig = resolved ? buildJobConfigFromResolve(resolved) : this.buildDefaultJobConfig(snapshot);
+    return built.filter((m): m is MachineConfig => m !== null);
+  }
 
-      const machine = this.buildMachineConfig(snapshot, machineRecord, jobConfig);
+  private async buildOneSnapshot(snapshot: LiveStateSnapshot, machineRecord: MachineRecord): Promise<MachineConfig> {
+    const resolved = await this.resolveWorkOrderForSnapshot(snapshot).catch(() => null);
+    const jobConfig = resolved ? buildJobConfigFromResolve(resolved) : this.buildDefaultJobConfig(snapshot);
 
-      // Fetch supplemental data in parallel
-      const [downtimeResult, hourlyResult] = await Promise.all([
-        this.telemetryRepo.getDowntimes(snapshot.deviceId, undefined, undefined, 100, undefined, false).catch(() => ({ data: [], meta: { limit: 100, hasMore: false, nextCursor: null, count: 0 } })),
-        this.telemetryRepo.getHourlyTrends(snapshot.deviceId, undefined, undefined, 72, false).catch(() => ({ data: [], meta: { limit: 72, hasMore: false, nextCursor: null, count: 0 } })),
-      ]);
+    const machine = this.buildMachineConfig(snapshot, machineRecord, jobConfig);
 
-      machine.downtimeReasons = downtimeResult.data.map((e, i) => mapDowntimeEventToReasonItem(e, i));
-      // Target per jam diturunkan dari WO (target_qty / jam shift) — bukan mock.
-      // Reject breakdown TIDAK difabrikasi: backend belum punya endpoint-nya
-      // (lihat docs/BACKEND_GAP_REPORT.md G1), jadi dikosongkan.
-      const windowHours = Math.max(1, machine.shiftDurationMinutes / 60);
-      const hourlyTarget = machine.jobConfig.targetQuantity > 0
-        ? Math.round(machine.jobConfig.targetQuantity / windowHours)
-        : 0;
-      machine.hourlyTrends = hourlyResult.data.map((point) => ({
-        hour: point.bucket,
-        target: hourlyTarget,
-        actual: point.totalCount,
-        good: point.goodCount,
-        reject: point.rejectCount,
-        oee: point.oee,
-        availability: point.availability,
-        performance: point.performance,
-        quality: point.quality,
-        status: mapLiveStateToMachineStatus(snapshot.currentState),
-      }));
+    // Fetch supplemental data in parallel
+    const [downtimeResult, hourlyResult] = await Promise.all([
+      this.telemetryRepo.getDowntimes(snapshot.deviceId, undefined, undefined, 100, undefined, false).catch(() => ({ data: [], meta: { limit: 100, hasMore: false, nextCursor: null, count: 0 } })),
+      this.telemetryRepo.getHourlyTrends(snapshot.deviceId, undefined, undefined, 72, false).catch(() => ({ data: [], meta: { limit: 72, hasMore: false, nextCursor: null, count: 0 } })),
+    ]);
 
-      machine.rejectReasons = [];
+    machine.downtimeReasons = downtimeResult.data.map((e) => mapDowntimeEventToReasonItem(e));
+    // Target per jam diturunkan dari WO (target_qty / jam shift) — bukan mock.
+    // Reject breakdown TIDAK difabrikasi: backend belum punya endpoint-nya
+    // (lihat docs/BACKEND_GAP_REPORT.md G1), jadi dikosongkan.
+    const windowHours = Math.max(1, machine.shiftDurationMinutes / 60);
+    const hourlyTarget = machine.jobConfig.targetQuantity > 0
+      ? Math.round(machine.jobConfig.targetQuantity / windowHours)
+      : 0;
+    machine.hourlyTrends = hourlyResult.data.map((point) => ({
+      hour: point.bucket,
+      target: hourlyTarget,
+      actual: point.totalCount,
+      good: point.goodCount,
+      reject: point.rejectCount,
+      oee: point.oee,
+      availability: point.availability,
+      performance: point.performance,
+      quality: point.quality,
+      status: mapLiveStateToMachineStatus(snapshot.currentState),
+    }));
 
-      results.push(machine);
-    }
+    machine.rejectReasons = [];
 
-    return results;
+    return machine;
   }
 
   async getMachineById(id: string): Promise<MachineConfig | null> {
-    const all = await this.getAllMachines();
-    return all.find((m) => m.id === id || m.deviceId === id) ?? null;
+    // Single-machine path: 1 registry read + 1 snapshot + supplemental for that
+    // device only (was: full-fleet getAllMachines() per call).
+    const machines = await this.masterDataRepo.listMachines();
+    const record = machines.find((m) => m.machineId === id || m.deviceId === id);
+    if (!record) return null;
+    const deviceId = record.deviceId ?? id;
+    let snapshot: LiveStateSnapshot | null = null;
+    try {
+      snapshot = await this.liveStateRepo.getSnapshotByDevice(deviceId);
+    } catch {
+      snapshot = null;
+    }
+    if (!snapshot) {
+      const snapshots = await this.liveStateRepo.getAllSnapshots().catch(() => []);
+      snapshot = snapshots.find((s) => s.deviceId === deviceId || s.machineId === record.machineId) ?? null;
+    }
+    if (!snapshot) return null;
+    try {
+      return await this.buildOneSnapshot(snapshot, record);
+    } catch {
+      return null;
+    }
   }
 
   async updateMachineStatus(

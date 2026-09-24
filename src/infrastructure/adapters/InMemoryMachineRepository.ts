@@ -40,6 +40,9 @@ export class InMemoryMachineRepository implements IMachineRepository {
     };
 
     const target = this.machines[index];
+    if (!target) {
+      throw new Error('Machine not found in simulation store.');
+    }
     const newTelemetry: MqttTelemetryPayload = {
       ...target.telemetry,
       st: stateMap[status] ?? 2,
@@ -65,6 +68,9 @@ export class InMemoryMachineRepository implements IMachineRepository {
     }
 
     const target = this.machines[index];
+    if (!target) {
+      throw new Error('Machine not found in simulation store.');
+    }
     const updatedTelemetry: MqttTelemetryPayload = {
       ...target.telemetry,
       ...telemetry,
@@ -98,6 +104,9 @@ export class InMemoryMachineRepository implements IMachineRepository {
     }
 
     const target = this.machines[index];
+    if (!target) {
+      throw new Error('Machine not found in simulation store.');
+    }
     const cycScaled = Math.round(actualCycleTimeSec * 100);
     const updatedTelemetry: MqttTelemetryPayload = {
       ...target.telemetry,
@@ -111,23 +120,25 @@ export class InMemoryMachineRepository implements IMachineRepository {
     if (updatedHourlyTrends.length > 0) {
       const lastIdx = updatedHourlyTrends.length - 1;
       const lastPoint = updatedHourlyTrends[lastIdx];
-      const deltaTotal = totalCount - target.totalCount;
-      const deltaGood = goodCount - target.goodCount;
-      const deltaReject = rejectCount - target.rejectCount;
+      if (lastPoint) {
+        const deltaTotal = totalCount - target.totalCount;
+        const deltaGood = goodCount - target.goodCount;
+        const deltaReject = rejectCount - target.rejectCount;
 
-      if (deltaTotal !== 0 || deltaReject !== 0) {
-        const newAct = Math.max(0, lastPoint.actual + deltaTotal);
-        const newGd = Math.max(0, lastPoint.good + deltaGood);
-        const newRej = Math.max(0, lastPoint.reject + deltaReject);
-        const newQual = newAct > 0 ? Number(((newGd / newAct) * 100).toFixed(1)) : lastPoint.quality;
+        if (deltaTotal !== 0 || deltaReject !== 0) {
+          const newAct = Math.max(0, lastPoint.actual + deltaTotal);
+          const newGd = Math.max(0, lastPoint.good + deltaGood);
+          const newRej = Math.max(0, lastPoint.reject + deltaReject);
+          const newQual = newAct > 0 ? Number(((newGd / newAct) * 100).toFixed(1)) : lastPoint.quality;
 
-        updatedHourlyTrends[lastIdx] = {
-          ...lastPoint,
-          actual: newAct,
-          good: newGd,
-          reject: newRej,
-          quality: newQual,
-        };
+          updatedHourlyTrends[lastIdx] = {
+            ...lastPoint,
+            actual: newAct,
+            good: newGd,
+            reject: newRej,
+            quality: newQual,
+          };
+        }
       }
     }
 
@@ -153,6 +164,9 @@ export class InMemoryMachineRepository implements IMachineRepository {
     }
 
     const target = this.machines[index];
+    if (!target) {
+      throw new Error('Machine not found in simulation store.');
+    }
     const updatedTelemetry: MqttTelemetryPayload = {
       ...target.telemetry,
       tot: 0,
@@ -194,6 +208,9 @@ export class InMemoryMachineRepository implements IMachineRepository {
     }
 
     const target = this.machines[index];
+    if (!target) {
+      throw new Error('Machine not found in simulation store.');
+    }
     const newTargetQty = jobConfig.shift_plan.target_qty;
     const hoursCount = target.hourlyTrends.length || 8;
     const newHourlyTarget = Math.round(newTargetQty / hoursCount);
