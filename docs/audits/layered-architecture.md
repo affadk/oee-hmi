@@ -190,3 +190,10 @@ npx tsc --noEmit                                                  # harap lolos 
 - **QR-WO backend:** `BatchQrScannerModal` mode backend (tombol "Gunakan WO Ini", validasi antrean, tanpa MQTT) + trigger QR dibuka di lane backend → pratinjau di `ProductionSetupModal`.
 - **Belum disentuh (sesuai scope):** bind/add/remove device, add/delete user, B1 (detail WO — resolve mencukupi), B6 (export), B7 (health).
 - Verifikasi: `pnpm lint` + 55 test + `pnpm build` lolos.
+
+## 16. Alur QR backend standar-kamera (24 Sep 2026) — ✅ SELESAI
+
+- **Masalah:** QR "Gunakan WO Ini" menampilkan data mentah draft tanpa pencocokan backend.
+- **Alur benar kini:** pindai (kamera nyata `QrCameraScanner` via `html5-qrcode`: rear camera, 10 fps, qrbox 250, stop-setelah-baca, stream selalu dilepas; fallback tempel manual) → validasi `parseQrString` → `previewWorkOrder` (resolve) → REVIEW hanya data backend → "Mulai Setup Produksi" → dispatch di `ProductionSetupModal`.
+- **Kejujuran API (temuan Context7-types):** low-level `Html5Qrcode.start` tidak mendukung `formatsToSupport` (hanya wrapper UI) — semua teks ter-decode lewat `parseQrString` yang menolak non-QR dengan pesan operator. Kamera butuh secure-context (https/localhost); LAN http polos otomatis jatuh ke input manual dengan pesan jelas.
+- Verifikasi: `pnpm lint` + 55 test + `pnpm build` lolos (logika parse/resolve sudah teruji; komponen kamera DOM-tipis).

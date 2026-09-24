@@ -36,6 +36,8 @@ import {
 import { useTheme } from '../../providers/ThemeProvider';
 import { tx, cx, themeTokens } from '../../styles/themeTokens';
 import type { MachineConfig } from '../../../domain/index';
+import type { WorkOrderResolveResult } from '../../../domain/entities/backend/WorkOrder';
+import { QrCameraScanner } from './QrCameraScanner';
 import {
   QR_PRODUCT_CATALOG,
   QR_OPERATOR_CATALOG,
@@ -72,9 +74,12 @@ interface BatchQrScannerModalProps {
   ) => Promise<void>;
   /** Backend lane: ganti Terapkan-MQTT dengan pilih WO antrean. */
   backendMode?: boolean;
-  /** Daftar WO antrean untuk validasi; kosong = tidak dikenal, teruskan ke preview. */
-  pendingWorkOrderIds?: string[];
-  onSelectWorkOrder?: (woId: string) => void;
+  /** Hasil resolve backend untuk WO yang dipindai; null = belum ada. */
+  workOrderPreview?: { woId: string; result: WorkOrderResolveResult } | null;
+  /** Resolve WO ke backend (menampilkan data backend, bukan mentah QR). */
+  onPreviewWorkOrder?: (woId: string) => Promise<void>;
+  /** Lanjut ke Setup Produksi dengan preview yang sudah dimuat. */
+  onProceedToSetup?: () => void;
 }
 
 const STEPS: Array<{ id: QrBatchStep; index: number; label: string; short: string }> = [
@@ -119,8 +124,9 @@ export const BatchQrScannerModal: React.FC<BatchQrScannerModalProps> = ({
   onSwitchMachine,
   onApplyJobConfig,
   backendMode = false,
-  pendingWorkOrderIds = [],
-  onSelectWorkOrder,
+  workOrderPreview = null,
+  onPreviewWorkOrder,
+  onProceedToSetup,
 }) => {
   const { isDark, theme, setTheme } = useTheme();
 
@@ -131,6 +137,11 @@ export const BatchQrScannerModal: React.FC<BatchQrScannerModalProps> = ({
   const [scanningCode, setScanningCode] = useState<string | null>(null);
   const [applying, setApplying] = useState(false);
   const [applied, setApplied] = useState(false);
+  // Backend lane: WO hasil pindai + status resolve (review = data backend).
+  const [scannedWo, setScannedWo] = useState<string | null>(null);
+  const [resolvingWo, setResolvingWo] = useState(false);
+  const [cameraKey, setCameraKey] = useState(0);
+  const [cameraError, setCameraError] = useState<string | null>(null);
 
   const dialogRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -147,6 +158,10 @@ export const BatchQrScannerModal: React.FC<BatchQrScannerModalProps> = ({
       setScanningCode(null);
       setApplying(false);
       setApplied(false);
+      setScannedWo(null);
+      setResolvingWo(false);
+      setCameraError(null);
+      setCameraKey((k) => k + 1);
       // Fokus ke kolom QR setelah mount untuk alur keyboard.
       const t = setTimeout(() => inputRef.current?.focus(), 60);
       return () => clearTimeout(t);
@@ -281,20 +296,41 @@ export const BatchQrScannerModal: React.FC<BatchQrScannerModalProps> = ({
     showToast('info', 'Draft dikembalikan ke konfigurasi mesin aktif.');
   }, [machine, showToast]);
 
-  // Backend lane: WO hasil scan dicocokkan ke antrean, lalu dipratinjau di
-  // ProductionSetupModal — tanpa SET_JOB_CONFIG MQTT.
-  const handleSelectWorkOrder = useCallback(() => {
-    const woId = draft.product.workOrder.trim();
+  // Backend lane: pindai → validasi format lokal → resolve ke backend.
+  // Yang direview adalah DATA BACKEND (resolve result), bukan mentah QR.
+  const submitWoForPreview = useCallback(async (raw: string) => {
+    let woId = '';
+    try {
+      const parsed = parseQrString(raw);
+      if (parsed.kind === 'PRODUCT' && parsed.product) woId = parsed.product.workOrder.trim();
+    } catch (err) {
+      showToast('error', err instanceof Error ? err.message : 'QR tidak valid.');
+      return;
+    }
     if (!woId) {
-      showToast('error', 'Draft belum memuat nomor WO — scan QR produk dahulu.');
+      showToast('error', 'QR ini tidak memuat nomor WO — pindai QR produk/WO.');
       return;
     }
-    if (pendingWorkOrderIds.length > 0 && !pendingWorkOrderIds.includes(woId)) {
-      showToast('error', `WO ${woId} tidak ada di antrean backend.`);
+    if (!onPreviewWorkOrder) {
+      showToast('error', 'Pratinjau backend tidak tersedia.');
       return;
     }
-    onSelectWorkOrder?.(woId);
-  }, [draft.product.workOrder, onSelectWorkOrder, pendingWorkOrderIds, showToast]);
+    setScannedWo(woId);
+    setResolvingWo(true);
+    try {
+      await onPreviewWorkOrder(woId);
+      setStep('REVIEW');
+    } catch (err) {
+      showToast('error', err instanceof Error ? err.message : `WO ${woId} tidak dapat dimuat.`);
+    } finally {
+      setResolvingWo(false);
+    }
+  }, [onPreviewWorkOrder, showToast]);
+
+  const handleCameraScan = useCallback((text: string) => {
+    setManualQr(text);
+    void submitWoForPreview(text);
+  }, [submitWoForPreview]);
 
   if (!isOpen) return null;
 
@@ -512,12 +548,41 @@ export const BatchQrScannerModal: React.FC<BatchQrScannerModalProps> = ({
           ))}
         </div>
 
+        {/* Backend lane: kamera nyata + input manual → resolve WO (tanpa draft MQTT). */}
+        {backendMode && (
+          <div className="mb-3 space-y-2">
+            <QrCameraScanner
+              key={cameraKey}
+              onScanned={handleCameraScan}
+              onScanError={(msg) => setCameraError(msg)}
+            />
+            {cameraError && (
+              <p className="text-[11px] font-mono opacity-70" role="status">{cameraError}</p>
+            )}
+            {scannedWo && !resolvingWo && (
+              <button
+                type="button"
+                onClick={() => {
+                  setScannedWo(null);
+                  setCameraError(null);
+                  setCameraKey((k) => k + 1);
+                }}
+                className={cx('text-[11px] font-mono underline opacity-80 hover:opacity-100 cursor-pointer', tx(themeTokens.textSecondary, isDark))}
+              >
+                Pindai ulang
+              </button>
+            )}
+          </div>
+        )}
+
         {/* Input QR manual — berlaku untuk semua langkah */}
         <form
           className="flex gap-2 mb-3 shrink-0"
           onSubmit={(e) => {
             e.preventDefault();
-            if (manualQr.trim()) applyParsedQr(manualQr);
+            if (!manualQr.trim()) return;
+            if (backendMode) void submitWoForPreview(manualQr);
+            else applyParsedQr(manualQr);
           }}
         >
           <div className="relative flex-1">
@@ -551,7 +616,7 @@ export const BatchQrScannerModal: React.FC<BatchQrScannerModalProps> = ({
 
         {/* Isi langkah */}
         <div className="space-y-2 max-h-[280px] overflow-y-auto pr-1 min-h-[180px]">
-          {step === 'PRODUCT' && (
+          {step === 'PRODUCT' && !backendMode && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5" role="group" aria-label="Pilih produk">
               {QR_PRODUCT_CATALOG.map((p) => {
                 const selected = draft.product.code === p.code;
@@ -725,7 +790,7 @@ export const BatchQrScannerModal: React.FC<BatchQrScannerModalProps> = ({
             </div>
           )}
 
-          {step === 'REVIEW' && (
+          {step === 'REVIEW' && !backendMode && (
             <div className={cx('rounded-xl border overflow-hidden', tx(themeTokens.borderSoft, isDark))}>
               <table className="w-full text-xs">
                 <thead>
@@ -777,6 +842,43 @@ export const BatchQrScannerModal: React.FC<BatchQrScannerModalProps> = ({
               )}
             </div>
           )}
+
+          {/* Backend lane: review = DATA BACKEND hasil resolve, bukan mentah QR. */}
+          {step === 'REVIEW' && backendMode && (
+            <div className={cx('rounded-xl border overflow-hidden p-3 space-y-2', tx(themeTokens.borderSoft, isDark))}>
+              <p className={cx('text-xs font-mono', tx(themeTokens.textSecondary, isDark))}>
+                WO pindaian: <strong className={tx(themeTokens.textBody, isDark)}>{scannedWo ?? '—'}</strong>
+              </p>
+              {resolvingWo && (
+                <p className="text-xs flex items-center gap-1.5 opacity-80" role="status">
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  Memuat data WO dari backend…
+                </p>
+              )}
+              {!resolvingWo && workOrderPreview && workOrderPreview.woId === scannedWo && (
+                <dl className="grid grid-cols-2 gap-2 text-xs font-mono">
+                  {[
+                    ['Produk', workOrderPreview.result.productName],
+                    ['Target', `${workOrderPreview.result.targetQty.toLocaleString()} pcs`],
+                    ['Operator', workOrderPreview.result.operatorName || '—'],
+                    ['Shift', `${workOrderPreview.result.shiftPlan.shiftStart} - ${workOrderPreview.result.shiftPlan.shiftEnd}`],
+                    ['Cycle', `${workOrderPreview.result.stdCycleTimeSec}s`],
+                    ['Status', workOrderPreview.result.status],
+                  ].map(([k, v]) => (
+                    <div key={k}>
+                      <dt className={cx('text-[10px] uppercase tracking-wide', tx(themeTokens.textFaint, isDark))}>{k}</dt>
+                      <dd className={cx('font-semibold', tx(themeTokens.textBody, isDark))}>{v}</dd>
+                    </div>
+                  ))}
+                </dl>
+              )}
+              {!resolvingWo && !workOrderPreview && (
+                <p className={cx('text-xs', tx(themeTokens.textMuted, isDark))}>
+                  Belum ada data backend — pindai ulang atau cek kode WO.
+                </p>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Footer navigasi */}
@@ -812,6 +914,11 @@ export const BatchQrScannerModal: React.FC<BatchQrScannerModalProps> = ({
               <button
                 type="button"
                 onClick={() => {
+                  // Backend lane: PRODUCT langsung ke REVIEW (langkah draft MQTT dilewati).
+                  if (backendMode && step === 'PRODUCT') {
+                    setStep('REVIEW');
+                    return;
+                  }
                   const nextId = STEPS[stepIndex + 1]?.id;
                   if (nextId) goStep(nextId);
                 }}
@@ -829,15 +936,16 @@ export const BatchQrScannerModal: React.FC<BatchQrScannerModalProps> = ({
                 >
                   {applied ? 'Selesai' : 'Batal'}
                 </button>
-                {backendMode && onSelectWorkOrder ? (
+                {backendMode && onProceedToSetup ? (
                   <button
                     type="button"
-                    onClick={handleSelectWorkOrder}
-                    title="Pratinjau WO hasil scan di Setup Produksi (tanpa MQTT)"
-                    className="px-4 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+                    onClick={onProceedToSetup}
+                    disabled={!workOrderPreview || workOrderPreview.woId !== scannedWo}
+                    title="Tutup pemindai dan buka Setup Produksi dengan WO ini"
+                    className="px-4 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
                   >
                     <ClipboardCheck className="w-3.5 h-3.5" />
-                    Gunakan WO Ini
+                    Mulai Setup Produksi
                   </button>
                 ) : (
                   <button

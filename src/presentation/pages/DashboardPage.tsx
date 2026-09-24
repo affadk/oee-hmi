@@ -187,12 +187,9 @@ export const DashboardPage: React.FC = () => {
           onApplyJobConfig={dashboard.dispatchMqttJobConfig}
           shiftSegments={dashboard.shiftSegments}
           livePoints={dashboard.liveTrend}
-          pendingWorkOrderIds={dashboard.pendingWorkOrders.map((w) => w.woId)}
-          onSelectWorkOrder={(woId) => {
-            dashboard.openProductionSetupModal();
-            void dashboard.loadPendingWorkOrders().catch(() => undefined);
-            void dashboard.previewWorkOrder(woId).catch(() => undefined);
-          }}
+          workOrderPreview={dashboard.workOrderPreview}
+          onPreviewWorkOrder={dashboard.previewWorkOrder}
+          onProceedToSetup={dashboard.openProductionSetupModal}
         />
       ) : (
         <div

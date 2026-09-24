@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { MachineConfig, CalculatedOeeMetrics, telemetryAgeSec } from '../../../domain/index';
 import type { TimelineSegment } from '../../../domain/services/ShiftTimeline';
+import type { WorkOrderResolveResult } from '../../../domain/entities/backend/WorkOrder';
 import { useTheme } from '../../providers/ThemeProvider';
 import {
   Maximize2,
@@ -52,9 +53,11 @@ interface FullscreenOeeViewProps {
   /** Live 5m overlay (B5/B2); null = hidden. */
   livePoints?: Array<{ timestamp: string; oee: number }> | null;
   /** Backend lane: WO antrean untuk validasi hasil scan QR. */
-  pendingWorkOrderIds?: string[];
-  /** Backend lane: pratinjau WO hasil scan di Setup Produksi. */
-  onSelectWorkOrder?: (woId: string) => void;
+  workOrderPreview?: { woId: string; result: WorkOrderResolveResult } | null;
+  /** Backend lane: resolve WO hasil scan (review = data backend). */
+  onPreviewWorkOrder?: (woId: string) => Promise<void>;
+  /** Backend lane: tutup pemindai dan buka Setup Produksi. */
+  onProceedToSetup?: () => void;
 }
 
 export const FullscreenOeeView: React.FC<FullscreenOeeViewProps> = ({
@@ -76,8 +79,9 @@ export const FullscreenOeeView: React.FC<FullscreenOeeViewProps> = ({
   useBackend,
   shiftSegments = null,
   livePoints = null,
-  pendingWorkOrderIds = [],
-  onSelectWorkOrder,
+  workOrderPreview = null,
+  onPreviewWorkOrder,
+  onProceedToSetup,
 }) => {
   const { theme, toggleTheme } = useTheme();
   const isDark = theme === 'dark';
@@ -184,8 +188,8 @@ const formatStaffed = (totalMin: number): string => {
   return (
     <div id="oee-edge-dashboard" className={outerShellClass}>
       <div id="oee-viewport-shell" className={innerShellClass}>
-      {/* QR BATCH SCANNER — simulasi: terapkan via MQTT. Backend: pilih WO
-          antrean untuk pratinjau di ProductionSetupModal (tanpa MQTT). */}
+      {/* QR BATCH SCANNER — simulasi: terapkan via MQTT. Backend: pindai
+          kamera/manual → resolve WO → review data backend → Setup Produksi. */}
       <BatchQrScannerModal
         isOpen={isQrModalOpen}
         onClose={() => setIsQrModalOpen(false)}
@@ -194,12 +198,13 @@ const formatStaffed = (totalMin: number): string => {
         onSwitchMachine={onSwitchMachine}
         onApplyJobConfig={onApplyJobConfig}
         backendMode={useBackend}
-        pendingWorkOrderIds={pendingWorkOrderIds}
-        onSelectWorkOrder={
-          onSelectWorkOrder
-            ? (woId) => {
+        workOrderPreview={workOrderPreview}
+        onPreviewWorkOrder={onPreviewWorkOrder}
+        onProceedToSetup={
+          onProceedToSetup
+            ? () => {
                 setIsQrModalOpen(false);
-                onSelectWorkOrder(woId);
+                onProceedToSetup();
               }
             : undefined
         }
