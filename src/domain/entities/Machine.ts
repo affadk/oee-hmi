@@ -34,6 +34,24 @@ export interface HourlyDataPoint {
   isBuffered?: boolean;
 }
 
+/** Seconds after which telemetry counts as STALE (spec §4: tampilkan badge, jangan sembunyikan angka). */
+export const TELEMETRY_STALE_AFTER_SEC = 60;
+
+/**
+ * Age of the last telemetry frame in seconds, or null when unknown
+ * (never received). Pure — `nowSec` injectable for tests.
+ */
+export function telemetryAgeSec(lastTelemetryTs: number, nowSec: number = Math.floor(Date.now() / 1000)): number | null {
+  if (!Number.isFinite(lastTelemetryTs) || lastTelemetryTs <= 0) return null;
+  return Math.max(0, Math.floor(nowSec - lastTelemetryTs));
+}
+
+/** True when a known telemetry timestamp is older than the stale threshold. */
+export function isTelemetryStale(lastTelemetryTs: number, nowSec: number = Math.floor(Date.now() / 1000)): boolean {
+  const age = telemetryAgeSec(lastTelemetryTs, nowSec);
+  return age !== null && age > TELEMETRY_STALE_AFTER_SEC;
+}
+
 export interface MachineConfig {
   id: string; // e.g. 'STM32-OEE-01' or 'MC-01'
   name: string; // Machine device description

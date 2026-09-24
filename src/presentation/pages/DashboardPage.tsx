@@ -5,6 +5,7 @@
 
 import React, { useMemo } from 'react';
 import { useOeeDashboard } from '../../application/hooks/useOeeDashboard';
+import { telemetryAgeSec } from '../../domain/index';
 import { useTheme } from '../providers/ThemeProvider';
 import { useDiContainer } from '../providers/DiProvider';
 import { useFullscreen } from '../hooks/useFullscreen';
@@ -98,6 +99,8 @@ export const DashboardPage: React.FC = () => {
 
   const machine = dashboard.currentMachine;
   const metrics = dashboard.currentMetrics;
+  // Spec §4: seperti footer fullscreen — tandai basi, jangan sembunyikan angka.
+  const staleAgeSec = telemetryAgeSec(machine.lastTelemetryTs);
 
   return (
     <div
@@ -266,6 +269,15 @@ export const DashboardPage: React.FC = () => {
                 <span>Machine: <strong className={isDark ? 'text-slate-200' : 'text-slate-800'}>{machine.name}</strong></span>
                 <span>Line: <strong className={isDark ? 'text-slate-200' : 'text-slate-800'}>{machine.line}</strong></span>
                 <span>Status: <strong className={machine.connectionStatus === 'ONLINE' ? 'text-emerald-500' : 'text-rose-500'}>{machine.connectionStatus || '—'}</strong></span>
+                {staleAgeSec !== null && staleAgeSec > 60 ? (
+                  <span
+                    role="status"
+                    title={`Telemetri terakhir ${staleAgeSec} dtk lalu — angka yang tampil mungkin basi`}
+                    className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-500/15 text-amber-500 border border-amber-500/40"
+                  >
+                    STALE {staleAgeSec}s
+                  </span>
+                ) : null}
               </div>
               <div className="flex items-center gap-3">
                 <span>Planned Time: <strong>{metrics.plannedProductionTimeMin || 420}m</strong></span>

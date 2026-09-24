@@ -1,7 +1,7 @@
 // /src/presentation/components/fullscreen/FullscreenOeeView.tsx
 
 import React, { useState, useEffect } from 'react';
-import { MachineConfig, CalculatedOeeMetrics } from '../../../domain/index';
+import { MachineConfig, CalculatedOeeMetrics, telemetryAgeSec } from '../../../domain/index';
 import { useTheme } from '../../providers/ThemeProvider';
 import {
   Maximize2,
@@ -152,6 +152,9 @@ const formatStaffed = (totalMin: number): string => {
   const downtimeMin = machine.telemetry?.dt ? Math.round(machine.telemetry.dt / 60) : (metrics.downtimeMin || 0);
 
   const isRunning = machine.status === 'RUNNING';
+  // Spec §4: telemetri basi ditandai di footer, angka terakhir tetap tampil.
+  // Dihitung saat render (render dipicu tiap pulse telemetri — tanpa interval baru).
+  const staleAgeSec = telemetryAgeSec(machine.lastTelemetryTs);
 
   // Layout: FIT LAYAR — isFullscreen fill 100dvh tanpa celah, normal 100dvh flex
   // Outer shell mengikuti tema agar light mode tidak terjebak hitam
@@ -701,6 +704,15 @@ const formatStaffed = (totalMin: number): string => {
             <span>Machine: <strong className={isDark ? 'text-slate-200' : 'text-slate-800'}>{machine.name}</strong></span>
             <span>Line: <strong className={isDark ? 'text-slate-200' : 'text-slate-800'}>{machine.line}</strong></span>
             <span>Status: <strong className={machine.connectionStatus === 'ONLINE' ? 'text-emerald-500' : 'text-rose-500'}>{machine.connectionStatus || '—'}</strong></span>
+            {staleAgeSec !== null && staleAgeSec > 60 ? (
+              <span
+                role="status"
+                title={`Telemetri terakhir ${staleAgeSec} dtk lalu — angka yang tampil mungkin basi`}
+                className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-500/15 text-amber-500 border border-amber-500/40"
+              >
+                STALE {staleAgeSec}s
+              </span>
+            ) : null}
           </div>
 
           <div className="flex items-center gap-3">
