@@ -100,17 +100,34 @@ sequenceDiagram
 
 ### Matriks cakupan fungsi → backend
 
+Audit 24 Sep 2026 — diverifikasi melawan pemanggil aktual di `src/` (bukan klaim dokumen lama).
+
+**A. ✅ Cocok & dipakai — selesai dua sisi (atau fallback siap):**
+
 | Fungsi frontend | Endpoint | Status |
 |---|---|---|
-| Boot fleet, snapshot per device | `GET /live-state`, `GET /live-state/:device` | ✅ ada (G16: tetap array telanjang) |
-| WO list/detail/resolve/dispatch/complete/cancel | `GET/POST /work-orders/*` | ✅ ada (G12: tabel 204-vs-body) |
-| START/STOP/RESET/RESUME | `POST /devices/:id/command` | ✅ ada |
-| Registry, metadata, bind/unbind | `/devices`, `/machines`, `/products`, `/operators`, `bind`, `unbind` | ✅ ada (G12: kontrak body `unbind`) |
-| History/trend/downtime/operational/label | `/telemetry/:id*`, `/downtime-events/*`, `/operational-events/:id` | ✅ ada (G14: konfirmasi flag labelable) |
-| Login PIN + Bearer + 401-replay | `POST /auth/operator-pin` | ✅ ada (G13: refresh/TTL) |
-| Tick realtime + lifecycle → alarm | `WS /ws/telemetry` | ✅ ada (G15: skema heartbeat) |
-| Target/jam, health edge, reject breakdown, ack alarm, feed global, state/bucket, break terstruktur | — | 🟡 G1–G5, G9–G10 tercatat |
-| Shift summary/timeline agregat | `GET /oee/shift-summary`, `GET /oee/shift-timeline` | 🟡 Fase 2, klien fallback 404 |
+| Boot fleet, snapshot per device | `GET /live-state`, `GET /live-state/:device` | ✅ Cocok (G16: tetap array telanjang) |
+| WO list/resolve/dispatch/complete/cancel | `GET/POST /work-orders/*` | ✅ Cocok (G12: tabel 204-vs-body; detail lihat B1) |
+| START/STOP/RESET/RESUME | `POST /devices/:id/command` | ✅ Cocok |
+| Registry devices/machines, metadata, bind/unbind | `/devices`, `/machines`, `bind`, `unbind` | ✅ Cocok (produk/operator lihat B4) |
+| Trend per jam + downtime + label + event/device | `/telemetry/:id/hourly`, `/downtime-events/*`, `/operational-events/:id` | ✅ Cocok (G14: konfirmasi flag labelable) |
+| Login PIN + Bearer + replay 401 | `POST /auth/operator-pin` | ✅ Cocok (G13: refresh/TTL) |
+| Tick realtime + lifecycle → alarm | `WS /ws/telemetry` | ✅ Cocok (G15: skema heartbeat) |
+| Agregat shift Fase 2 | `GET /oee/shift-summary`, `GET /oee/shift-timeline` | ✅ Frontend siap + fallback 404 (backend belum ada — by design) |
+
+**B. 🟡 Ada di backend, frontend belum pakai — belum selesai sisi frontend:**
+
+| # | Endpoint (ada) | Kondisi kini | Tindakan frontend |
+|---|---|---|---|
+| B1 | `GET /work-orders/:id` | Adapter + `ListWorkOrdersUseCase.detail()` ada, **0 pemanggil UI** | Putuskan: pakai (mis. detail di ProductionSetupModal) atau hapus |
+| B2 | `GET /telemetry/:id` (raw history) | `getHistory` 0 pemanggil; drill-down pakai hourly | Putuskan: pakai untuk tooltip/rekonsiliasi (§2.2) atau hapus dari port |
+| B3 | `GET /downtime-events/active` | `getActiveDowntimes` 0 pemanggil; badge Down pakai status live-state | Sambungkan sebagai guard unclassified (§2.1 item 7) atau hapus |
+| B4 | `GET /products`, `GET /operators` | Registry hanya devices+machines; QR/modal pakai katalog statis | Sambungkan (ganti katalog statis) atau nyatakan tetap-statis |
+| B5 | `GET /telemetry/:id/aggregate` | Spec §2 mewajibkan untuk live trend; frontend hanya hourly + WS | Sambungkan (live trend 5m) atau revisi spec §2 |
+| B6 | `GET /telemetry/:id/export` | Tidak ada tombol export di UI (DoD §8 menuntut csv\|ndjson) | Tambah tombol Export audit atau coret dari DoD |
+| B7 | `GET /health` | Tidak pernah dipanggil; footer rekonsiliasi (§2.2) belum ada | Sambungkan (ws_clients, buffer_pending) atau coret |
+
+**C. 🔴 Belum ada di backend — butuh backend (tetap G1–G16):** reject breakdown (G1), health edge (G3), ack alarm (G4), feed global (G5), refresh token (G13), target/state/break per bucket (G2/G9/G10), konfirmasi flag labelable (G14), doc heartbeat (G15), tabel 204 (G12), FSM docs (G6), kebijakan reject manual (G7).
 
 ---
 
