@@ -2,13 +2,13 @@
 // Donut gauge component — circular progress with center value + label text.
 // Extracted from PasXGauges.tsx for single-responsibility.
 
-import React from 'react';
-import { useTheme } from '../../providers/ThemeProvider';
+import React from "react";
+import { useTheme } from "../../providers/ThemeProvider";
 
 export interface PasXDonutGaugeProps {
   label: string; // e.g. "OEE", "AVA", "QUA", "PER"
   value: number; // e.g. 65, 98, 72
-  size?: 'large' | 'medium';
+  size?: "large" | "medium";
   color?: string; // e.g. '#48a43f' (green) or '#eab308' (yellow)
   subtitle?: string; // e.g. "219m / 420m"
   rawLines?: string[]; // raw calculation numbers stacked vertically
@@ -18,16 +18,16 @@ export interface PasXDonutGaugeProps {
 export const PasXDonutGauge: React.FC<PasXDonutGaugeProps> = ({
   label,
   value,
-  size = 'medium',
-  color = '#48a43f',
+  size = "medium",
+  color = "#48a43f",
   subtitle,
   rawLines,
   onClick,
 }) => {
   const { theme } = useTheme();
-  const isDark = theme === 'dark';
+  const isDark = theme === "dark";
 
-  const isLarge = size === 'large';
+  const isLarge = size === "large";
   // Diameter viewBox — semua elemen teks dihitung sebagai fraksi diameter
   // sehingga ukuran font selalu relatif & proporsional terhadap circular chart
   // (SVG scaling: teks ikut membesar/mengecil bersama chart).
@@ -43,7 +43,7 @@ export const PasXDonutGauge: React.FC<PasXDonutGaugeProps> = ({
   const clampedValue = Math.min(100, Math.max(0, value));
   const strokeDashoffset = circumference - (clampedValue / 100) * circumference;
 
-  const trackColor = isDark ? '#1e293b' : '#cbd5e1';
+  const trackColor = isDark ? "#1e293b" : "#cbd5e1";
 
   // Blok teks tengah di-center vertikal di sekitar titik tengah chart.
   // Karena dirender sebagai SVG <text> dalam viewBox yang sama,
@@ -57,13 +57,29 @@ export const PasXDonutGauge: React.FC<PasXDonutGaugeProps> = ({
   return (
     <div
       onClick={onClick}
-      className={`flex flex-col items-center justify-center cursor-pointer select-none transition-transform hover:scale-102 min-h-0 min-w-0 shrink-0 h-full max-h-full ${
-        isLarge ? 'p-2' : 'p-0.5'
-      }`}
+      className={`flex flex-col items-center justify-center cursor-pointer select-none transition-transform hover:scale-102 min-h-0 min-w-0 ${
+        isLarge ? "shrink-0 p-2" : "shrink p-0.5"
+      } h-full max-h-full max-w-full`}
       title={`${label}: ${value}% (Click for calculation formula)`}
+      style={{ flex: isLarge ? "0 0 auto" : "1 1 0" }}
     >
-      <div className="flex items-center justify-center min-h-0 min-w-0" style={{ flex: '1 1 0', aspectRatio: '1 / 1', maxWidth: '100%', maxHeight: '100%' }}>
-        <svg width="100%" height="100%" viewBox={`0 0 ${diameter} ${diameter}`} preserveAspectRatio="xMidYMid meet" className="overflow-visible block">
+      <div
+        className="flex items-center justify-center min-h-0 min-w-0"
+        style={{
+          flex: "1 1 0",
+          aspectRatio: "1 / 1",
+          maxWidth: "100%",
+          maxHeight: "100%",
+          minWidth: isLarge ? "200px" : "120px",
+        }}
+      >
+        <svg
+          width="100%"
+          height="100%"
+          viewBox={`0 0 ${diameter} ${diameter}`}
+          preserveAspectRatio="xMidYMid meet"
+          className="overflow-visible block"
+        >
           {/* Background circle track */}
           <circle
             cx={cx}
@@ -99,7 +115,9 @@ export const PasXDonutGauge: React.FC<PasXDonutGaugeProps> = ({
             fontSize={valueFontSize}
             fontWeight={800}
             letterSpacing="-0.02em"
-            style={{ fontFamily: 'Inter, ui-sans-serif, system-ui, sans-serif' }}
+            style={{
+              fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif",
+            }}
           >
             {Math.round(value)}%
           </text>
@@ -112,27 +130,43 @@ export const PasXDonutGauge: React.FC<PasXDonutGaugeProps> = ({
             fontSize={labelFontSize}
             fontWeight={700}
             letterSpacing="0.08em"
-            style={{ fontFamily: 'Inter, ui-sans-serif, system-ui, sans-serif' }}
+            style={{
+              fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif",
+            }}
           >
             {label.toUpperCase()}
           </text>
         </svg>
       </div>
       {rawLines && rawLines.length > 0 ? (
-        <div className="flex flex-col items-center space-y-0 font-mono shrink-0" style={{ marginTop: '0.6vh', fontSize: 'clamp(11px, 1.7vh, 14px)', lineHeight: 1.35 }}>
+        <div
+          className="flex flex-col items-center space-y-0 font-mono shrink-0"
+          style={{
+            marginTop: "0.6vh",
+            fontSize: "clamp(11px, 1.7vh, 14px)",
+            lineHeight: 1.35,
+          }}
+        >
           {rawLines.map((line, idx) => {
-            const colonIndex = line.indexOf(':');
+            const colonIndex = line.indexOf(":");
             if (colonIndex !== -1) {
               const key = line.slice(0, colonIndex).trim();
               const val = line.slice(colonIndex + 1).trim();
               return (
-                <div key={idx} className="flex items-center gap-1 whitespace-nowrap">
-                  <span className={`font-bold font-mono ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                <div
+                  key={idx}
+                  className="flex items-center gap-1 whitespace-nowrap"
+                >
+                  <span
+                    className={`font-bold font-mono ${isDark ? "text-slate-400" : "text-slate-500"}`}
+                  >
                     {key}:
                   </span>
-                  <span className={`font-semibold ${
-                    isDark ? 'text-slate-200' : 'text-slate-700'
-                  }`}>
+                  <span
+                    className={`font-semibold ${
+                      isDark ? "text-slate-200" : "text-slate-700"
+                    }`}
+                  >
                     {val}
                   </span>
                 </div>
@@ -141,7 +175,7 @@ export const PasXDonutGauge: React.FC<PasXDonutGaugeProps> = ({
             return (
               <span
                 key={idx}
-                className={`whitespace-nowrap ${isDark ? 'text-slate-300 font-medium' : 'text-slate-600 font-medium'}`}
+                className={`whitespace-nowrap ${isDark ? "text-slate-300 font-medium" : "text-slate-600 font-medium"}`}
               >
                 {line}
               </span>
@@ -149,9 +183,11 @@ export const PasXDonutGauge: React.FC<PasXDonutGaugeProps> = ({
           })}
         </div>
       ) : subtitle ? (
-        <span className={`text-xs font-mono font-medium mt-1 text-center whitespace-nowrap ${
-          isDark ? 'text-slate-400' : 'text-slate-600'
-        }`}>
+        <span
+          className={`text-xs font-mono font-medium mt-1 text-center whitespace-nowrap ${
+            isDark ? "text-slate-400" : "text-slate-600"
+          }`}
+        >
           {subtitle}
         </span>
       ) : null}
