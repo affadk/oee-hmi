@@ -2,6 +2,7 @@
 
 import React, { useRef, useState, useEffect, useMemo } from 'react';
 import * as echarts from 'echarts';
+import type { TooltipComponentFormatterCallbackParams } from 'echarts';
 import { HourlyDataPoint } from '../../../domain/index';
 import { useTheme } from '../../providers/ThemeProvider';
 import { Radio } from 'lucide-react';
@@ -39,7 +40,7 @@ export const EChartsOeeTrend: React.FC<EChartsOeeTrendProps> = ({
     const tIdx = raw.indexOf('T');
     if (tIdx >= 0 && raw.length >= tIdx + 6) return raw.slice(tIdx + 1, tIdx + 6);
     const m = raw.match(/(\d{2}:\d{2})/);
-    if (m) return m[1];
+    if (m) return m[1] ?? raw;
     return raw;
   };
 
@@ -70,8 +71,8 @@ export const EChartsOeeTrend: React.FC<EChartsOeeTrendProps> = ({
     });
   }, [hourlyTrends, shiftStart, shiftEnd]);
 
-  const startHour = visibleTrends.length > 0 ? formatHourLabel(visibleTrends[0].hour) : '00:00';
-  const endHour = visibleTrends.length > 0 ? formatHourLabel(visibleTrends[visibleTrends.length - 1].hour) : '08:00';
+  const startHour = visibleTrends.length > 0 ? formatHourLabel(visibleTrends[0]?.hour ?? '') : '00:00';
+  const endHour = visibleTrends.length > 0 ? formatHourLabel(visibleTrends[visibleTrends.length - 1]?.hour ?? '') : '08:00';
 
   // Ukur kontainer aktual (bukan viewport): font canvas ECharts harus angka,
   // jadi skala dihitung dari box terukur terhadap referensi desain 860x250.
@@ -158,11 +159,14 @@ export const EChartsOeeTrend: React.FC<EChartsOeeTrendProps> = ({
           fontSize: fsTip,
           fontFamily: 'Inter, sans-serif',
         },
-        formatter: (params: any) => {
+        formatter: (params: TooltipComponentFormatterCallbackParams) => {
           if (!Array.isArray(params)) return '';
-          const inBreak = isBreakHour(String(params[0]?.axisValue ?? ''));
-          let tip = `<div class="font-bold mb-1 font-mono ${isDark ? 'text-slate-200' : 'text-slate-800'}">Time: ${params[0]?.axisValue} · ${inBreak ? 'Istirahat' : 'Running'}</div>`;
-          params.forEach((p: any) => {
+          // axisValue is present at runtime on axis-trigger frames but absent
+          // from echarts' TopLevelFormatterParams type — read defensively.
+          const axisValue = (params[0] as { axisValue?: unknown } | undefined)?.axisValue;
+          const inBreak = isBreakHour(String(axisValue ?? ''));
+          let tip = `<div class="font-bold mb-1 font-mono ${isDark ? 'text-slate-200' : 'text-slate-800'}">Time: ${String(axisValue ?? '')} · ${inBreak ? 'Istirahat' : 'Running'}</div>`;
+          params.forEach((p) => {
             tip += `
               <div class="flex items-center justify-between gap-3 text-xs py-0.5">
                 <span style="color:${p.color}">● ${p.seriesName}:</span>

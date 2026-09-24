@@ -32,7 +32,7 @@ export const FormulaHelpModal: React.FC<FormulaHelpModalProps> = ({
               OEE Formulation & Manufacturing Standards (ISO 22400)
             </h3>
           </div>
-          <button 
+          <button type="button" 
             onClick={onClose}
             className={`p-1 rounded-md transition-colors ${
               isDark ? 'text-slate-400 hover:text-slate-200 hover:bg-slate-800' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100'
@@ -210,7 +210,7 @@ export const FormulaHelpModal: React.FC<FormulaHelpModalProps> = ({
               <Award className="w-4 h-4 text-amber-500" />
               World Class Benchmark: OEE &ge; 85%, Avail &ge; 90%, Perf &ge; 95%, Quality &ge; 99.9%
             </span>
-            <button
+            <button type="button"
               onClick={onClose}
               className={`px-3 py-1 rounded border transition-colors ${
                 isDark ? 'bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700' : 'bg-slate-100 hover:bg-slate-200 text-slate-800 border-slate-300'

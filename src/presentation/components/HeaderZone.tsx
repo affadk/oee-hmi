@@ -14,6 +14,7 @@ import {
   Cpu,
 } from 'lucide-react';
 import { MachineConfig, CalculatedOeeMetrics, MachineStatus } from '../../domain/index';
+import type { MqttHealthPayload } from '../../domain/entities/MqttContracts';
 import { useTheme } from '../providers/ThemeProvider';
 
 interface HeaderZoneProps {
@@ -87,7 +88,15 @@ export const HeaderZone: React.FC<HeaderZoneProps> = ({
   const shiftNumber = shiftStart === '22:00' || shiftStart === '23:00' ? 'Shift 3' : shiftStart === '15:00' ? 'Shift 2' : shiftStart === '—' ? '—' : 'Shift 1';
   const theoreticalHourlyOutput = targetCycleTimeSec > 0 ? Math.round(3600 / targetCycleTimeSec) : 0;
 
-  const health = currentMachine.health || { tasks_healthy: 0, tasks_total: 0, heap_free: 0, stale_count: 0 } as any;
+  const health: MqttHealthPayload = currentMachine.health ?? {
+    timestamp: 0,
+    heap_free: 0,
+    tasks_healthy: 0,
+    tasks_total: 0,
+    stale_tasks: [],
+    stale_count: 0,
+    event_flags: 0,
+  };
   const isHealthy = (health.stale_count ?? 0) === 0;
   const heapFreeKb = health.heap_free != null ? Math.round(health.heap_free / 1024) : 0;
 

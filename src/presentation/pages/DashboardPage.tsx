@@ -59,14 +59,31 @@ export const DashboardPage: React.FC = () => {
           <h2 className={`font-bold text-base ${isDark ? 'text-white' : 'text-slate-900'}`}>Backend tidak terjangkau</h2>
           <p className="mt-2 text-xs font-mono break-words">{dashboard.loadError}</p>
           <p className="mt-2 text-xs opacity-80">Periksa docker gateway / proxy, lalu coba lagi. {dashboard.useBackend ? '' : 'Aktifkan VITE_USE_BACKEND=true untuk lane backend.'}</p>
-          <button
-            type="button"
-            onClick={dashboard.retryLoad}
-            className="mt-4 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold cursor-pointer"
-          >
-            Coba lagi
-          </button>
+          <div className="mt-4 flex items-center justify-center gap-2">
+            <button
+              type="button"
+              onClick={dashboard.retryLoad}
+              className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold cursor-pointer"
+            >
+              Coba lagi
+            </button>
+            {dashboard.useBackend && (
+              <button
+                type="button"
+                onClick={dashboard.openAuthModal}
+                className={`px-4 py-2 rounded-lg text-sm font-bold cursor-pointer border ${isDark ? 'border-slate-700 hover:bg-slate-800 text-slate-200' : 'border-slate-300 hover:bg-slate-200 text-slate-800'}`}
+              >
+                Login operator
+              </button>
+            )}
+          </div>
         </div>
+        <AuthPinModal
+          isOpen={dashboard.isAuthModalOpen}
+          error={dashboard.authError}
+          onClose={dashboard.closeAuthModal}
+          onSubmit={(pin, operatorId) => dashboard.loginWithPin(pin, operatorId)}
+        />
       </div>
     );
   }
@@ -98,7 +115,7 @@ export const DashboardPage: React.FC = () => {
               : 'bg-white/95 border-slate-300 text-slate-700'
           }`}
         >
-          <button
+          <button type="button"
             id="btn-switch-fullscreen-view"
             onClick={() => dashboard.setViewMode('FULLSCREEN_IMAGE')}
             className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
@@ -111,7 +128,7 @@ export const DashboardPage: React.FC = () => {
             <span>OEE Shift Overview</span>
           </button>
 
-          <button
+          <button type="button"
             id="btn-switch-audit-view"
             onClick={() => dashboard.setViewMode('DETAILED_AUDIT')}
             className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
@@ -126,7 +143,7 @@ export const DashboardPage: React.FC = () => {
 
           <span className={`w-[1px] h-4 ${isDark ? 'bg-slate-700' : 'bg-slate-300'}`}></span>
 
-          <button
+          <button type="button"
             id="btn-quick-toggle-theme"
             onClick={toggleTheme}
             title={isDark ? 'Switch to Light theme' : 'Switch to Dark theme'}
@@ -226,6 +243,7 @@ export const DashboardPage: React.FC = () => {
               targetOee={machine.targetOee}
               totalTargetQty={machine.jobConfig?.targetQuantity ?? machine.targetCount}
               totalCount={machine.telemetry?.tot ?? machine.totalCount}
+              dataWarning={dashboard.supplementalError || undefined}
             />
 
             <AlarmsZone

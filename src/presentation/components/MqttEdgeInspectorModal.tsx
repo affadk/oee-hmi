@@ -145,6 +145,9 @@ export const MqttEdgeInspectorModal: React.FC<MqttEdgeInspectorModalProps> = ({
     setShiftStart(machine.jobConfig?.shiftStart ?? '—');
     setShiftEnd(machine.jobConfig?.shiftEnd ?? '—');
     setBreakMin(machine.jobConfig?.plannedBreakMin ?? 0);
+    // DISENGAJA: sinkron hanya saat ganti perangkat ([machine.id]) agar ketikan
+    // tidak tertimpa pulse telemetri. (exhaustive-deps tidak terpasang:
+    // typescript-eslint belum mendukung TS 7.)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [machine.id]);
 
@@ -227,11 +230,12 @@ export const MqttEdgeInspectorModal: React.FC<MqttEdgeInspectorModalProps> = ({
     </div>
   );
 
-  const textInput = (val: string | number, set: (v: any) => void, extra?: string, type: string = 'text') => (
+  const textInput = <T extends string | number>(val: T, set: (v: T) => void, extra?: string, type: string = 'text') => (
     <input
       type={type}
       value={val}
-      onChange={(e) => set(type === 'number' ? Number(e.target.value) : e.target.value)}
+      // Safe: every call site passes val and set of the same T (both string or both number).
+      onChange={(e) => set((type === 'number' ? Number(e.target.value) : e.target.value) as T)}
       className={`w-full border rounded-lg px-2.5 py-2 text-sm font-mono outline-none focus:ring-1 focus:ring-blue-500/40 transition-colors ${inputCls} ${extra ?? ''}`}
     />
   );
@@ -268,7 +272,7 @@ export const MqttEdgeInspectorModal: React.FC<MqttEdgeInspectorModalProps> = ({
               {topicPrefix}/# · {brokerHost}:{brokerPort} · QoS {qos} · {machine.deviceId}
             </p>
           </div>
-          <button onClick={onClose} aria-label="Tutup terminal" className={`p-2 rounded-lg transition-colors shrink-0 ${isDark ? 'text-slate-400 hover:text-white hover:bg-slate-800' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-200'}`}>
+          <button type="button" onClick={onClose} aria-label="Tutup terminal" className={`p-2 rounded-lg transition-colors shrink-0 ${isDark ? 'text-slate-400 hover:text-white hover:bg-slate-800' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-200'}`}>
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -281,7 +285,7 @@ export const MqttEdgeInspectorModal: React.FC<MqttEdgeInspectorModalProps> = ({
               const Icon = n.icon;
               const active = activeTab === n.key;
               return (
-                <button
+                <button type="button"
                   key={n.key}
                   onClick={() => setActiveTab(n.key)}
                   className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-left transition-all whitespace-nowrap md:whitespace-normal min-w-[180px] md:min-w-0 border ${
@@ -339,7 +343,7 @@ export const MqttEdgeInspectorModal: React.FC<MqttEdgeInspectorModalProps> = ({
                     <div className={`p-4 rounded-xl border ${card}`}>
                       <div className="flex items-center justify-between mb-2">
                         <h3 className={`text-xs font-bold uppercase tracking-wider ${value}`}>Job aktif di edge</h3>
-                        <button onClick={() => setActiveTab('PRODUKSI')} className="text-[11px] font-bold text-purple-500 hover:underline">Ubah →</button>
+                        <button type="button" onClick={() => setActiveTab('PRODUKSI')} className="text-[11px] font-bold text-purple-500 hover:underline">Ubah →</button>
                       </div>
                       <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
                         {[
@@ -360,10 +364,10 @@ export const MqttEdgeInspectorModal: React.FC<MqttEdgeInspectorModalProps> = ({
                     <div className={`p-4 rounded-xl border ${card}`}>
                       <h3 className={`text-xs font-bold uppercase tracking-wider mb-2 ${value}`}>Aksi cepat</h3>
                       <div className="flex flex-wrap gap-2">
-                        <button onClick={() => sendCmd('RESUME')} className="px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-1.5"><Play className="w-3.5 h-3.5" /> Resume</button>
-                        <button onClick={() => sendCmd('PAUSE')} className="px-3 py-2 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold flex items-center gap-1.5"><Pause className="w-3.5 h-3.5" /> Pause</button>
-                        <button onClick={() => setActiveTab('TELEMETRI')} className={`px-3 py-2 rounded-lg border text-xs font-bold flex items-center gap-1.5 ${isDark ? 'border-slate-700 hover:bg-slate-800' : 'border-slate-300 hover:bg-slate-100'}`}><Radio className="w-3.5 h-3.5" /> Lihat frame</button>
-                        <button onClick={() => setActiveTab('KESEHATAN')} className={`px-3 py-2 rounded-lg border text-xs font-bold flex items-center gap-1.5 ${isDark ? 'border-slate-700 hover:bg-slate-800' : 'border-slate-300 hover:bg-slate-100'}`}><HeartPulse className="w-3.5 h-3.5" /> Diagnostik</button>
+                        <button type="button" onClick={() => sendCmd('RESUME')} className="px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-1.5"><Play className="w-3.5 h-3.5" /> Resume</button>
+                        <button type="button" onClick={() => sendCmd('PAUSE')} className="px-3 py-2 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold flex items-center gap-1.5"><Pause className="w-3.5 h-3.5" /> Pause</button>
+                        <button type="button" onClick={() => setActiveTab('TELEMETRI')} className={`px-3 py-2 rounded-lg border text-xs font-bold flex items-center gap-1.5 ${isDark ? 'border-slate-700 hover:bg-slate-800' : 'border-slate-300 hover:bg-slate-100'}`}><Radio className="w-3.5 h-3.5" /> Lihat frame</button>
+                        <button type="button" onClick={() => setActiveTab('KESEHATAN')} className={`px-3 py-2 rounded-lg border text-xs font-bold flex items-center gap-1.5 ${isDark ? 'border-slate-700 hover:bg-slate-800' : 'border-slate-300 hover:bg-slate-100'}`}><HeartPulse className="w-3.5 h-3.5" /> Diagnostik</button>
                       </div>
                       <p className={`mt-2.5 text-[11px] leading-relaxed ${label}`}>
                         Run {fmtDur(t.run)} · Downtime {fmtDur(t.dt)} · Suhu {(t.tmp / 10).toFixed(1)}°C · RPM {t.rpm} · DI 0x{t.di.toString(16).toUpperCase().padStart(2, '0')}
@@ -392,7 +396,7 @@ export const MqttEdgeInspectorModal: React.FC<MqttEdgeInspectorModalProps> = ({
                       <h3 className={`text-xs font-bold uppercase tracking-wider flex items-center gap-2 ${value}`}><Wifi className="w-4 h-4 text-sky-500" /> Antarmuka jaringan (W5500 · SPI2)</h3>
                       <div className="flex items-center justify-between mt-2 mb-3">
                         <span className={`text-xs font-semibold ${value}`}>DHCP</span>
-                        <button onClick={() => setDhcp(!dhcp)} aria-pressed={dhcp} className={`w-10 h-5 rounded-full p-0.5 transition-colors ${dhcp ? 'bg-emerald-500' : isDark ? 'bg-slate-700' : 'bg-slate-300'}`}>
+                        <button type="button" onClick={() => setDhcp(!dhcp)} aria-pressed={dhcp} className={`w-10 h-5 rounded-full p-0.5 transition-colors ${dhcp ? 'bg-emerald-500' : isDark ? 'bg-slate-700' : 'bg-slate-300'}`}>
                           <span className={`block w-4 h-4 rounded-full bg-white transition-transform ${dhcp ? 'translate-x-5' : ''}`} />
                         </button>
                       </div>
@@ -423,7 +427,7 @@ export const MqttEdgeInspectorModal: React.FC<MqttEdgeInspectorModalProps> = ({
 
                   <div className="flex items-center justify-between flex-wrap gap-2">
                     <p className={`text-[11px] font-mono ${label}`}>MCU STM32H723ZGT6 · Cortex-M7 550MHz · FW v0.3.1 · FreeRTOS 10.6</p>
-                    <button
+                    <button type="button"
                       onClick={() => { pushLog('TX', `PUB ${topicPrefix}/config → SET_DEVICE_CONFIG name="${devName}" ip=${dhcp ? 'dhcp' : ipAddr}`); pushLog('RX', 'ACK edge: device.bin ditulis + reboot netif'); }}
                       className="px-4 py-2 rounded-lg bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold flex items-center gap-1.5"
                     >
@@ -481,10 +485,10 @@ export const MqttEdgeInspectorModal: React.FC<MqttEdgeInspectorModalProps> = ({
                       ))}
                     </div>
                     <div className="flex flex-wrap gap-2 mt-3">
-                      <button onClick={() => { pushLog('TX', `CONNECT mqtt://${brokerHost}:${brokerPort} id=${clientId} ka=${keepAlive}s`); pushLog('RX', 'CONNACK 0x00 — sesi persisten, 6 topik disubscribe'); }} className="px-3.5 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold flex items-center gap-1.5">
+                      <button type="button" onClick={() => { pushLog('TX', `CONNECT mqtt://${brokerHost}:${brokerPort} id=${clientId} ka=${keepAlive}s`); pushLog('RX', 'CONNACK 0x00 — sesi persisten, 6 topik disubscribe'); }} className="px-3.5 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold flex items-center gap-1.5">
                         <PlugZap className="w-3.5 h-3.5" /> Tes koneksi
                       </button>
-                      <button onClick={() => { setTopicPrefix(`oee/device/${machine.deviceId}`); setClientId(`edge-${machine.deviceId.toLowerCase()}`); pushLog('SYS', 'Prefix & client-id dikembalikan ke default perangkat'); }} className={`px-3.5 py-2 rounded-lg border text-xs font-bold ${isDark ? 'border-slate-700 hover:bg-slate-800' : 'border-slate-300 hover:bg-slate-100'}`}>
+                      <button type="button" onClick={() => { setTopicPrefix(`oee/device/${machine.deviceId}`); setClientId(`edge-${machine.deviceId.toLowerCase()}`); pushLog('SYS', 'Prefix & client-id dikembalikan ke default perangkat'); }} className={`px-3.5 py-2 rounded-lg border text-xs font-bold ${isDark ? 'border-slate-700 hover:bg-slate-800' : 'border-slate-300 hover:bg-slate-100'}`}>
                         Kembalikan default
                       </button>
                     </div>
@@ -530,20 +534,20 @@ export const MqttEdgeInspectorModal: React.FC<MqttEdgeInspectorModalProps> = ({
                   <div className={`p-4 rounded-xl border ${panel}`}>
                     <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
                       <h3 className={`text-xs font-bold uppercase tracking-wider ${value}`}>Preview payload SET_JOB_CONFIG</h3>
-                      <button onClick={() => handleCopy(jobPayload)} className={`px-2.5 py-1 rounded-lg border text-[11px] font-bold flex items-center gap-1 ${isDark ? 'border-blue-800 text-blue-300 hover:bg-blue-950' : 'border-blue-300 text-blue-700 hover:bg-blue-50'}`}>
+                      <button type="button" onClick={() => handleCopy(jobPayload)} className={`px-2.5 py-1 rounded-lg border text-[11px] font-bold flex items-center gap-1 ${isDark ? 'border-blue-800 text-blue-300 hover:bg-blue-950' : 'border-blue-300 text-blue-700 hover:bg-blue-50'}`}>
                         {copied ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />} {copied ? 'Disalin' : 'Salin JSON'}
                       </button>
                     </div>
                     <pre className={`p-3 rounded-xl border font-mono text-[11px] leading-relaxed overflow-x-auto ${isDark ? 'bg-[#050811] border-slate-800 text-emerald-300' : 'bg-white border-slate-200 text-emerald-800'}`}>{jobPayload}</pre>
                     {!jobValid && <p className="text-[11px] text-rose-500 font-semibold mt-2 flex items-center gap-1"><AlertTriangle className="w-3.5 h-3.5" /> Lengkapi WO, produk, target &gt; 0, dan cycle &gt; 0.</p>}
                     <div className="flex justify-end gap-2 mt-3">
-                      <button
+                      <button type="button"
                         onClick={() => { setWo(machine.jobConfig.workOrder); setProductName(machine.jobConfig.productName); setProductId(machine.jobConfig.productId); setOperatorName(machine.jobConfig.operatorName); setOperatorId(machine.jobConfig.operatorId); setTargetQty(machine.jobConfig.targetQuantity); setStdCycle(machine.jobConfig.standardCycleTimeSec); }}
                         className={`px-4 py-2 rounded-lg border text-xs font-bold ${isDark ? 'border-slate-700 hover:bg-slate-800' : 'border-slate-300 hover:bg-slate-100'}`}
                       >
                         Reset
                       </button>
-                      <button onClick={publishJob} disabled={!jobValid} className="px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-500 disabled:opacity-40 text-white text-xs font-bold flex items-center gap-1.5">
+                      <button type="button" onClick={publishJob} disabled={!jobValid} className="px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-500 disabled:opacity-40 text-white text-xs font-bold flex items-center gap-1.5">
                         <Send className="w-3.5 h-3.5" /> Publish & tunggu ACK
                       </button>
                     </div>
@@ -555,13 +559,13 @@ export const MqttEdgeInspectorModal: React.FC<MqttEdgeInspectorModalProps> = ({
               {activeTab === 'KONTROL' && (
                 <div className="space-y-4">
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <button onClick={() => sendCmd('RESUME')} className={`p-4 rounded-xl border text-left transition-all ${isDark ? 'bg-emerald-950/40 hover:bg-emerald-900/60 border-emerald-800' : 'bg-emerald-50 hover:bg-emerald-100 border-emerald-300'}`}>
+                    <button type="button" onClick={() => sendCmd('RESUME')} className={`p-4 rounded-xl border text-left transition-all ${isDark ? 'bg-emerald-950/40 hover:bg-emerald-900/60 border-emerald-800' : 'bg-emerald-50 hover:bg-emerald-100 border-emerald-300'}`}>
                       <Play className="w-5 h-5 text-emerald-500 mb-2" />
                       <div className={`font-bold text-xs ${value}`}>RESUME</div>
                       <div className={`text-[10px] font-mono mt-0.5 ${label}`}>FSM → RUNNING</div>
                       <p className={`text-[11px] mt-1 ${label}`}>Lanjutkan timer siklus & akumulasi run-time.</p>
                     </button>
-                    <button onClick={() => sendCmd('PAUSE')} className={`p-4 rounded-xl border text-left transition-all ${isDark ? 'bg-rose-950/40 hover:bg-rose-900/60 border-rose-800' : 'bg-rose-50 hover:bg-rose-100 border-rose-300'}`}>
+                    <button type="button" onClick={() => sendCmd('PAUSE')} className={`p-4 rounded-xl border text-left transition-all ${isDark ? 'bg-rose-950/40 hover:bg-rose-900/60 border-rose-800' : 'bg-rose-50 hover:bg-rose-100 border-rose-300'}`}>
                       <Pause className="w-5 h-5 text-rose-500 mb-2" />
                       <div className={`font-bold text-xs ${value}`}>PAUSE</div>
                       <div className={`text-[10px] font-mono mt-0.5 ${label}`}>FSM → UNPLANNED_DT</div>
@@ -575,7 +579,7 @@ export const MqttEdgeInspectorModal: React.FC<MqttEdgeInspectorModalProps> = ({
                         <input type="checkbox" checked={confirmReset} onChange={(e) => setConfirmReset(e.target.checked)} className="w-3.5 h-3.5 accent-amber-600" />
                         <span className={label}>Saya paham counter dinolkan</span>
                       </label>
-                      <button onClick={() => confirmReset && sendCmd('RESET_COUNTER')} disabled={!confirmReset} className="mt-2 w-full px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 disabled:opacity-40 text-white text-[11px] font-bold">
+                      <button type="button" onClick={() => confirmReset && sendCmd('RESET_COUNTER')} disabled={!confirmReset} className="mt-2 w-full px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 disabled:opacity-40 text-white text-[11px] font-bold">
                         Kirim reset
                       </button>
                     </div>
@@ -601,10 +605,10 @@ export const MqttEdgeInspectorModal: React.FC<MqttEdgeInspectorModalProps> = ({
                   <div className="flex items-center justify-between flex-wrap gap-2 text-xs">
                     <span className={`font-mono ${label}`}>Topik <span className="text-blue-500 font-bold">{topicPrefix}/telemetry</span> · QoS {qos} · 1s</span>
                     <div className="flex gap-2">
-                      <button onClick={() => setIsPretty(!isPretty)} className={`px-2.5 py-1 rounded-lg border text-[11px] font-bold ${isDark ? 'border-slate-700 hover:bg-slate-800' : 'border-slate-300 hover:bg-slate-100'}`}>
+                      <button type="button" onClick={() => setIsPretty(!isPretty)} className={`px-2.5 py-1 rounded-lg border text-[11px] font-bold ${isDark ? 'border-slate-700 hover:bg-slate-800' : 'border-slate-300 hover:bg-slate-100'}`}>
                         {isPretty ? 'Wire compact' : 'Pretty JSON'}
                       </button>
-                      <button onClick={() => handleCopy(isPretty ? prettyTelemetry : wireTelemetry)} className={`px-2.5 py-1 rounded-lg border text-[11px] font-bold flex items-center gap-1 ${isDark ? 'border-blue-800 text-blue-300' : 'border-blue-300 text-blue-700'}`}>
+                      <button type="button" onClick={() => handleCopy(isPretty ? prettyTelemetry : wireTelemetry)} className={`px-2.5 py-1 rounded-lg border text-[11px] font-bold flex items-center gap-1 ${isDark ? 'border-blue-800 text-blue-300' : 'border-blue-300 text-blue-700'}`}>
                         {copied ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />} {copied ? 'Disalin' : 'Salin frame'}
                       </button>
                     </div>
@@ -694,7 +698,7 @@ export const MqttEdgeInspectorModal: React.FC<MqttEdgeInspectorModalProps> = ({
                 <Terminal className="w-3.5 h-3.5 text-emerald-400" />
                 <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400">Console MQTT</span>
                 <span className="text-[10px] font-mono text-slate-500">{consoleLog.length} baris</span>
-                <button onClick={() => setConsoleLog([])} className="ml-auto text-[10px] font-mono text-slate-500 hover:text-slate-300">bersihkan</button>
+                <button type="button" onClick={() => setConsoleLog([])} className="ml-auto text-[10px] font-mono text-slate-500 hover:text-slate-300">bersihkan</button>
               </div>
               <div className="px-3 py-2 h-20 overflow-y-auto font-mono text-[11px] leading-relaxed" aria-live="polite">
                 {consoleLog.map((l, i) => (
@@ -713,7 +717,7 @@ export const MqttEdgeInspectorModal: React.FC<MqttEdgeInspectorModalProps> = ({
         <div className={`px-4 py-2.5 border-t flex items-center gap-2 text-[11px] font-mono shrink-0 ${isDark ? 'border-[#162744] bg-[#080e1c] text-slate-400' : 'border-slate-200 bg-white text-slate-600'}`}>
           <span className="truncate">FW STM32H723ZGT6 v0.3.1 · LittleFS + CRC32 · OSPI FIFO {fifoEnable ? 'ON' : 'OFF'}</span>
           {jobDirty && <span className="text-amber-500 font-bold shrink-0">● job belum dipublish</span>}
-          <button onClick={onClose} className={`ml-auto px-4 py-1.5 rounded-lg font-bold font-sans text-xs shrink-0 ${isDark ? 'bg-slate-800 hover:bg-slate-700 text-white' : 'bg-slate-900 hover:bg-slate-700 text-white'}`}>
+          <button type="button" onClick={onClose} className={`ml-auto px-4 py-1.5 rounded-lg font-bold font-sans text-xs shrink-0 ${isDark ? 'bg-slate-800 hover:bg-slate-700 text-white' : 'bg-slate-900 hover:bg-slate-700 text-white'}`}>
             Tutup
           </button>
         </div>

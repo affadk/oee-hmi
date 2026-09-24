@@ -62,13 +62,13 @@ export const LossAnalysisZone: React.FC<LossAnalysisZoneProps> = ({ machine, met
         </div>
         <div className={`flex items-center gap-1 p-1 rounded-lg border text-xs font-semibold ${isDark ? 'bg-[#132238] border-slate-700' : 'bg-slate-100 border-slate-200'}`}>
           <span className={`audit-caption px-1.5 font-mono ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Loss as:</span>
-          <button
+          <button type="button"
             onClick={() => setLossUnitMode('TIME')}
             className={`px-2.5 py-1 rounded font-semibold transition-all cursor-pointer ${lossUnitMode === 'TIME' ? 'bg-[#1a3464] text-white shadow-sm' : isDark ? 'text-slate-400 hover:text-slate-200' : 'text-slate-600 hover:text-slate-900'}`}
           >
             Time (min)
           </button>
-          <button
+          <button type="button"
             onClick={() => setLossUnitMode('UNITS')}
             className={`px-2.5 py-1 rounded font-semibold transition-all cursor-pointer ${lossUnitMode === 'UNITS' ? 'bg-[#1a3464] text-white shadow-sm' : isDark ? 'text-slate-400 hover:text-slate-200' : 'text-slate-600 hover:text-slate-900'}`}
           >

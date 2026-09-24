@@ -93,6 +93,7 @@ function draftFromMachine(machine: MachineConfig): BatchDraft {
     QR_PRODUCT_CATALOG.find((p) => p.productName === (job?.productName || machine.currentProduct)) ??
     QR_PRODUCT_CATALOG[1] ??
     QR_PRODUCT_CATALOG[0];
+  if (!productMatch) throw new Error('Katalog produk QR kosong.');
   const operatorName = job?.operatorName || '—';
   const operatorId = job?.operatorId || '—';
   const operatorMatch =
@@ -101,6 +102,7 @@ function draftFromMachine(machine: MachineConfig): BatchDraft {
   const scheduleMatch =
     QR_SCHEDULE_CATALOG.find((s) => s.shiftStart === job?.shiftStart && s.shiftEnd === job?.shiftEnd) ??
     QR_SCHEDULE_CATALOG[0];
+  if (!scheduleMatch) throw new Error('Katalog shift QR kosong.');
   return { product: productMatch, machineId: machine.id, operator: operatorMatch, schedule: scheduleMatch };
 }
 
@@ -142,6 +144,9 @@ export const BatchQrScannerModal: React.FC<BatchQrScannerModalProps> = ({
       return () => clearTimeout(t);
     }
     return undefined;
+    // DISENGAJA: reset draft hanya saat dibuka — machine sengaja di luar deps
+    // agar pulse telemetri tidak me-reset draft saat modal terbuka.
+    // (exhaustive-deps tidak terpasang: typescript-eslint belum mendukung TS 7.)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
@@ -362,7 +367,7 @@ export const BatchQrScannerModal: React.FC<BatchQrScannerModalProps> = ({
         {/* Stepper */}
         <ol className="flex items-center gap-1 mb-4 overflow-x-auto" aria-label="Langkah setup batch">
           {STEPS.map((s, i) => {
-            const Icon = STEP_ICONS[i];
+            const Icon = STEP_ICONS[i] ?? Layers;
             const isActive = s.id === step;
             const isDone =
               (s.id === 'PRODUCT' && stepIndex > 0) ||
@@ -770,7 +775,10 @@ export const BatchQrScannerModal: React.FC<BatchQrScannerModalProps> = ({
             {stepIndex > 0 && (
               <button
                 type="button"
-                onClick={() => goStep(STEPS[stepIndex - 1].id)}
+                onClick={() => {
+                  const prevId = STEPS[stepIndex - 1]?.id;
+                  if (prevId) goStep(prevId);
+                }}
                 className={cx('px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer', tx(themeTokens.footerButton, isDark))}
               >
                 <ArrowLeft className="w-3.5 h-3.5" />
@@ -780,7 +788,10 @@ export const BatchQrScannerModal: React.FC<BatchQrScannerModalProps> = ({
             {stepIndex < STEPS.length - 1 ? (
               <button
                 type="button"
-                onClick={() => goStep(STEPS[stepIndex + 1].id)}
+                onClick={() => {
+                  const nextId = STEPS[stepIndex + 1]?.id;
+                  if (nextId) goStep(nextId);
+                }}
                 className="px-4 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer"
               >
                 Lanjut

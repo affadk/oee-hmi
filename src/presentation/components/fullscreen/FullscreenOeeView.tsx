@@ -12,7 +12,6 @@ import {
   Sun,
   Moon,
   HelpCircle,
-  CheckCircle2,
   ChevronDown,
 } from 'lucide-react';
 import { BatchQrScannerModal } from './BatchQrScannerModal';
@@ -146,13 +145,11 @@ const formatStaffed = (totalMin: number): string => {
   const actualPcs = machine.telemetry?.tot ?? machine.totalCount ?? 0;
   const rejectPcs = machine.telemetry?.rej ?? machine.rejectCount ?? 0;
   const goodPcs = Math.max(0, actualPcs - rejectPcs);
-  const deltaPcs = actualPcs - targetPcs;
 
   // Calculation parameters for AVA, QUA, and PER
   const runTimeMin = machine.telemetry?.run ? Math.round(machine.telemetry.run / 60) : (metrics.runTimeMin || 0);
   const plannedTimeMin = metrics.plannedProductionTimeMin || Math.max(1, machine.shiftDurationMinutes - (machine.plannedDowntimeMinutes || 0));
   const downtimeMin = machine.telemetry?.dt ? Math.round(machine.telemetry.dt / 60) : (metrics.downtimeMin || 0);
-  const runTimeSec = machine.telemetry?.run ?? (runTimeMin * 60);
 
   const isRunning = machine.status === 'RUNNING';
 
@@ -710,7 +707,7 @@ const formatStaffed = (totalMin: number): string => {
             <span>Planned Time: <strong>{metrics.plannedProductionTimeMin}m</strong></span>
             <span>Staffed: <strong>{formatStaffed(metrics.plannedProductionTimeMin + (machine.plannedDowntimeMinutes || 0))}</strong></span>
             {!useBackend && (
-            <button
+            <button type="button"
               onClick={onOpenMqttModal}
               className="text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1 font-semibold cursor-pointer"
             >

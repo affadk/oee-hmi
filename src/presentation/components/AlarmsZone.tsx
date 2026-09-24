@@ -102,14 +102,14 @@ export const AlarmsZone: React.FC<AlarmsZoneProps> = ({
                   {alm.status !== 'Resolved' ? (
                     <div className="flex items-center justify-end gap-1.5">
                       {alm.status === 'Waiting Maintenance' && (
-                        <button
+                        <button type="button"
                           onClick={() => onAcknowledgeAlarm(alm.id)}
                           className="px-2 py-0.5 rounded audit-micro font-bold border bg-[#1a3464] hover:opacity-90 text-white border-[#1a3464] transition-all cursor-pointer"
                         >
                           Acknowledge
                         </button>
                       )}
-                      <button
+                      <button type="button"
                         onClick={() => onResolveAlarm(alm.id)}
                         className="px-2 py-0.5 rounded audit-micro font-bold border bg-[#48a43f] hover:brightness-110 text-white border-[#48a43f] transition-all cursor-pointer"
                       >

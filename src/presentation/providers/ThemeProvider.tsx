@@ -4,9 +4,8 @@
 // interface (domain), resolved via the composition root — never on fetch.
 
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { defaultContainer } from '../../infrastructure/di/Container';
-import type { LocalStorageThemeAdapter } from '../../infrastructure/storage/LocalStorageThemeAdapter';
-import type { ThemeMode, ThemePreference } from '../../domain/ports/IThemeStorage';
+import { useDiContainer } from './DiProvider';
+import type { IThemeStoragePort, ThemeMode, ThemePreference } from '../../domain/ports/IThemeStorage';
 
 export type { ThemeMode, ThemePreference };
 
@@ -46,7 +45,7 @@ function readSystemTheme(): ThemeMode {
 }
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const themeAdapter = defaultContainer.themeStorage as LocalStorageThemeAdapter;
+  const { themeStorage: themeAdapter }: { themeStorage: IThemeStoragePort } = useDiContainer();
 
   const [preference, setPreferenceState] = useState<ThemePreference>(() => {
     try {

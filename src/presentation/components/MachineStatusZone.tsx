@@ -54,7 +54,7 @@ export const MachineStatusZone: React.FC<MachineStatusZoneProps> = ({
             <div className="flex flex-wrap items-center gap-1 audit-caption font-mono">
               <span className={`mr-1 hidden sm:inline ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Set:</span>
               {(['RUNNING', 'IDLE', 'DOWN', 'SETUP'] as MachineStatus[]).map((st) => (
-                <button
+                <button type="button"
                   key={st}
                   onClick={() => onUpdateMachineStatus(st)}
                   className={`px-2 py-0.5 rounded audit-micro font-bold border transition-all cursor-pointer ${
@@ -123,7 +123,7 @@ export const MachineStatusZone: React.FC<MachineStatusZoneProps> = ({
               const b = getStatusMeta(m.status);
               const isSelected = m.id === machine.id;
               return (
-                <button
+                <button type="button"
                   key={m.id}
                   onClick={() => onSelectMachine(m.id)}
                   className={`p-2 rounded-lg border text-left transition-all cursor-pointer ${

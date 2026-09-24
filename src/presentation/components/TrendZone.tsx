@@ -9,13 +9,16 @@ interface TrendZoneProps {
   targetOee: number;
   totalTargetQty?: number;
   totalCount?: number;
+  /** Non-empty when the last supplemental load failed; shown data may be stale. */
+  dataWarning?: string;
 }
 
 export const TrendZone: React.FC<TrendZoneProps> = ({
   hourlyTrends,
   targetOee,
   totalTargetQty,
-  totalCount
+  totalCount,
+  dataWarning,
 }) => {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
@@ -23,10 +26,22 @@ export const TrendZone: React.FC<TrendZoneProps> = ({
   const [hoveredHour, setHoveredHour] = useState<HourlyDataPoint | null>(null);
 
   const hourlyTarget = hourlyTrends[0]?.target ?? 0;
-  const maxActualItem = hourlyTrends.reduce(
-    (max, cur) => (cur.actual > max.actual ? cur : max),
-    hourlyTrends[0] || { actual: 0, hour: '--' } as HourlyDataPoint
-  );
+  const emptyHour: HourlyDataPoint = {
+    hour: '--',
+    target: 0,
+    actual: 0,
+    good: 0,
+    reject: 0,
+    oee: 0,
+    availability: 0,
+    performance: 0,
+    quality: 0,
+    status: 'IDLE',
+  };
+  const firstTrend = hourlyTrends[0];
+  const maxActualItem = firstTrend
+    ? hourlyTrends.reduce((max, cur) => (cur.actual > max.actual ? cur : max), firstTrend)
+    : emptyHour;
   const totalActualOutput = totalCount ?? hourlyTrends.reduce((sum, h) => sum + h.actual, 0);
   const effectiveTotalTarget = totalTargetQty ?? (hourlyTarget * hourlyTrends.length);
 
@@ -66,15 +81,24 @@ export const TrendZone: React.FC<TrendZoneProps> = ({
           <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-2 mb-2 border-b border-slate-200 dark:border-slate-800 gap-2">
             <div>
               <h2 className={`text-sm font-bold tracking-tight ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>OEE Shift Trend</h2>
+              {dataWarning ? (
+                <span
+                  role="status"
+                  title={dataWarning}
+                  className="inline-flex items-center gap-1 mt-0.5 px-2 py-0.5 rounded text-[11px] font-mono bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/30"
+                >
+                  Data parsial — {dataWarning}
+                </span>
+              ) : null}
               <span className={`text-xs font-mono ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                {hourlyTrends.length > 0 ? hourlyTrends[0].hour : '22:00'} → {hourlyTrends.length > 0 ? hourlyTrends[hourlyTrends.length - 1].hour : '08:00'}
+                {hourlyTrends.length > 0 ? hourlyTrends[0]?.hour : '22:00'} → {hourlyTrends.length > 0 ? hourlyTrends[hourlyTrends.length - 1]?.hour ?? '08:00' : '08:00'}
               </span>
             </div>
             <div className="flex items-center gap-2">
               <span className="text-xs font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-semibold">Target {targetOee}%</span>
               <div className="flex items-center gap-1 audit-caption font-bold">
-                <button onClick={() => setActiveMetric('OEE')} className={`px-2 py-0.5 rounded cursor-pointer ${activeMetric === 'OEE' ? 'bg-[#1a3464] text-white' : isDark ? 'bg-[#132238] text-slate-400' : 'bg-slate-100 text-slate-600'}`}>OEE</button>
-                <button onClick={() => setActiveMetric('ALL')} className={`px-2 py-0.5 rounded cursor-pointer ${activeMetric === 'ALL' ? 'bg-[#1a3464] text-white' : isDark ? 'bg-[#132238] text-slate-400' : 'bg-slate-100 text-slate-600'}`}>All 3</button>
+                <button type="button" onClick={() => setActiveMetric('OEE')} className={`px-2 py-0.5 rounded cursor-pointer ${activeMetric === 'OEE' ? 'bg-[#1a3464] text-white' : isDark ? 'bg-[#132238] text-slate-400' : 'bg-slate-100 text-slate-600'}`}>OEE</button>
+                <button type="button" onClick={() => setActiveMetric('ALL')} className={`px-2 py-0.5 rounded cursor-pointer ${activeMetric === 'ALL' ? 'bg-[#1a3464] text-white' : isDark ? 'bg-[#132238] text-slate-400' : 'bg-slate-100 text-slate-600'}`}>All 3</button>
               </div>
             </div>
           </div>

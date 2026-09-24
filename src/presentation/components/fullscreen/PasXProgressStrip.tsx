@@ -58,7 +58,7 @@ const parseShiftHM = (hm: string | undefined, fallbackMin: number): number => {
   if (!hm) return fallbackMin;
   const m = hm.match(/^(\d{1,2}):(\d{2})/);
   if (!m) return fallbackMin;
-  return (parseInt(m[1], 10) % 24) * 60 + (parseInt(m[2], 10) % 60);
+  return (parseInt(m[1] ?? '0', 10) % 24) * 60 + (parseInt(m[2] ?? '0', 10) % 60);
 };
 
 const formatHM = (totalMin: number): string => {
@@ -99,8 +99,7 @@ export const PasXProgressStrip: React.FC<PasXProgressStripProps> = ({ machine, u
         durationFraction: seg.durationMinutes / 60,
       };
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [machine?.downtimeReasons, machine?.jobConfig?.shiftStart, machine?.jobConfig?.shiftEnd, machine?.jobConfig?.breakTimeWindow, machine?.jobConfig?.plannedBreakMin, windowMin]);
+  }, [machine, windowMin]);
 
   // Live clock — penanda real-time, refresh tiap detik
   const [now, setNow] = useState(() => new Date());

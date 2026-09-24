@@ -24,9 +24,17 @@ export function useFullscreen() {
       setIsFullscreen(Boolean(document.fullscreenElement));
     };
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Only plain 'f' outside editable/selectable elements toggles fullscreen —
+      // never hijack modified shortcuts (Ctrl/Cmd+F) or select/contenteditable.
       if (
         (e.key === 'f' || e.key === 'F') &&
-        !(e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement)
+        !e.ctrlKey &&
+        !e.metaKey &&
+        !e.altKey &&
+        !(e.target instanceof HTMLInputElement ||
+          e.target instanceof HTMLTextAreaElement ||
+          e.target instanceof HTMLSelectElement ||
+          (e.target instanceof HTMLElement && e.target.isContentEditable))
       ) {
         e.preventDefault();
         toggleBrowserFullscreen();

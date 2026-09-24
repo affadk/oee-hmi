@@ -116,7 +116,7 @@ export const LogEventModal: React.FC<LogEventModalProps> = ({
             <PlusCircle className="w-5 h-5 text-blue-500" />
             <h3 className={`font-bold text-base ${isDark ? 'text-white' : 'text-slate-900'}`}>Log Floor Event / Loss for {machineId}</h3>
           </div>
-          <button 
+          <button type="button" 
             onClick={onClose}
             className={`p-1 rounded-md transition-colors ${
               isDark ? 'text-slate-400 hover:text-slate-200 hover:bg-slate-800' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100'
@@ -248,7 +248,7 @@ export const LogEventModal: React.FC<LogEventModalProps> = ({
               <label className={`block font-semibold mb-1 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>Downtime Category</label>
               <select
                 value={dtCategory}
-                onChange={(e) => setDtCategory(e.target.value as any)}
+                onChange={(e) => setDtCategory(e.target.value as DowntimeReasonItem['category'])}
                 className={`w-full border rounded-lg p-2.5 focus:outline-none focus:border-blue-500 ${
                   isDark ? 'bg-slate-800 border-slate-700 text-slate-200' : 'bg-slate-50 border-slate-300 text-slate-800'
                 }`}
