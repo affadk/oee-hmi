@@ -52,6 +52,7 @@ import { useDeviceRegistry } from './useDeviceRegistry';
 import { useWorkOrders } from './useWorkOrders';
 import { useDashboardUi } from './useDashboardUi';
 import type { DashboardViewMode } from './useDashboardUi';
+import { resolveShiftWindowIso } from '../../domain/services/ShiftTimeline';
 
 export type { BackendDowntimeLabelInput };
 
@@ -194,10 +195,21 @@ export function useOeeDashboard(deps: OeeDashboardDeps): UseOeeDashboardReturn {
     onUnauthorized: () => auth.notifyUnauthorized(),
   });
 
+  // G11: windowed hourly scoped to the shift; memoized per machine so the
+  // supplemental effect refires only on machine change (null = unwindowed fallback).
+  const shiftWindow = useMemo(
+    () => resolveShiftWindowIso(
+      machines.currentMachine?.jobConfig?.shiftStart,
+      machines.currentMachine?.jobConfig?.shiftEnd,
+    ),
+    [machines.currentMachine],
+  );
+
   const supplemental = useSupplementalSync({
     useBackend,
     currentMachineId: machines.currentMachineId,
     currentDeviceId: machines.currentDeviceId,
+    shiftWindow,
     getDowntimeReasonsUseCase,
     getHourlyTrendsUseCase,
     listLabelableDowntimesUseCase,

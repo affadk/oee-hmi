@@ -6,6 +6,7 @@
 import { useEffect, useState } from 'react';
 import type { MachineConfig } from '../../domain/entities/Machine';
 import type { DowntimeEvent } from '../../domain/entities/backend/Telemetry';
+import type { ShiftWindowIso } from '../../domain/services/ShiftTimeline';
 import type { GetDowntimeReasonsUseCase } from '../use-cases/GetDowntimeReasonsUseCase';
 import type { GetHourlyTrendsUseCase } from '../use-cases/GetHourlyTrendsUseCase';
 import type { ListLabelableDowntimesUseCase } from '../use-cases/ListLabelableDowntimesUseCase';
@@ -14,6 +15,8 @@ export interface SupplementalSyncDeps {
   useBackend: boolean;
   currentMachineId: string;
   currentDeviceId: string;
+  /** Shift window for hourly trends (G11); null = unwindowed fallback. */
+  shiftWindow: ShiftWindowIso | null;
   getDowntimeReasonsUseCase: GetDowntimeReasonsUseCase;
   getHourlyTrendsUseCase: GetHourlyTrendsUseCase;
   listLabelableDowntimesUseCase: ListLabelableDowntimesUseCase;
@@ -32,6 +35,7 @@ export function useSupplementalSync(deps: SupplementalSyncDeps): SupplementalSyn
     useBackend,
     currentMachineId,
     currentDeviceId,
+    shiftWindow,
     getDowntimeReasonsUseCase,
     getHourlyTrendsUseCase,
     listLabelableDowntimesUseCase,
@@ -50,7 +54,10 @@ export function useSupplementalSync(deps: SupplementalSyncDeps): SupplementalSyn
       try {
         const [downtimeReasons, hourlyTrends, labelable] = await Promise.all([
           getDowntimeReasonsUseCase.execute(currentDeviceId),
-          getHourlyTrendsUseCase.execute(currentDeviceId),
+          // G11: windowed hourly scoped to the shift; falls back to last-72 unwindowed.
+          shiftWindow
+            ? getHourlyTrendsUseCase.execute(currentDeviceId, shiftWindow.from, shiftWindow.to, 24)
+            : getHourlyTrendsUseCase.execute(currentDeviceId),
           listLabelableDowntimesUseCase.execute(currentDeviceId).catch(() => []),
         ]);
 
@@ -87,7 +94,7 @@ export function useSupplementalSync(deps: SupplementalSyncDeps): SupplementalSyn
     return () => {
       isMounted = false;
     };
-  }, [useBackend, currentMachineId, currentDeviceId, getDowntimeReasonsUseCase, getHourlyTrendsUseCase, listLabelableDowntimesUseCase, setMachines]);
+  }, [useBackend, currentMachineId, currentDeviceId, shiftWindow, getDowntimeReasonsUseCase, getHourlyTrendsUseCase, listLabelableDowntimesUseCase, setMachines]);
 
   return { labelableDowntimes, setLabelableDowntimes, supplementalError };
 }

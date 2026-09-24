@@ -34,6 +34,44 @@ export function shiftWindowMinutes(shiftStart: string | undefined, shiftEnd: str
   return Math.max(60, endMin - startMin);
 }
 
+export interface ShiftWindowIso {
+  from: string;
+  to: string;
+}
+
+/**
+ * Resolve the shift instance (ISO instants) containing `now`, or the most
+ * recent past one when `now` precedes today's window. Wall-clock "HH:MM" is
+ * interpreted in the runtime timezone (HMI runs in plant tz). `to` is clamped
+ * to `now` so future buckets are never requested. Returns null when the
+ * shift strings are unparseable — callers must fall back to unwindowed queries.
+ */
+export function resolveShiftWindowIso(
+  shiftStart: string | undefined,
+  shiftEnd: string | undefined,
+  now: Date = new Date(),
+): ShiftWindowIso | null {
+  const parseHM = (hm: string | undefined): { h: number; m: number } | null => {
+    if (!hm) return null;
+    const m = hm.match(/^(\d{1,2}):(\d{2})/);
+    if (!m) return null;
+    return { h: parseInt(m[1] ?? '0', 10) % 24, m: parseInt(m[2] ?? '0', 10) % 60 };
+  };
+  const s = parseHM(shiftStart);
+  const e = parseHM(shiftEnd);
+  if (!s || !e) return null;
+  const start = new Date(now);
+  start.setHours(s.h, s.m, 0, 0);
+  const end = new Date(now);
+  end.setHours(e.h, e.m, 0, 0);
+  if (end <= start) end.setDate(end.getDate() + 1); // overnight shift
+  if (now < start) {
+    start.setDate(start.getDate() - 1);
+    end.setDate(end.getDate() - 1);
+  }
+  return { from: start.toISOString(), to: (now < end ? now : end).toISOString() };
+}
+
 /**
  * Map a downtime reason to a timeline kind.
  * Order matters: check Waiting/Changeover keywords before Breakdown,

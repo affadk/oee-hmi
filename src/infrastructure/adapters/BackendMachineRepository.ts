@@ -20,6 +20,7 @@ import type { MachineRecord } from '../../domain/entities/backend/Device';
 import type { WorkOrderResolveResult } from '../../domain/entities/backend/WorkOrder';
 import type { DowntimeEvent } from '../../domain/entities/backend/Telemetry';
 import { isPlannedDowntimeCategory } from '../../domain/entities/backend/Telemetry';
+import { resolveShiftWindowIso } from '../../domain/services/ShiftTimeline';
 
 function mapLiveStateToMachineStatus(state: LiveMachineState): MachineStatus {
   switch (state) {
@@ -147,10 +148,16 @@ export class BackendMachineRepository implements IMachineRepository {
 
     const machine = this.buildMachineConfig(snapshot, machineRecord, jobConfig);
 
+    // G11: hourly scoped to the shift window; falls back to last-72 unwindowed.
+    const window = resolveShiftWindowIso(jobConfig.shift_plan.shift_start, jobConfig.shift_plan.shift_end);
+    const hourlyArgs = window
+      ? { from: window.from, to: window.to, limit: 24 }
+      : { from: undefined, to: undefined, limit: 72 };
+
     // Fetch supplemental data in parallel
     const [downtimeResult, hourlyResult] = await Promise.all([
       this.telemetryRepo.getDowntimes(snapshot.deviceId, undefined, undefined, 100, undefined, false).catch(() => ({ data: [], meta: { limit: 100, hasMore: false, nextCursor: null, count: 0 } })),
-      this.telemetryRepo.getHourlyTrends(snapshot.deviceId, undefined, undefined, 72, false).catch(() => ({ data: [], meta: { limit: 72, hasMore: false, nextCursor: null, count: 0 } })),
+      this.telemetryRepo.getHourlyTrends(snapshot.deviceId, hourlyArgs.from, hourlyArgs.to, hourlyArgs.limit, false).catch(() => ({ data: [], meta: { limit: 72, hasMore: false, nextCursor: null, count: 0 } })),
     ]);
 
     machine.downtimeReasons = downtimeResult.data.map((e) => mapDowntimeEventToReasonItem(e));
