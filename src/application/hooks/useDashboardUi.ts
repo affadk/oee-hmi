@@ -1,15 +1,11 @@
 // /src/application/hooks/useDashboardUi.ts
-// Focused hook: view-level UI state (view mode, simulation toggle, TEEP,
+// Focused hook: view-level UI state (simulation toggle, TEEP,
 // modal visibility, formula highlight). No use-cases, no IO.
 // LAYER RULES: React only — no domain/infrastructure imports needed.
 
 import { useCallback, useEffect, useState } from 'react';
 
-export type DashboardViewMode = 'FULLSCREEN_IMAGE' | 'DETAILED_AUDIT';
-
 export interface DashboardUiApi {
-  viewMode: DashboardViewMode;
-  setViewMode: (mode: DashboardViewMode) => void;
   isSimulating: boolean;
   toggleSimulate: () => void;
   teepEnabled: boolean;
@@ -27,7 +23,6 @@ export interface DashboardUiApi {
 }
 
 export function useDashboardUi(useBackend: boolean): DashboardUiApi {
-  const [viewMode, setViewMode] = useState<DashboardViewMode>('FULLSCREEN_IMAGE');
   const [isSimulating, setIsSimulating] = useState<boolean>(!useBackend);
   const [teepEnabled, setTeepEnabled] = useState<boolean>(false);
   const [isLogModalOpen, setIsLogModalOpen] = useState<boolean>(false);
@@ -56,8 +51,6 @@ export function useDashboardUi(useBackend: boolean): DashboardUiApi {
   const closeMqttModal = useCallback(() => setIsMqttModalOpen(false), []);
 
   return {
-    viewMode,
-    setViewMode,
     isSimulating,
     toggleSimulate,
     teepEnabled,

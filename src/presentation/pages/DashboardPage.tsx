@@ -1,22 +1,20 @@
 // /src/presentation/pages/DashboardPage.tsx
-// Presentation coordinator: wires DI container (via providers) into the
-// application hook, owns fullscreen side effects, renders presentational zones.
+// Presentation coordinator & parent route: wires DI container (via providers)
+// into the application hook, owns fullscreen side effects, the loading/error
+// shells, the shared modal layer, and the floating page switcher.
 // Must NOT fetch, MUST NOT touch repositories — only hooks + UI composition.
+//
+// The two pages — OEE Shift Overview (/overview) and Detailed Audit Dashboard
+// (/audit) — render as child routes via <Outlet>, sharing ONE dashboard state
+// instance so switching pages never refetches or resets machine/session state.
 
 import React, { useMemo } from 'react';
+import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useOeeDashboard } from '../../application/hooks/useOeeDashboard';
-import { telemetryAgeSec } from '../../domain/index';
+import type { UseOeeDashboardReturn } from '../../application/hooks/useOeeDashboard';
 import { useTheme } from '../providers/ThemeProvider';
 import { useDiContainer } from '../providers/DiProvider';
 import { useFullscreen } from '../hooks/useFullscreen';
-import { FullscreenOeeView } from '../layouts/FullscreenOeeView';
-import { HeaderZone } from '../components/layout/HeaderZone';
-import { HeroKpiZone } from '../components/zones/HeroKpiZone';
-import { ProductionZone } from '../components/zones/ProductionZone';
-import { MachineStatusZone } from '../components/zones/MachineStatusZone';
-import { LossAnalysisZone } from '../components/zones/LossAnalysisZone';
-import { TrendZone } from '../components/zones/TrendZone';
-import { AlarmsZone } from '../components/zones/AlarmsZone';
 import { LogEventModal } from '../components/modals/LogEventModal';
 import { FormulaHelpModal } from '../components/modals/FormulaHelpModal';
 import { MqttEdgeInspectorModal } from '../components/modals/MqttEdgeInspectorModal/MqttEdgeInspectorModal';
@@ -25,11 +23,22 @@ import { DeviceConfigModal } from '../components/modals/DeviceConfigModal/Device
 import { ProductionSetupModal } from '../components/modals/ProductionSetupModal';
 import { LayoutDashboard, Tv, Sun, Moon } from 'lucide-react';
 
+/** Shape handed to child pages through the router outlet context. */
+export interface DashboardOutletContext {
+  dashboard: UseOeeDashboardReturn;
+  isFullscreen: boolean;
+  toggleBrowserFullscreen: () => void;
+}
+
 export const DashboardPage: React.FC = () => {
   const { theme, toggleTheme } = useTheme();
   const isDark = theme === 'dark';
   const container = useDiContainer();
   const { isFullscreen, toggleBrowserFullscreen } = useFullscreen();
+  const navigate = useNavigate();
+  const location = useLocation();
+  // Halaman aktif dari URL: satu-satunya route selain /audit adalah /overview.
+  const isOverview = location.pathname !== '/audit';
 
   const deps = useMemo(() => ({
     calculateOeeUseCase: container.calculateOeeUseCase,
@@ -101,18 +110,18 @@ export const DashboardPage: React.FC = () => {
       </div>
     );
   }
-
-  const machine = dashboard.currentMachine;
-  const metrics = dashboard.currentMetrics;
-  // Spec §4: seperti footer fullscreen — tandai basi, jangan sembunyikan angka.
-  const staleAgeSec = telemetryAgeSec(machine.lastTelemetryTs);
+  const outletContext: DashboardOutletContext = {
+    dashboard,
+    isFullscreen,
+    toggleBrowserFullscreen,
+  };
 
   return (
     <div
       id="dashboard-root-layout"
-      className={`font-sans selection:bg-blue-600 selection:text-white transition-colors w-full max-w-full overflow-x-clip ${
+      className={`font-sans selection:bg-blue-600 selection:text-white transition-colors w-full max-w-full overflow-x-clip min-h-screen ${
         isDark ? 'bg-[#070d1a] text-slate-100' : 'bg-slate-100 text-slate-900'
-      } ${dashboard.viewMode === 'FULLSCREEN_IMAGE' ? 'h-screen max-h-screen overflow-hidden flex flex-col' : 'min-h-screen'}`}
+      }`}
     >
       {!isFullscreen && (
         <div
@@ -125,9 +134,9 @@ export const DashboardPage: React.FC = () => {
         >
           <button type="button"
             id="btn-switch-fullscreen-view"
-            onClick={() => dashboard.setViewMode('FULLSCREEN_IMAGE')}
+            onClick={() => navigate('/overview')}
             className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
-              dashboard.viewMode === 'FULLSCREEN_IMAGE'
+              isOverview
                 ? 'bg-blue-600 text-white shadow-md'
                 : isDark ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-900'
             }`}
@@ -138,9 +147,9 @@ export const DashboardPage: React.FC = () => {
 
           <button type="button"
             id="btn-switch-audit-view"
-            onClick={() => dashboard.setViewMode('DETAILED_AUDIT')}
+            onClick={() => navigate('/audit')}
             className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
-              dashboard.viewMode === 'DETAILED_AUDIT'
+              !isOverview
                 ? 'bg-blue-600 text-white shadow-md'
                 : isDark ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-900'
             }`}
@@ -166,144 +175,12 @@ export const DashboardPage: React.FC = () => {
           </button>
         </div>
       )}
-
-      {dashboard.viewMode === 'FULLSCREEN_IMAGE' ? (
-        <FullscreenOeeView
-          machine={machine}
-          allMachines={dashboard.machines}
-          metrics={metrics}
-          isFullscreen={isFullscreen}
-          onToggleFullscreen={toggleBrowserFullscreen}
-          onOpenMqttModal={dashboard.openMqttModal}
-          isSimulating={dashboard.isSimulating}
-          useBackend={dashboard.useBackend}
-          onToggleSimulate={dashboard.toggleSimulate}
-          onSwitchMachine={dashboard.selectMachine}
-          onOpenFormula={dashboard.openFormulaModal}
-          onViewAllEvents={() => dashboard.setViewMode('DETAILED_AUDIT')}
-          onUpdateMachineStatus={dashboard.updateMachineStatus}
-          onLogReject={dashboard.logReject}
-          onDispatchMqttCommand={dashboard.dispatchMqttCommand}
-          onApplyJobConfig={dashboard.dispatchMqttJobConfig}
-          shiftSegments={dashboard.shiftSegments}
-          livePoints={dashboard.liveTrend}
-          workOrderPreview={dashboard.workOrderPreview}
-          onPreviewWorkOrder={dashboard.previewWorkOrder}
-          onProceedToSetup={dashboard.openProductionSetupModal}
-        />
-      ) : (
-        <div
-          id="detailed-audit-view-container"
-          className={`min-h-screen w-full max-w-full overflow-x-clip flex flex-col font-sans transition-colors ${
-            isDark ? 'bg-[#080e1a] text-slate-100' : 'bg-[#e9edf4] text-slate-900'
-          }`}
-        >
-          <HeaderZone
-            currentMachine={machine}
-            allMachines={dashboard.machines}
-            metrics={metrics}
-            selectedPlant={dashboard.selectedPlant}
-            selectedLine={dashboard.selectedLine}
-            selectedShift={dashboard.selectedShift}
-            selectedDate={dashboard.selectedDate}
-            isSimulating={dashboard.isSimulating}
-            useBackend={dashboard.useBackend}
-            onSelectMachine={dashboard.selectMachine}
-            onSelectLine={dashboard.selectLine}
-            onSelectShift={dashboard.selectShift}
-            onToggleSimulate={dashboard.toggleSimulate}
-            onOpenLogModal={dashboard.openLogModal}
-            onOpenHelpModal={() => dashboard.openFormulaModal('OEE')}
-            onOpenMqttModal={dashboard.openMqttModal}
-            onOpenProductionSetup={() => {
-              dashboard.openProductionSetupModal();
-              void dashboard.loadPendingWorkOrders().catch(() => undefined);
-            }}
-            onOpenDeviceConfig={dashboard.openDeviceConfigModal}
-            onUpdateMachineStatus={dashboard.updateMachineStatus}
-            teepEnabled={dashboard.teepEnabled}
-            onToggleTeep={dashboard.toggleTeep}
-          />
-
-          <main className="flex-1 w-full min-w-0 max-w-full overflow-x-clip px-[1vw] py-[1vh] space-y-[1vh] pb-20">
-            <HeroKpiZone
-              metrics={metrics}
-              machine={machine}
-              teepEnabled={dashboard.teepEnabled}
-              onOpenFormula={dashboard.openFormulaModal}
-            />
-
-            <ProductionZone
-              metrics={metrics}
-              machine={machine}
-            />
-
-            <MachineStatusZone
-              machine={machine}
-              allMachines={dashboard.machines}
-              metrics={metrics}
-              onSelectMachine={dashboard.selectMachine}
-              onUpdateMachineStatus={dashboard.updateMachineStatus}
-              useBackend={dashboard.useBackend}
-              onResetCounters={dashboard.resetCounters}
-            />
-
-            <LossAnalysisZone
-              machine={machine}
-              metrics={metrics}
-            />
-
-            <TrendZone
-              hourlyTrends={machine.hourlyTrends}
-              targetOee={machine.targetOee}
-              totalTargetQty={machine.jobConfig?.targetQuantity ?? machine.targetCount}
-              totalCount={machine.telemetry?.tot ?? machine.totalCount}
-              dataWarning={dashboard.supplementalError || undefined}
-            />
-
-            <AlarmsZone
-              alarms={dashboard.alarms}
-              onAcknowledgeAlarm={dashboard.acknowledgeAlarm}
-              onResolveAlarm={dashboard.resolveAlarm}
-              activeDowntimeCount={dashboard.activeDowntimeCount}
-            />
-          </main>
-
-          <footer
-            id="audit-view-footer"
-            className={`w-full px-[1.2vw] py-[0.8vh] border-t text-xs font-mono transition-colors ${
-              isDark ? 'bg-[#0d1728] border-slate-800 text-slate-400' : 'bg-[#e2e8f0] border-[#c4cbd5] text-slate-600'
-            }`}
-          >
-            <div className="w-full flex flex-wrap items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <span>Machine: <strong className={isDark ? 'text-slate-200' : 'text-slate-800'}>{machine.name}</strong></span>
-                <span>Line: <strong className={isDark ? 'text-slate-200' : 'text-slate-800'}>{machine.line}</strong></span>
-                <span>Status: <strong className={machine.connectionStatus === 'ONLINE' ? 'text-emerald-500' : 'text-rose-500'}>{machine.connectionStatus || '—'}</strong></span>
-                {staleAgeSec !== null && staleAgeSec > 60 ? (
-                  <span
-                    role="status"
-                    title={`Telemetri terakhir ${staleAgeSec} dtk lalu — angka yang tampil mungkin basi`}
-                    className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-500/15 text-amber-500 border border-amber-500/40"
-                  >
-                    STALE {staleAgeSec}s
-                  </span>
-                ) : null}
-              </div>
-              <div className="flex items-center gap-3">
-                <span>Planned Time: <strong>{metrics.plannedProductionTimeMin || 420}m</strong></span>
-                <span>OEE: <strong className={isDark ? 'text-slate-200' : 'text-slate-800'}>{metrics.oeePct?.toFixed(1)}%</strong></span>
-                <span className="hidden sm:inline">A × P × Q = {metrics.availabilityPct?.toFixed(1)}% × {metrics.performancePct?.toFixed(1)}% × {metrics.qualityPct?.toFixed(1)}%</span>
-              </div>
-            </div>
-          </footer>
-        </div>
-      )}
+      <Outlet context={outletContext} />
 
       <LogEventModal
         isOpen={dashboard.isLogModalOpen}
         onClose={dashboard.closeLogModal}
-        machineId={machine.id}
+        machineId={dashboard.currentMachine.id}
         onAddDowntime={dashboard.logDowntime}
         onAddReject={dashboard.logReject}
         isBackendMode={dashboard.useBackend}
@@ -322,7 +199,7 @@ export const DashboardPage: React.FC = () => {
       <MqttEdgeInspectorModal
         isOpen={dashboard.isMqttModalOpen}
         onClose={dashboard.closeMqttModal}
-        machine={machine}
+        machine={dashboard.currentMachine}
         onSendCommand={dashboard.dispatchMqttCommand}
         onSendJobConfig={dashboard.dispatchMqttJobConfig}
         useBackend={dashboard.useBackend}
@@ -346,8 +223,8 @@ export const DashboardPage: React.FC = () => {
         isOpen={dashboard.isProductionSetupModalOpen}
         onClose={dashboard.closeProductionSetupModal}
         isBackendMode={dashboard.useBackend}
-        machineId={machine.id}
-        deviceId={machine.deviceId || null}
+        machineId={dashboard.currentMachine.id}
+        deviceId={dashboard.currentMachine.deviceId || null}
         pendingWorkOrders={dashboard.pendingWorkOrders}
         workOrderError={dashboard.workOrderError}
         preview={dashboard.workOrderPreview}

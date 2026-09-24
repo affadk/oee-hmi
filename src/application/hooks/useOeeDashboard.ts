@@ -8,7 +8,7 @@
 // presentation/pages/DashboardPage.tsx). Pure domain + use-case composition only.
 //
 // Decomposition (one responsibility per hook):
-// - useDashboardUi: view mode, simulation toggle, TEEP, modal visibility
+// - useDashboardUi: simulation toggle, TEEP, modal visibility
 // - useAuthSession: PIN session, runProtected gating, pending-action replay
 // - useMachinesQuery: fleet load, selection, alarms, loading/error/retry
 // - useSupplementalSync: downtime/trend/labelable merge (backend lane)
@@ -60,7 +60,6 @@ import { useDeviceRegistry } from './useDeviceRegistry';
 import { useWorkOrders } from './useWorkOrders';
 import { useDashboardUi } from './useDashboardUi';
 import { useShiftServerData, mergeShiftSummary } from './useShiftServerData';
-import type { DashboardViewMode } from './useDashboardUi';
 import { resolveShiftWindowIso } from '../../domain/services/ShiftTimeline';
 
 export type { BackendDowntimeLabelInput };
@@ -99,7 +98,6 @@ export interface UseOeeDashboardReturn {
   selectedLine: string;
   selectedShift: string;
   selectedDate: string;
-  viewMode: 'FULLSCREEN_IMAGE' | 'DETAILED_AUDIT';
   isSimulating: boolean;
   useBackend: boolean;
   teepEnabled: boolean;
@@ -129,7 +127,6 @@ export interface UseOeeDashboardReturn {
   productionSetupError: string;
   productionSetupBusy: boolean;
   formulaMetricHighlight: string;
-  setViewMode: (mode: 'FULLSCREEN_IMAGE' | 'DETAILED_AUDIT') => void;
   toggleSimulate: () => void;
   toggleTeep: () => void;
   selectMachine: (machineId: string) => void;
@@ -325,8 +322,6 @@ export function useOeeDashboard(deps: OeeDashboardDeps): UseOeeDashboardReturn {
     });
   }, [calculateOeeUseCase, machines.currentMachine, shiftServer.shiftSummary]);
 
-  const setViewMode = (mode: DashboardViewMode): void => ui.setViewMode(mode);
-
   return {
     machines: machines.machines,
     currentMachine: machines.currentMachine,
@@ -336,7 +331,6 @@ export function useOeeDashboard(deps: OeeDashboardDeps): UseOeeDashboardReturn {
     selectedLine: machines.selectedLine,
     selectedShift: machines.selectedShift,
     selectedDate: machines.selectedDate,
-    viewMode: ui.viewMode,
     isSimulating: ui.isSimulating,
     useBackend,
     teepEnabled: ui.teepEnabled,
@@ -363,7 +357,6 @@ export function useOeeDashboard(deps: OeeDashboardDeps): UseOeeDashboardReturn {
     productionSetupError: orders.productionSetupError,
     productionSetupBusy: orders.productionSetupBusy,
     formulaMetricHighlight: ui.formulaMetricHighlight,
-    setViewMode,
     toggleSimulate: ui.toggleSimulate,
     toggleTeep: ui.toggleTeep,
     selectMachine: machines.selectMachine,
