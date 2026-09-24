@@ -6,7 +6,7 @@
 >
 > **Status perbaikan (23 Sep 2026):** F1–F5 sudah dieksekusi — mapper FSM (`live-state.dto.ts`), planned-set tunggal (`Telemetry.ts:isPlannedDowntimeCategory`), `LogEventModal` mode backend (pilih event labelable + kategori Six Big Losses, tab defect disembunyikan), alarm per-device (`BackendAlarmRepository`), banner error + Retry (`DashboardPage`, `useOeeDashboard:loadError/retryLoad`), default `.env.example` → `"true"`, use-case mati (`getLiveStateUseCase`/`sendDeviceCommandUseCase`) dihapus dari container. Lolos `tsc --noEmit` + `pnpm build`.
 >
-> **Migrasi total (23 Sep 2026, lanjutan):** saat `useBackend=true`, simulasi dimatikan total — komponen simulasi disembunyikan (QR Scanner + `BatchQrScannerModal`, Edge I/O + `MqttEdgeInspectorModal`, badge Edge health, `FloorPushButtonsPanel`, toggle simulasi), data fabrikasi dihapus (reject 60/30/10 → kosong, `?? 201` → `0`, angka mock `TimeAccountsPanel`/`MachineTimelineStrip` → turunan data nyata, kursor demo `PasXProgressStrip` → jam dinding murni), `FullscreenHeader.tsx` mati dihapus. Kekurangan endpoint backend dicatat di `docs/BACKEND_GAP_REPORT.md` (G1–G8).
+> **Migrasi total (23 Sep 2026, lanjutan):** saat `useBackend=true`, simulasi dimatikan total — komponen simulasi disembunyikan (QR Scanner + `BatchQrScannerModal`, Edge I/O + `MqttEdgeInspectorModal`, badge Edge health, `FloorPushButtonsPanel`, toggle simulasi), data fabrikasi dihapus (reject 60/30/10 → kosong, `?? 201` → `0`, angka mock `TimeAccountsPanel`/`MachineTimelineStrip` → turunan data nyata, kursor demo `PasXProgressStrip` → jam dinding murni), `FullscreenHeader.tsx` mati dihapus. Kekurangan endpoint backend dicatat di `docs/specs/backend-gaps.md` (G1–G8).
 
 ---
 

@@ -284,7 +284,7 @@ const formatStaffed = (totalMin: number): string => {
           </button>
 
           {/* MQTT Edge Controller health — lane simulasi saja (backend tidak
-              punya endpoint health; lihat BACKEND_GAP_REPORT.md G3). */}
+              punya endpoint health; lihat specs/backend-gaps.md G3). */}
           {!useBackend && (
           <button
             type="button"

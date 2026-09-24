@@ -13,7 +13,7 @@ type EnvKey = 'VITE_API_BASE_URL' | 'VITE_WS_TELEMETRY_URL' | 'VITE_API_TOKEN' |
 // PENTING: tiap variabel WAJIB diakses sebagai `import.meta.env.VITE_X`
 // statis per-baris. Akses dinamis (`meta.env?.[key]`) TIDAK diganti Vite
 // saat transform/build — hasilnya selalu fallback (bug: flag backend
-// tidak pernah bisa true). Lihat docs/AUDIT_JALUR_SIMULASI_VS_BACKEND.md.
+// tidak pernah bisa true). Lihat docs/audits/simulation-backend-lane.md.
 function readEnv(key: EnvKey, fallback = ''): string {
   try {
     const v =

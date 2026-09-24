@@ -27,7 +27,7 @@
 
 - **Kebutuhan UI:** `TrendZone` Hourly Production (`Target N pcs/hr`).
 - **Kondisi kini:** `GET /telemetry/:id/hourly` tidak membawa target. Workaround frontend: `target_per_jam = target_qty(WO) / jam_shift`, dihitung di `BackendMachineRepository.buildOneSnapshot`.
-- **Usulan:** sertakan `target_per_hour` pada respons `shift-summary` Fase 2 (sudah dispec di `OEE_SHIFT_OVERVIEW_AND_AUDIT_API_SPEC.md §3.1`), atau field `hourly_target` di `work-orders/:id/resolve`.
+- **Usulan:** sertakan `target_per_hour` pada respons `shift-summary` Fase 2 (sudah dispec di `specs/shift-overview-api.md §3.1`), atau field `hourly_target` di `work-orders/:id/resolve`.
 - **Workaround kini:** cukup akurat; endpoint hanya untuk konsistensi antar layar.
 
 ## G3 — Status kesehatan edge controller (Prioritas: SEDANG)
@@ -97,7 +97,7 @@
   ```json
   "break": { "start": "02:00", "end": "03:00", "minutes": 60 }
   ```
-  plus `window: { from, to, tz }` yang sudah dispec di `OEE_SHIFT_OVERVIEW_AND_AUDIT_API_SPEC.md §3.1`. Frontend tetap fallback ke parse string selama field ini belum ada.
+  plus `window: { from, to, tz }` yang sudah dispec di `specs/shift-overview-api.md §3.1`. Frontend tetap fallback ke parse string selama field ini belum ada.
 - **Workaround kini:** parse string klien; tanpa window valid, istirahat disembunyikan (bukan ditebak).
 
 ## G11 — Seri per-jam terlingkup shift (Prioritas: RENDAH)

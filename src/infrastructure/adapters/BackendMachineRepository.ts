@@ -156,7 +156,7 @@ export class BackendMachineRepository implements IMachineRepository {
     machine.downtimeReasons = downtimeResult.data.map((e) => mapDowntimeEventToReasonItem(e));
     // Target per jam diturunkan dari WO (target_qty / jam shift) — bukan mock.
     // Reject breakdown TIDAK difabrikasi: backend belum punya endpoint-nya
-    // (lihat docs/BACKEND_GAP_REPORT.md G1), jadi dikosongkan.
+    // (lihat docs/specs/backend-gaps.md G1), jadi dikosongkan.
     const windowHours = Math.max(1, machine.shiftDurationMinutes / 60);
     const hourlyTarget = machine.jobConfig.targetQuantity > 0
       ? Math.round(machine.jobConfig.targetQuantity / windowHours)
