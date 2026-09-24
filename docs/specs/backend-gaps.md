@@ -9,6 +9,111 @@
 
 ---
 
+## Peta komponen & cakupan (audit 24 Sep 2026)
+
+Hasil audit: **setiap fungsi frontend sudah punya pasangan backend atau gap tercatat** — tidak ditemukan kebutuhan backend baru yang belum tercatat. Garis putus-putus = belum ada di backend (lihat nomor G).
+
+```mermaid
+flowchart LR
+    subgraph HMI["HMI / TV Andon — browser"]
+        SPA["oee-dashboard-aistudio<br/>React SPA (Vite :3002)"]
+    end
+    subgraph LAN["Plant LAN"]
+        GW["Nginx gateway :80<br/>proxy /api + /ws"]
+        BE["iiot-oee backend :3001<br/>REST + WS relay"]
+        DB[("PostgreSQL + TimescaleDB")]
+        EDGE["STM32 edge<br/>MQTT telemetry/health"]
+    end
+    SPA -->|same-origin REST + WS| GW
+    GW -->|/api/v1/*| BE
+    GW -->|/ws/telemetry| BE
+    BE <-->|SQL| DB
+    EDGE -->|MQTT| BE
+```
+
+```mermaid
+flowchart TB
+    subgraph FE["Frontend adapters — src/infrastructure"]
+        FElive["OeeHttpLiveStateRepository"]
+        FEwo["OeeHttpWorkOrderRepository"]
+        FEcmd["OeeHttpDeviceCommandGateway"]
+        FEmaster["OeeHttpMasterDataRepository"]
+        FEtele["OeeHttpTelemetryRepository"]
+        FEauth["OeeHttpAuthGateway"]
+        FEws["TelemetryWsClient"]
+        FEsum["OeeHttpShiftSummaryRepository"]
+        FEtls["OeeHttpShiftTimelineRepository"]
+    end
+    subgraph BE["Backend routes — iiot-oee"]
+        RTlive["GET /live-state<br/>GET /live-state/:device"]
+        RTwo["GET+POST /work-orders/*"]
+        RTcmd["POST /devices/:id/command"]
+        RTmaster["/devices /machines<br/>/products /operators<br/>bind + unbind"]
+        RTtele["/telemetry/:id*<br/>/downtime-events/*<br/>/operational-events/:id"]
+        RTauth["POST /auth/operator-pin"]
+        RTws["WS /ws/telemetry"]
+        RTsum["GET /oee/shift-summary"]
+        RTtls["GET /oee/shift-timeline"]
+        RTq["GET /quality/rejects/:device"]
+        RTh["GET /devices/:id/health"]
+        RTack["PATCH /operational-events/:id/ack"]
+        RTfeed["GET /operational-events global"]
+        RTref["POST /auth/refresh"]
+    end
+    FElive --> RTlive
+    FEwo --> RTwo
+    FEcmd --> RTcmd
+    FEmaster --> RTmaster
+    FEtele --> RTtele
+    FEauth --> RTauth
+    FEws --> RTws
+    FEsum -.->|404 = fallback §2| RTsum
+    FEtls -.->|404 = fallback §2| RTtls
+    RTq -.->|G1| RTtele
+    RTh -.->|G3| RTmaster
+    RTack -.->|G4| RTtele
+    RTfeed -.->|G5| RTtele
+    RTref -.->|G13| RTauth
+    classDef missing stroke-dasharray: 5 5;
+    class FEsum,FEtls,RTsum,RTtls,RTq,RTh,RTack,RTfeed,RTref missing;
+```
+
+Alur mutasi ber-gate PIN (contoh: label downtime, lane backend):
+
+```mermaid
+sequenceDiagram
+    participant OP as Operator (UI)
+    participant FE as Frontend (runProtected)
+    participant BE as Backend REST
+    OP->>FE: label downtime (event 42)
+    FE->>BE: POST /downtime-events/42/reason
+    alt 401 UNAUTHORIZED
+        BE-->>FE: 401
+        FE->>OP: modal PIN
+        OP->>FE: PIN operator
+        FE->>BE: POST /auth/operator-pin
+        BE-->>FE: token + expires_in
+        FE->>BE: ulangi POST reason (Bearer)
+    end
+    BE-->>FE: 200 → UI optimistik update
+```
+
+### Matriks cakupan fungsi → backend
+
+| Fungsi frontend | Endpoint | Status |
+|---|---|---|
+| Boot fleet, snapshot per device | `GET /live-state`, `GET /live-state/:device` | ✅ ada (G16: tetap array telanjang) |
+| WO list/detail/resolve/dispatch/complete/cancel | `GET/POST /work-orders/*` | ✅ ada (G12: tabel 204-vs-body) |
+| START/STOP/RESET/RESUME | `POST /devices/:id/command` | ✅ ada |
+| Registry, metadata, bind/unbind | `/devices`, `/machines`, `/products`, `/operators`, `bind`, `unbind` | ✅ ada (G12: kontrak body `unbind`) |
+| History/trend/downtime/operational/label | `/telemetry/:id*`, `/downtime-events/*`, `/operational-events/:id` | ✅ ada (G14: konfirmasi flag labelable) |
+| Login PIN + Bearer + 401-replay | `POST /auth/operator-pin` | ✅ ada (G13: refresh/TTL) |
+| Tick realtime + lifecycle → alarm | `WS /ws/telemetry` | ✅ ada (G15: skema heartbeat) |
+| Target/jam, health edge, reject breakdown, ack alarm, feed global, state/bucket, break terstruktur | — | 🟡 G1–G5, G9–G10 tercatat |
+| Shift summary/timeline agregat | `GET /oee/shift-summary`, `GET /oee/shift-timeline` | 🟡 Fase 2, klien fallback 404 |
+
+---
+
 ## G1 — Rincian reject / scrap per alasan (Prioritas: TINGGI)
 
 - **Kebutuhan UI:** `LossAnalysisZone` → panel "Reject & Scrap Breakdown" (paralel dengan Downtime Pareto).
