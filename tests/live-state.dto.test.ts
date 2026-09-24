@@ -37,4 +37,9 @@ describe('mapLiveStateListDto', () => {
     const out = mapLiveStateListDto([{ device_id: 'D1' }, { device_id: 'D2' }]);
     expect(out.map((s) => s.deviceId)).toEqual(['D1', 'D2']);
   });
+
+  it('tolerates {data} envelopes (G16)', () => {
+    const out = mapLiveStateListDto({ data: [{ device_id: 'D1' }], meta: { count: 1 } });
+    expect(out.map((s) => s.deviceId)).toEqual(['D1']);
+  });
 });

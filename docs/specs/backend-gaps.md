@@ -72,9 +72,11 @@
 - **Usulan:** nyatakan resmi bahwa lantai fisik/PLC adalah satu-satunya sumber counting; `LogEventModal` tab defect tetap disembunyikan di backend. Jika dibutuhkan, tambah `POST /work-orders/:id/reject {count, reason}` yang tervalidasi terhadap `totalCount`.
 - **Workaround kini:** disembunyikan; reject hanya via complete WO.
 
-## G8 — Pemicu UI untuk RESET_COUNTER di lane backend (Prioritas: SEDANG)
+## G8 — Pemicu UI untuk RESET_COUNTER di lane backend (Prioritas: SEDANG) — ✅ SELESAI SISI FRONTEND 24 Sep 2026
+
 - **Kondisi:** `POST /devices/:id/command` mendukung `RESET_COUNTER` (SUPERVISOR/ADMIN, LAN), dan `BackendMachineRepository.resetCounters` sudah memanggilnya — tetapi satu-satunya pemicu UI (`FloorPushButtonsPanel`, `MqttEdgeInspectorModal`) disembunyikan di lane backend.
-- **Usulan (frontend, tanpa backend baru):** tambahkan aksi Reset (dengan guard konfirmasi + RBAC) di `MachineStatusZone`/`DeviceConfigModal` saat backend. Dicatat di sini agar tidak terlupakan.
+- **Implementasi:** aksi `resetCounters` di `useMachineActions` (via `runProtected` = RBAC PIN) + tombol RESET backend-only di `MachineStatusZone` dengan guard `window.confirm` + error lokal `role="alert"`.
+- **Sisa:** tidak ada. Dicatat di sini agar tidak terlupakan.
 
 ## G9 — Status mesin per bucket pada hourly trends (Prioritas: SEDANG)
 
@@ -175,5 +177,6 @@
 - **Kondisi:** `getAllSnapshots` hanya menerima array telanjang (`mapLiveStateListDto`: non-array → `[]`); semua endpoint list lain toleran `{data,meta}` via `unwrapList`.
 - **Dampak:** bila backend suatu saat membungkus live-state dalam envelope, dashboard boot kosong **tanpa error** (filter `[]`).
 - **Usulan:** tetapkan salah satu sebagai kontrak (disarankan: pertahankan array telanjang seperti kini), atau beri tahu agar klien menambah toleransi envelope (3 baris, tanpa risiko: hanya mengubah kasus yang kini rusak).
+- **Status 24 Sep 2026:** toleransi envelope sisi klien **sudah diimplementasikan** (`mapLiveStateListDto` + test G16) — backend bebas memilih bentuk tanpa merusak klien.
 - **Yang harus dilakukan backend:** satu baris di API docs § live-state: "`GET /live-state` selalu array telanjang" (lalu tidak ada kerja klien), atau beri tahu perubahan bila akan di-envelope-kan.
 - **Kriteria selesai:** boot dashboard dengan 1+ mesin online menampilkan kartu mesin (bukan layar kosong tanpa error) untuk bentuk respons yang didokumentasikan.

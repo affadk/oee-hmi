@@ -44,6 +44,8 @@ export interface MachineActionsApi {
   logReject: (reasonLabel: string, count: number) => Promise<void>;
   acknowledgeAlarm: (alarmId: string) => Promise<void>;
   resolveAlarm: (alarmId: string) => Promise<void>;
+  /** Counter reset via edge command (RESET_COUNTER). Caller owns the confirm guard. */
+  resetCounters: () => Promise<void>;
   dispatchMqttCommand: (command: 'RESET_COUNTER' | 'PAUSE' | 'RESUME') => Promise<void>;
   dispatchMqttJobConfig: (
     wo: string,
@@ -164,6 +166,10 @@ export function useMachineActions(deps: MachineActionsDeps): MachineActionsApi {
     });
   }, [runProtected, mqttEdgeCommandUseCase, currentMachineId, setMachines]);
 
+  const resetCounters = useCallback(async () => {
+    await dispatchMqttCommand('RESET_COUNTER');
+  }, [dispatchMqttCommand]);
+
   const dispatchMqttJobConfig = useCallback(async (
     wo: string,
     product: string,
@@ -208,6 +214,7 @@ export function useMachineActions(deps: MachineActionsDeps): MachineActionsApi {
     logReject,
     acknowledgeAlarm,
     resolveAlarm,
+    resetCounters,
     dispatchMqttCommand,
     dispatchMqttJobConfig,
   };

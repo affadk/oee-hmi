@@ -168,3 +168,9 @@ npx tsc --noEmit                                                  # harap lolos 
 - `TrendZone` menerima `dataWarning?` opsional dan merender badge `role="status"` ("Data parsial — …") di header saat suplemen gagal; `DashboardPage` meneruskan `dashboard.supplementalError`.
 - Batasan jujur: kegagalan per-device di dalam `BackendAlarmRepository`/`BackendMachineRepository` (catch → `[]`) belum bisa dibedakan dari data kosong — butuh perubahan signature repository, ditunda.
 - Verifikasi: `pnpm lint` + 31 test + `pnpm build` lolos.
+
+## 13. Frontend follow-up terencana (24 Sep 2026) — tidak dieksekusi, tercatat
+
+- **G8 tombol reset:** ✅ SELESAI — aksi `resetCounters` (`useMachineActions`, via `runProtected`) + tombol RESET backend-only di `MachineStatusZone` (confirm guard + error lokal). Tanpa backend baru.
+- **G16 toleransi envelope:** ✅ SELESAI — `mapLiveStateListDto` terima `{data}` + test.
+- **TERENCANA:** G11 opsi 1 (teruskan window shift ke `hourly?from&to&limit=24` — butuh helper window shift + tanggal, risiko tren kosong bila salah); badge STALE `last_telemetry_at > 60s` (spec §4); Fase 1 `IShiftOeeRepository` + use-case dengan fallback 404 (menunggu backend `shift-summary`/`shift-timeline`).

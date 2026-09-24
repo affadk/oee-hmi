@@ -231,6 +231,8 @@ export const DashboardPage: React.FC = () => {
               metrics={metrics}
               onSelectMachine={dashboard.selectMachine}
               onUpdateMachineStatus={dashboard.updateMachineStatus}
+              useBackend={dashboard.useBackend}
+              onResetCounters={dashboard.resetCounters}
             />
 
             <LossAnalysisZone

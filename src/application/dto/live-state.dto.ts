@@ -67,6 +67,11 @@ export function mapLiveStateDto(raw: RawLiveState): LiveStateSnapshot {
 }
 
 export function mapLiveStateListDto(raw: unknown): LiveStateSnapshot[] {
-  if (!Array.isArray(raw)) return [];
-  return (raw as RawLiveState[]).map(mapLiveStateDto);
+  if (Array.isArray(raw)) return (raw as RawLiveState[]).map(mapLiveStateDto);
+  // Toleransi envelope {data} seperti endpoint list lain (G16): hanya mengubah
+  // kasus yang kini rusak (non-array → []), bukan perilaku array telanjang.
+  if (raw && typeof raw === 'object' && Array.isArray((raw as { data?: unknown }).data)) {
+    return ((raw as { data: RawLiveState[] }).data).map(mapLiveStateDto);
+  }
+  return [];
 }

@@ -1,6 +1,6 @@
 // /src/components/MachineStatusZone.tsx — style OEE Shift Overview
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Activity, Clock, AlertCircle, Wrench, Coffee } from 'lucide-react';
 import { MachineConfig, CalculatedOeeMetrics, MachineStatus } from '../../domain/index';
 import { useTheme } from '../providers/ThemeProvider';
@@ -11,6 +11,9 @@ interface MachineStatusZoneProps {
   metrics: CalculatedOeeMetrics;
   onSelectMachine: (id: string) => void;
   onUpdateMachineStatus: (status: MachineStatus) => void;
+  /** Backend lane only: counter reset via POST /devices/:id/command. */
+  useBackend?: boolean;
+  onResetCounters?: () => Promise<void>;
 }
 
 export const MachineStatusZone: React.FC<MachineStatusZoneProps> = ({
@@ -19,9 +22,22 @@ export const MachineStatusZone: React.FC<MachineStatusZoneProps> = ({
   metrics,
   onSelectMachine,
   onUpdateMachineStatus,
+  useBackend = false,
+  onResetCounters,
 }) => {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
+  const [resetError, setResetError] = useState<string>('');
+
+  const handleResetCounters = (): void => {
+    if (!onResetCounters) return;
+    // Guard konfirmasi (G8): reset counter tidak bisa di-undo.
+    if (!window.confirm(`Reset counter ${machine.name}? Total/good/reject kembali ke 0.`)) return;
+    setResetError('');
+    void onResetCounters().catch((err: unknown) => {
+      setResetError(err instanceof Error ? err.message : 'Reset counter gagal.');
+    });
+  };
 
   const getStatusMeta = (status: MachineStatus) => {
     switch (status) {
@@ -66,8 +82,22 @@ export const MachineStatusZone: React.FC<MachineStatusZoneProps> = ({
                   {st}
                 </button>
               ))}
+              {useBackend && onResetCounters && (
+                <button type="button"
+                  onClick={handleResetCounters}
+                  title="Reset counter via POST /devices/:id/command (butuh PIN operator)"
+                  className={`px-2 py-0.5 rounded audit-micro font-bold border transition-all cursor-pointer ${
+                    isDark ? 'bg-transparent text-rose-400 border-rose-500/40 hover:bg-rose-500/10' : 'bg-transparent text-rose-600 border-rose-300 hover:bg-rose-50'
+                  }`}
+                >
+                  RESET
+                </button>
+              )}
             </div>
           </div>
+          {resetError ? (
+            <p role="alert" className="mt-1 text-[11px] font-mono text-rose-500">{resetError}</p>
+          ) : null}
 
           <div className={`${innerClass} flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3`}>
             <div className="flex items-center gap-3">

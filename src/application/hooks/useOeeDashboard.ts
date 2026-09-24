@@ -120,6 +120,7 @@ export interface UseOeeDashboardReturn {
   acknowledgeAlarm: (alarmId: string) => Promise<void>;
   resolveAlarm: (alarmId: string) => Promise<void>;
   dispatchMqttCommand: (command: 'RESET_COUNTER' | 'PAUSE' | 'RESUME') => Promise<void>;
+  resetCounters: () => Promise<void>;
   dispatchMqttJobConfig: (
     wo: string,
     product: string,
@@ -304,6 +305,7 @@ export function useOeeDashboard(deps: OeeDashboardDeps): UseOeeDashboardReturn {
     acknowledgeAlarm: actions.acknowledgeAlarm,
     resolveAlarm: actions.resolveAlarm,
     dispatchMqttCommand: actions.dispatchMqttCommand,
+    resetCounters: actions.resetCounters,
     dispatchMqttJobConfig: actions.dispatchMqttJobConfig,
     openFormulaModal: ui.openFormulaModal,
     closeFormulaModal: ui.closeFormulaModal,
