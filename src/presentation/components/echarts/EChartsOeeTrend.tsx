@@ -17,6 +17,8 @@ interface EChartsOeeTrendProps {
   shiftEnd?: string;
   showBenchmark?: boolean;
   breakTimeWindow?: string;
+  /** Live 5m overlay (B5 aggregate, B2 history fallback); null = hidden. */
+  livePoints?: Array<{ timestamp: string; oee: number }> | null;
 }
 
 export const EChartsOeeTrend: React.FC<EChartsOeeTrendProps> = ({
@@ -28,6 +30,7 @@ export const EChartsOeeTrend: React.FC<EChartsOeeTrendProps> = ({
   shiftEnd,
   showBenchmark = false,
   breakTimeWindow,
+  livePoints = null,
 }) => {
   const chartRef = useRef<HTMLDivElement>(null);
   const { theme } = useTheme();
@@ -115,6 +118,17 @@ export const EChartsOeeTrend: React.FC<EChartsOeeTrendProps> = ({
     const availData = visibleTrends.map((d) => d.availability);
     const perfData = visibleTrends.map((d) => d.performance);
     const qualData = visibleTrends.map((d) => d.quality);
+
+    // Overlay live 5m (B5/B2): petakan ke label sumbu-X yang terlihat, null = gap.
+    const liveData: Array<number | null> = hours.map(() => null);
+    let hasLive = false;
+    for (const p of livePoints ?? []) {
+      const idx = hours.indexOf(formatHourLabel(p.timestamp));
+      if (idx >= 0) {
+        liveData[idx] = p.oee;
+        hasLive = true;
+      }
+    }
 
     // Arsiran biru pada jam-jam istirahat (planned downtime); sisanya = running.
     // markArea memakai label kategori sumbu-X yang terlihat agar selalu menempel.
@@ -286,6 +300,22 @@ export const EChartsOeeTrend: React.FC<EChartsOeeTrendProps> = ({
           },
           data: qualData,
         },
+        ...(hasLive
+          ? [
+              {
+                name: 'Live 5m',
+                type: 'line' as const,
+                smooth: true,
+                symbol: 'none',
+                lineStyle: {
+                  width: 2,
+                  color: '#22d3ee',
+                  type: 'dashed' as const,
+                },
+                data: liveData,
+              },
+            ]
+          : []),
       ],
     };
 
@@ -313,7 +343,7 @@ export const EChartsOeeTrend: React.FC<EChartsOeeTrendProps> = ({
       ro.disconnect();
       chartInstance.dispose();
     };
-  }, [visibleTrends, isDark, box.w, box.h]);
+  }, [visibleTrends, livePoints, isDark, box.w, box.h]);
 
   return (
     <div className={`rounded-xl p-3.5 shadow-lg flex flex-col h-full border ${

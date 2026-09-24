@@ -36,7 +36,12 @@ import type { SimulateMachinePulseUseCase } from '../use-cases/SimulateMachinePu
 import type { ManageAlarmsUseCase } from '../use-cases/ManageAlarmsUseCase';
 import type { MqttEdgeCommandUseCase } from '../use-cases/MqttEdgeCommandUseCase';
 import type { GetDowntimeReasonsUseCase } from '../use-cases/GetDowntimeReasonsUseCase';
+import type { GetActiveDowntimesUseCase } from '../use-cases/GetActiveDowntimesUseCase';
 import type { GetHourlyTrendsUseCase } from '../use-cases/GetHourlyTrendsUseCase';
+import type { GetTelemetryAggregateUseCase } from '../use-cases/GetTelemetryAggregateUseCase';
+import type { GetTelemetryHistoryUseCase } from '../use-cases/GetTelemetryHistoryUseCase';
+import { useLiveTrend } from './useLiveTrend';
+import type { LiveTrendPoint } from './useLiveTrend';
 import type { SubscribeTelemetryUseCase } from '../use-cases/SubscribeTelemetryUseCase';
 import type { ListLabelableDowntimesUseCase } from '../use-cases/ListLabelableDowntimesUseCase';
 import type { LabelDowntimeReasonUseCase } from '../use-cases/LabelDowntimeReasonUseCase';
@@ -70,7 +75,10 @@ export interface OeeDashboardDeps {
   manageAlarmsUseCase: ManageAlarmsUseCase;
   mqttEdgeCommandUseCase: MqttEdgeCommandUseCase;
   getDowntimeReasonsUseCase: GetDowntimeReasonsUseCase;
+  getActiveDowntimesUseCase: GetActiveDowntimesUseCase;
   getHourlyTrendsUseCase: GetHourlyTrendsUseCase;
+  getAggregateUseCase: GetTelemetryAggregateUseCase;
+  getHistoryUseCase: GetTelemetryHistoryUseCase;
   subscribeTelemetryUseCase: SubscribeTelemetryUseCase;
   listLabelableDowntimesUseCase: ListLabelableDowntimesUseCase;
   labelDowntimeReasonUseCase: LabelDowntimeReasonUseCase;
@@ -107,6 +115,10 @@ export interface UseOeeDashboardReturn {
   authError: string;
   labelableDowntimes: DowntimeEvent[];
   supplementalError: string;
+  /** Live 5m overlay points (B5/B2); null = hidden. */
+  liveTrend: LiveTrendPoint[] | null;
+  /** Global active-downtime count (§J.1); null when unknown. */
+  activeDowntimeCount: number | null;
   /** Fase 2 server timeline segments (§3.2); null = client buildShiftTimeline. */
   shiftSegments: TimelineSegment[] | null;
   deviceRegistry: { devices: DeviceRecord[]; machines: MachineRecord[] } | null;
@@ -150,6 +162,7 @@ export interface UseOeeDashboardReturn {
   closeDeviceConfigModal: () => void;
   refreshDeviceRegistry: () => Promise<void>;
   saveDeviceMetadata: (deviceId: string, patch: { ipAddress?: string; firmwareVersion?: string }) => Promise<void>;
+  saveMachineMetadata: (machineId: string, patch: { machineName?: string; modbusSlaveId?: number }) => Promise<void>;
   bindDeviceToMachine: (machineId: string, deviceId: string) => Promise<void>;
   unbindDeviceFromMachine: (machineId: string) => Promise<void>;
   openProductionSetupModal: () => void;
@@ -177,7 +190,10 @@ export function useOeeDashboard(deps: OeeDashboardDeps): UseOeeDashboardReturn {
     manageAlarmsUseCase,
     mqttEdgeCommandUseCase,
     getDowntimeReasonsUseCase,
+    getActiveDowntimesUseCase,
     getHourlyTrendsUseCase,
+    getAggregateUseCase,
+    getHistoryUseCase,
     subscribeTelemetryUseCase,
     listLabelableDowntimesUseCase,
     labelDowntimeReasonUseCase,
@@ -221,6 +237,7 @@ export function useOeeDashboard(deps: OeeDashboardDeps): UseOeeDashboardReturn {
     currentDeviceId: machines.currentDeviceId,
     shiftWindow,
     getDowntimeReasonsUseCase,
+    getActiveDowntimesUseCase,
     getHourlyTrendsUseCase,
     listLabelableDowntimesUseCase,
     setMachines: machines.setMachines,
@@ -239,6 +256,15 @@ export function useOeeDashboard(deps: OeeDashboardDeps): UseOeeDashboardReturn {
     useBackend,
     simulateMachinePulseUseCase,
     setMachines: machines.setMachines,
+  });
+
+  // B5/B2: live 5m overlay (aggregate, raw-history fallback); null = hide.
+  const liveTrend = useLiveTrend({
+    useBackend,
+    currentDeviceId: machines.currentDeviceId,
+    shiftWindow,
+    getAggregateUseCase,
+    getHistoryUseCase,
   });
 
   const actions = useMachineActions({
@@ -326,6 +352,8 @@ export function useOeeDashboard(deps: OeeDashboardDeps): UseOeeDashboardReturn {
     authError: auth.authError,
     labelableDowntimes: supplemental.labelableDowntimes,
     supplementalError: supplemental.supplementalError,
+    liveTrend,
+    activeDowntimeCount: supplemental.activeDowntimeCount,
     shiftSegments: shiftServer.shiftSegments,
     deviceRegistry: registry.deviceRegistry,
     deviceRegistryError: registry.deviceRegistryError,
@@ -361,6 +389,7 @@ export function useOeeDashboard(deps: OeeDashboardDeps): UseOeeDashboardReturn {
     closeDeviceConfigModal: registry.closeDeviceConfigModal,
     refreshDeviceRegistry: registry.refreshDeviceRegistry,
     saveDeviceMetadata: registry.saveDeviceMetadata,
+    saveMachineMetadata: registry.saveMachineMetadata,
     bindDeviceToMachine: registry.bindDeviceToMachine,
     unbindDeviceFromMachine: registry.unbindDeviceFromMachine,
     openProductionSetupModal: orders.openProductionSetupModal,

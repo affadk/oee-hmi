@@ -65,6 +65,8 @@ export interface IMasterDataRepository {
 
 export interface ITelemetryRepository {
   getHistory(deviceId: string, from?: string, to?: string, limit?: number, signal?: AbortSignal): Promise<TelemetryHistoryPoint[]>;
+  /** Live-trend buckets (§K.4 aggregate, B5); backend bucket enum 1m|5m|15m|1h|1d. */
+  getAggregate(deviceId: string, bucket: string, from?: string, to?: string, limit?: number, signal?: AbortSignal): Promise<TelemetryHistoryPoint[]>;
   getActiveDowntimes(signal?: AbortSignal): Promise<DowntimeEvent[]>;
   getDowntimes(deviceId: string, from?: string, to?: string, limit?: number, cursor?: string, envelope?: boolean, signal?: AbortSignal): Promise<{ data: DowntimeEvent[]; meta: PageMeta }>;
   getLabelableDowntimes(deviceId: string, signal?: AbortSignal): Promise<DowntimeEvent[]>;

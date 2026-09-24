@@ -181,3 +181,12 @@ npx tsc --noEmit                                                  # harap lolos 
 - Hook `useShiftServerData` (summary + segmen server, null = belum ada); `currentMetrics` merge server-atas-klien (A/P/Q/OEE + time server, loss PCS klien s/d G1); `PasXProgressStrip` pakai segmen server bila ada via prop `serverSegments`.
 - Perilaku hari ini tidak berubah (backend belum implementasi → semua null → jalur §2). E2E menunggu endpoint nyata.
 - Verifikasi: `pnpm lint` + 50 test + `pnpm build` lolos.
+
+## 15. Integrasi B-scope telemetry + device + QR-WO (24 Sep 2026) — ✅ SELESAI
+
+- **Device config:** `saveMachineMetadata` (`useDeviceRegistry` → `DeviceConfigModal.MachineMetaPanel`: nama + modbus slave ID, backend-gated, NaN-guarded). Bind/unbind tidak diubah sesuai scope.
+- **B3:** badge "N aktif" di `AlarmsZone` (`GetActiveDowntimesUseCase`, gagal → disembunyikan).
+- **B5/B2:** overlay "Live 5m" di `EChartsOeeTrend` (`GetTelemetryAggregateUseCase` + `GetTelemetryHistoryUseCase` fallback via `useLiveTrend`, windowed shift).
+- **QR-WO backend:** `BatchQrScannerModal` mode backend (tombol "Gunakan WO Ini", validasi antrean, tanpa MQTT) + trigger QR dibuka di lane backend → pratinjau di `ProductionSetupModal`.
+- **Belum disentuh (sesuai scope):** bind/add/remove device, add/delete user, B1 (detail WO — resolve mencukupi), B6 (export), B7 (health).
+- Verifikasi: `pnpm lint` + 55 test + `pnpm build` lolos.

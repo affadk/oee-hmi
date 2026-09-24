@@ -9,12 +9,15 @@ interface AlarmsZoneProps {
   alarms: MachineAlarmEvent[];
   onAcknowledgeAlarm: (alarmId: string) => void;
   onResolveAlarm: (alarmId: string) => void;
+  /** Global active-downtime count (§J.1, B3); null = unknown. */
+  activeDowntimeCount?: number | null;
 }
 
 export const AlarmsZone: React.FC<AlarmsZoneProps> = ({
   alarms,
   onAcknowledgeAlarm,
   onResolveAlarm,
+  activeDowntimeCount = null,
 }) => {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
@@ -64,6 +67,15 @@ export const AlarmsZone: React.FC<AlarmsZoneProps> = ({
           }`}>
             {alarms.length} incidents
           </span>
+          {activeDowntimeCount !== null && activeDowntimeCount > 0 && (
+            <span
+              role="status"
+              title="Downtime aktif di backend (GET /downtime-events/active)"
+              className="text-xs font-mono px-2 py-0.5 rounded-full border font-bold bg-rose-500/10 text-rose-500 border-rose-500/40"
+            >
+              {activeDowntimeCount} aktif
+            </span>
+          )}
         </div>
         <div className={`text-xs font-mono ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
           ISO 22400 Incident Audit

@@ -155,6 +155,11 @@ export class OeeHttpTelemetryRepository implements ITelemetryRepository {
     const raw = await httpRequest<unknown>(path, { signal });
     return mapTelemetryHistoryListDto(raw);
   }
+  async getAggregate(deviceId: string, bucket: string, from?: string, to?: string, limit = 96, signal?: AbortSignal): Promise<TelemetryHistoryPoint[]> {
+    const path = withQuery(endpoints.telemetryAggregate(deviceId), { bucket, from, to, limit });
+    const raw = await httpRequest<unknown>(path, { signal });
+    return mapTelemetryHistoryListDto(raw);
+  }
   async getActiveDowntimes(signal?: AbortSignal): Promise<DowntimeEvent[]> {
     const raw = await httpRequest<unknown>(endpoints.downtimeActive(), { signal });
     return Array.isArray(raw) ? raw.map((item) => mapDowntimeEventDto(item as Record<string, unknown>)) : mapDowntimeResultDto(raw).data;

@@ -52,7 +52,10 @@ import { GetShiftSummaryUseCase } from '../../application/use-cases/GetShiftSumm
 import { GetShiftTimelineUseCase } from '../../application/use-cases/GetShiftTimelineUseCase';
 import { SubscribeTelemetryUseCase } from '../../application/use-cases/SubscribeTelemetryUseCase';
 import { GetDowntimeReasonsUseCase } from '../../application/use-cases/GetDowntimeReasonsUseCase';
+import { GetActiveDowntimesUseCase } from '../../application/use-cases/GetActiveDowntimesUseCase';
 import { GetHourlyTrendsUseCase } from '../../application/use-cases/GetHourlyTrendsUseCase';
+import { GetTelemetryAggregateUseCase } from '../../application/use-cases/GetTelemetryAggregateUseCase';
+import { GetTelemetryHistoryUseCase } from '../../application/use-cases/GetTelemetryHistoryUseCase';
 import { ListLabelableDowntimesUseCase } from '../../application/use-cases/ListLabelableDowntimesUseCase';
 import { LabelDowntimeReasonUseCase } from '../../application/use-cases/LabelDowntimeReasonUseCase';
 import { ConfigureDeviceUseCase } from '../../application/use-cases/ConfigureDeviceUseCase';
@@ -93,7 +96,10 @@ export interface AppContainer {
   getShiftTimelineUseCase: GetShiftTimelineUseCase;
   subscribeTelemetryUseCase: SubscribeTelemetryUseCase;
   getDowntimeReasonsUseCase: GetDowntimeReasonsUseCase;
+  getActiveDowntimesUseCase: GetActiveDowntimesUseCase;
   getHourlyTrendsUseCase: GetHourlyTrendsUseCase;
+  getAggregateUseCase: GetTelemetryAggregateUseCase;
+  getHistoryUseCase: GetTelemetryHistoryUseCase;
   listLabelableDowntimesUseCase: ListLabelableDowntimesUseCase;
   labelDowntimeReasonUseCase: LabelDowntimeReasonUseCase;
   configureDeviceUseCase: ConfigureDeviceUseCase;
@@ -158,7 +164,10 @@ export function createContainer(): AppContainer {
   const getShiftTimelineUseCase = new GetShiftTimelineUseCase(shiftTimelineRepository);
   const subscribeTelemetryUseCase = new SubscribeTelemetryUseCase(realtimeGateway);
   const getDowntimeReasonsUseCase = new GetDowntimeReasonsUseCase(telemetryRepository);
+  const getActiveDowntimesUseCase = new GetActiveDowntimesUseCase(telemetryRepository);
   const getHourlyTrendsUseCase = new GetHourlyTrendsUseCase(telemetryRepository);
+  const getAggregateUseCase = new GetTelemetryAggregateUseCase(telemetryRepository);
+  const getHistoryUseCase = new GetTelemetryHistoryUseCase(telemetryRepository);
   const listLabelableDowntimesUseCase = new ListLabelableDowntimesUseCase(telemetryRepository);
   const labelDowntimeReasonUseCase = new LabelDowntimeReasonUseCase(telemetryRepository);
   const configureDeviceUseCase = new ConfigureDeviceUseCase(masterDataRepository);
@@ -190,7 +199,10 @@ export function createContainer(): AppContainer {
     getShiftTimelineUseCase,
     subscribeTelemetryUseCase,
     getDowntimeReasonsUseCase,
+    getActiveDowntimesUseCase,
     getHourlyTrendsUseCase,
+    getAggregateUseCase,
+    getHistoryUseCase,
     listLabelableDowntimesUseCase,
     labelDowntimeReasonUseCase,
     configureDeviceUseCase,

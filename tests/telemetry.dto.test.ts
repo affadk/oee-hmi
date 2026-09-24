@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   mapTelemetryFrameDto,
+  mapTelemetryHistoryDto,
   parseCategoryFromReason,
 } from '../src/application/dto/telemetry.dto';
 import { isLiveTelemetryFrame } from '../src/domain/entities/backend/Telemetry';
@@ -56,6 +57,14 @@ describe('mapTelemetryFrameDto', () => {
     });
     expect(frame.counters.total).toBe(100);
     expect(frame.counters.good).toBe(95);
+  });
+});
+
+describe('mapTelemetryHistoryDto (incl. B5 aggregate buckets)', () => {
+  it('falls back to bucket as timestamp', () => {
+    const out = mapTelemetryHistoryDto({ bucket: '2026-09-22T10:00:00+07:00', oee: 81.2 });
+    expect(out.timestamp).toBe('2026-09-22T10:00:00+07:00');
+    expect(out.oee).toBeCloseTo(81.2);
   });
 });
 

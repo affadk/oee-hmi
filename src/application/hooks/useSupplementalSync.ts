@@ -8,6 +8,7 @@ import type { MachineConfig } from '../../domain/entities/Machine';
 import type { DowntimeEvent } from '../../domain/entities/backend/Telemetry';
 import type { ShiftWindowIso } from '../../domain/services/ShiftTimeline';
 import type { GetDowntimeReasonsUseCase } from '../use-cases/GetDowntimeReasonsUseCase';
+import type { GetActiveDowntimesUseCase } from '../use-cases/GetActiveDowntimesUseCase';
 import type { GetHourlyTrendsUseCase } from '../use-cases/GetHourlyTrendsUseCase';
 import type { ListLabelableDowntimesUseCase } from '../use-cases/ListLabelableDowntimesUseCase';
 
@@ -18,6 +19,7 @@ export interface SupplementalSyncDeps {
   /** Shift window for hourly trends (G11); null = unwindowed fallback. */
   shiftWindow: ShiftWindowIso | null;
   getDowntimeReasonsUseCase: GetDowntimeReasonsUseCase;
+  getActiveDowntimesUseCase: GetActiveDowntimesUseCase;
   getHourlyTrendsUseCase: GetHourlyTrendsUseCase;
   listLabelableDowntimesUseCase: ListLabelableDowntimesUseCase;
   setMachines: React.Dispatch<React.SetStateAction<MachineConfig[]>>;
@@ -28,6 +30,8 @@ export interface SupplementalSyncApi {
   setLabelableDowntimes: React.Dispatch<React.SetStateAction<DowntimeEvent[]>>;
   /** Non-empty when the last supplemental load failed; shown data may be stale/empty. */
   supplementalError: string;
+  /** Global active-downtime count (§J.1); null when unknown/failed. */
+  activeDowntimeCount: number | null;
 }
 
 export function useSupplementalSync(deps: SupplementalSyncDeps): SupplementalSyncApi {
@@ -37,6 +41,7 @@ export function useSupplementalSync(deps: SupplementalSyncDeps): SupplementalSyn
     currentDeviceId,
     shiftWindow,
     getDowntimeReasonsUseCase,
+    getActiveDowntimesUseCase,
     getHourlyTrendsUseCase,
     listLabelableDowntimesUseCase,
     setMachines,
@@ -44,6 +49,7 @@ export function useSupplementalSync(deps: SupplementalSyncDeps): SupplementalSyn
 
   const [labelableDowntimes, setLabelableDowntimes] = useState<DowntimeEvent[]>([]);
   const [supplementalError, setSupplementalError] = useState<string>('');
+  const [activeDowntimeCount, setActiveDowntimeCount] = useState<number | null>(null);
 
   // Load supplemental data (downtime reasons, hourly trends) when current machine changes
   useEffect(() => {
@@ -52,17 +58,20 @@ export function useSupplementalSync(deps: SupplementalSyncDeps): SupplementalSyn
 
     async function loadSupplementalData() {
       try {
-        const [downtimeReasons, hourlyTrends, labelable] = await Promise.all([
+        const [downtimeReasons, hourlyTrends, labelable, activeDowntimes] = await Promise.all([
           getDowntimeReasonsUseCase.execute(currentDeviceId),
           // G11: windowed hourly scoped to the shift; falls back to last-72 unwindowed.
           shiftWindow
             ? getHourlyTrendsUseCase.execute(currentDeviceId, shiftWindow.from, shiftWindow.to, 24)
             : getHourlyTrendsUseCase.execute(currentDeviceId),
           listLabelableDowntimesUseCase.execute(currentDeviceId).catch(() => []),
+          // B3: global active count must not fail the per-device supplemental.
+          getActiveDowntimesUseCase.execute().then((list) => list.length).catch(() => null),
         ]);
 
         if (!isMounted) return;
         setLabelableDowntimes(labelable);
+        setActiveDowntimeCount(activeDowntimes);
         setSupplementalError('');
 
         setMachines((prev) =>
@@ -94,7 +103,7 @@ export function useSupplementalSync(deps: SupplementalSyncDeps): SupplementalSyn
     return () => {
       isMounted = false;
     };
-  }, [useBackend, currentMachineId, currentDeviceId, shiftWindow, getDowntimeReasonsUseCase, getHourlyTrendsUseCase, listLabelableDowntimesUseCase, setMachines]);
+  }, [useBackend, currentMachineId, currentDeviceId, shiftWindow, getDowntimeReasonsUseCase, getActiveDowntimesUseCase, getHourlyTrendsUseCase, listLabelableDowntimesUseCase, setMachines]);
 
-  return { labelableDowntimes, setLabelableDowntimes, supplementalError };
+  return { labelableDowntimes, setLabelableDowntimes, supplementalError, activeDowntimeCount };
 }

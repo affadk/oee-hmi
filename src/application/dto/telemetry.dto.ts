@@ -32,7 +32,7 @@ interface RawFrame {
 }
 
 interface RawTelemetryHistory {
-  timestamp?: string; ts?: string;
+  timestamp?: string; ts?: string; bucket?: string;
   deviceId?: string; device_id?: string;
   totalCount?: number; total_count?: number; total?: number;
   goodCount?: number; good_count?: number; good?: number;
@@ -143,7 +143,7 @@ export function mapTelemetryFrameDto(raw: RawFrame): WsTelemetryFrame {
 
 export function mapTelemetryHistoryDto(raw: RawTelemetryHistory): TelemetryHistoryPoint {
   return {
-    timestamp: raw.timestamp ?? raw.ts ?? new Date(0).toISOString(),
+    timestamp: raw.timestamp ?? raw.ts ?? raw.bucket ?? new Date(0).toISOString(),
     deviceId: raw.deviceId ?? raw.device_id ?? '',
     totalCount: toFiniteNumber(raw.totalCount ?? raw.total_count ?? raw.total),
     goodCount: toFiniteNumber(raw.goodCount ?? raw.good_count ?? raw.good),

@@ -5,6 +5,7 @@
 import { useCallback, useState } from 'react';
 import type { MachineConfig } from '../../domain/entities/Machine';
 import type { DeviceRecord, MachineRecord } from '../../domain/entities/backend/Device';
+import type { MachineMetadataPatch } from '../../domain/ports/IOeeBackend';
 import type { GetMachinesUseCase } from '../use-cases/GetMachinesUseCase';
 import type { ConfigureDeviceUseCase } from '../use-cases/ConfigureDeviceUseCase';
 
@@ -24,6 +25,7 @@ export interface DeviceRegistryApi {
   deviceRegistryError: string;
   refreshDeviceRegistry: () => Promise<void>;
   saveDeviceMetadata: (deviceId: string, patch: { ipAddress?: string; firmwareVersion?: string }) => Promise<void>;
+  saveMachineMetadata: (machineId: string, patch: MachineMetadataPatch) => Promise<void>;
   bindDeviceToMachine: (machineId: string, deviceId: string) => Promise<void>;
   unbindDeviceFromMachine: (machineId: string) => Promise<void>;
 }
@@ -65,6 +67,15 @@ export function useDeviceRegistry(deps: DeviceRegistryDeps): DeviceRegistryApi {
     });
   }, [configureDeviceUseCase, runProtected, useBackend]);
 
+  const saveMachineMetadata = useCallback(async (machineId: string, patch: MachineMetadataPatch) => {
+    if (!useBackend) throw new Error('Konfigurasi mesin hanya tersedia pada mode backend.');
+    await runProtected(async () => {
+      await configureDeviceUseCase.updateMachineMetadata(machineId, patch);
+      const registry = await configureDeviceUseCase.loadRegistry();
+      setDeviceRegistry(registry);
+    });
+  }, [configureDeviceUseCase, runProtected, useBackend]);
+
   const bindDeviceToMachine = useCallback(async (machineId: string, deviceId: string) => {
     if (!useBackend) throw new Error('Binding perangkat hanya tersedia pada mode backend.');
     await runProtected(async () => {
@@ -99,6 +110,7 @@ export function useDeviceRegistry(deps: DeviceRegistryDeps): DeviceRegistryApi {
     deviceRegistryError,
     refreshDeviceRegistry,
     saveDeviceMetadata,
+    saveMachineMetadata,
     bindDeviceToMachine,
     unbindDeviceFromMachine,
   };

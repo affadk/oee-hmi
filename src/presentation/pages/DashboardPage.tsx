@@ -41,7 +41,10 @@ export const DashboardPage: React.FC = () => {
     manageAlarmsUseCase: container.manageAlarmsUseCase,
     mqttEdgeCommandUseCase: container.mqttEdgeCommandUseCase,
     getDowntimeReasonsUseCase: container.getDowntimeReasonsUseCase,
+    getActiveDowntimesUseCase: container.getActiveDowntimesUseCase,
     getHourlyTrendsUseCase: container.getHourlyTrendsUseCase,
+    getAggregateUseCase: container.getAggregateUseCase,
+    getHistoryUseCase: container.getHistoryUseCase,
     subscribeTelemetryUseCase: container.subscribeTelemetryUseCase,
     listLabelableDowntimesUseCase: container.listLabelableDowntimesUseCase,
     labelDowntimeReasonUseCase: container.labelDowntimeReasonUseCase,
@@ -183,6 +186,13 @@ export const DashboardPage: React.FC = () => {
           onDispatchMqttCommand={dashboard.dispatchMqttCommand}
           onApplyJobConfig={dashboard.dispatchMqttJobConfig}
           shiftSegments={dashboard.shiftSegments}
+          livePoints={dashboard.liveTrend}
+          pendingWorkOrderIds={dashboard.pendingWorkOrders.map((w) => w.woId)}
+          onSelectWorkOrder={(woId) => {
+            dashboard.openProductionSetupModal();
+            void dashboard.loadPendingWorkOrders().catch(() => undefined);
+            void dashboard.previewWorkOrder(woId).catch(() => undefined);
+          }}
         />
       ) : (
         <div
@@ -258,6 +268,7 @@ export const DashboardPage: React.FC = () => {
               alarms={dashboard.alarms}
               onAcknowledgeAlarm={dashboard.acknowledgeAlarm}
               onResolveAlarm={dashboard.resolveAlarm}
+              activeDowntimeCount={dashboard.activeDowntimeCount}
             />
           </main>
 
@@ -329,6 +340,7 @@ export const DashboardPage: React.FC = () => {
         isBackendMode={dashboard.useBackend}
         onRefresh={dashboard.refreshDeviceRegistry}
         onSaveDeviceMetadata={dashboard.saveDeviceMetadata}
+        onSaveMachineMetadata={dashboard.saveMachineMetadata}
         onBindDevice={dashboard.bindDeviceToMachine}
         onUnbindDevice={dashboard.unbindDeviceFromMachine}
       />

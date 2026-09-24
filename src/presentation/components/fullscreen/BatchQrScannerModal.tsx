@@ -70,6 +70,11 @@ interface BatchQrScannerModalProps {
     cycleTimeSec?: number,
     shiftOverride?: BatchShiftOverride,
   ) => Promise<void>;
+  /** Backend lane: ganti Terapkan-MQTT dengan pilih WO antrean. */
+  backendMode?: boolean;
+  /** Daftar WO antrean untuk validasi; kosong = tidak dikenal, teruskan ke preview. */
+  pendingWorkOrderIds?: string[];
+  onSelectWorkOrder?: (woId: string) => void;
 }
 
 const STEPS: Array<{ id: QrBatchStep; index: number; label: string; short: string }> = [
@@ -113,6 +118,9 @@ export const BatchQrScannerModal: React.FC<BatchQrScannerModalProps> = ({
   allMachines,
   onSwitchMachine,
   onApplyJobConfig,
+  backendMode = false,
+  pendingWorkOrderIds = [],
+  onSelectWorkOrder,
 }) => {
   const { isDark, theme, setTheme } = useTheme();
 
@@ -272,6 +280,21 @@ export const BatchQrScannerModal: React.FC<BatchQrScannerModalProps> = ({
     setApplied(false);
     showToast('info', 'Draft dikembalikan ke konfigurasi mesin aktif.');
   }, [machine, showToast]);
+
+  // Backend lane: WO hasil scan dicocokkan ke antrean, lalu dipratinjau di
+  // ProductionSetupModal — tanpa SET_JOB_CONFIG MQTT.
+  const handleSelectWorkOrder = useCallback(() => {
+    const woId = draft.product.workOrder.trim();
+    if (!woId) {
+      showToast('error', 'Draft belum memuat nomor WO — scan QR produk dahulu.');
+      return;
+    }
+    if (pendingWorkOrderIds.length > 0 && !pendingWorkOrderIds.includes(woId)) {
+      showToast('error', `WO ${woId} tidak ada di antrean backend.`);
+      return;
+    }
+    onSelectWorkOrder?.(woId);
+  }, [draft.product.workOrder, onSelectWorkOrder, pendingWorkOrderIds, showToast]);
 
   if (!isOpen) return null;
 
@@ -806,16 +829,28 @@ export const BatchQrScannerModal: React.FC<BatchQrScannerModalProps> = ({
                 >
                   {applied ? 'Selesai' : 'Batal'}
                 </button>
-                <button
-                  type="button"
-                  onClick={handleApplyBatch}
-                  disabled={applying || !changed}
-                  title={!changed ? 'Tidak ada perubahan dari konfigurasi aktif' : 'Terapkan seluruh batch ke mesin'}
-                  className="px-4 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
-                >
-                  {applying ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ClipboardCheck className="w-3.5 h-3.5" />}
-                  {applying ? 'Menerapkan…' : applied ? 'Terapkan Ulang' : 'Terapkan Batch'}
-                </button>
+                {backendMode && onSelectWorkOrder ? (
+                  <button
+                    type="button"
+                    onClick={handleSelectWorkOrder}
+                    title="Pratinjau WO hasil scan di Setup Produksi (tanpa MQTT)"
+                    className="px-4 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+                  >
+                    <ClipboardCheck className="w-3.5 h-3.5" />
+                    Gunakan WO Ini
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleApplyBatch}
+                    disabled={applying || !changed}
+                    title={!changed ? 'Tidak ada perubahan dari konfigurasi aktif' : 'Terapkan seluruh batch ke mesin'}
+                    className="px-4 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+                  >
+                    {applying ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ClipboardCheck className="w-3.5 h-3.5" />}
+                    {applying ? 'Menerapkan…' : applied ? 'Terapkan Ulang' : 'Terapkan Batch'}
+                  </button>
+                )}
               </>
             )}
           </div>

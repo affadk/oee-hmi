@@ -49,6 +49,12 @@ interface FullscreenOeeViewProps {
   useBackend?: boolean;
   /** Fase 2 server timeline (§3.2); null = client buildShiftTimeline. */
   shiftSegments?: TimelineSegment[] | null;
+  /** Live 5m overlay (B5/B2); null = hidden. */
+  livePoints?: Array<{ timestamp: string; oee: number }> | null;
+  /** Backend lane: WO antrean untuk validasi hasil scan QR. */
+  pendingWorkOrderIds?: string[];
+  /** Backend lane: pratinjau WO hasil scan di Setup Produksi. */
+  onSelectWorkOrder?: (woId: string) => void;
 }
 
 export const FullscreenOeeView: React.FC<FullscreenOeeViewProps> = ({
@@ -69,6 +75,9 @@ export const FullscreenOeeView: React.FC<FullscreenOeeViewProps> = ({
   onApplyJobConfig = async () => {},
   useBackend,
   shiftSegments = null,
+  livePoints = null,
+  pendingWorkOrderIds = [],
+  onSelectWorkOrder,
 }) => {
   const { theme, toggleTheme } = useTheme();
   const isDark = theme === 'dark';
@@ -175,9 +184,8 @@ const formatStaffed = (totalMin: number): string => {
   return (
     <div id="oee-edge-dashboard" className={outerShellClass}>
       <div id="oee-viewport-shell" className={innerShellClass}>
-      {/* QR BATCH SCANNER MODAL — lane simulasi saja. Lane backend memakai
-          ProductionSetupModal (data WO/produk/operator nyata). */}
-      {!useBackend && (
+      {/* QR BATCH SCANNER — simulasi: terapkan via MQTT. Backend: pilih WO
+          antrean untuk pratinjau di ProductionSetupModal (tanpa MQTT). */}
       <BatchQrScannerModal
         isOpen={isQrModalOpen}
         onClose={() => setIsQrModalOpen(false)}
@@ -185,8 +193,17 @@ const formatStaffed = (totalMin: number): string => {
         allMachines={allMachines}
         onSwitchMachine={onSwitchMachine}
         onApplyJobConfig={onApplyJobConfig}
+        backendMode={useBackend}
+        pendingWorkOrderIds={pendingWorkOrderIds}
+        onSelectWorkOrder={
+          onSelectWorkOrder
+            ? (woId) => {
+                setIsQrModalOpen(false);
+                onSelectWorkOrder(woId);
+              }
+            : undefined
+        }
       />
-      )}
 
       {/* 1. TOP HEADER — shrink-0, padding relatif vh/vw — readability: min 12px */}
       <header className="bg-[#1a3464] text-white px-[1.2vw] py-[0.8vh] flex items-center justify-between text-[clamp(12px,0.85vw,14px)] font-semibold shadow-md shrink-0 w-full">
@@ -217,18 +234,16 @@ const formatStaffed = (totalMin: number): string => {
             <ChevronDown className="w-3.5 h-3.5 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-slate-600" />
           </div>
 
-          {/* QR Scanner Trigger — lane simulasi saja */}
-          {!useBackend && (
+          {/* QR Scanner Trigger — simulasi: terapkan batch; backend: pilih WO antrean */}
           <button
             type="button"
             onClick={() => setIsQrModalOpen(true)}
             className="px-2.5 py-1.5 rounded bg-blue-500/30 hover:bg-blue-500/50 text-white text-sm font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
-            title="Scan QR Code Batch"
+            title={useBackend ? 'Scan QR untuk memilih WO antrean' : 'Scan QR Code Batch'}
           >
             <QrCode className="w-4 h-4" />
             <span className="hidden lg:inline font-mono">Scan QR</span>
           </button>
-          )}
 
           {/* Edge Telemetry Modal — lane simulasi saja (draft MQTT/broker lokal).
               Lane backend memakai Perangkat + Setup Produksi (REST nyata). */}
@@ -618,6 +633,7 @@ const formatStaffed = (totalMin: number): string => {
                   shiftEnd={shiftEnd}
                   showBenchmark
                   breakTimeWindow={breakTimeWindow}
+                  livePoints={livePoints}
                 />
               </div>
             </div>
