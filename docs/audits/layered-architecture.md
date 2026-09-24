@@ -174,3 +174,10 @@ npx tsc --noEmit                                                  # harap lolos 
 - **G8 tombol reset:** ✅ SELESAI — aksi `resetCounters` (`useMachineActions`, via `runProtected`) + tombol RESET backend-only di `MachineStatusZone` (confirm guard + error lokal). Tanpa backend baru.
 - **G16 toleransi envelope:** ✅ SELESAI — `mapLiveStateListDto` terima `{data}` + test.
 - **TERENCANA:** G11 opsi 1 (teruskan window shift ke `hourly?from&to&limit=24` — butuh helper window shift + tanggal, risiko tren kosong bila salah); badge STALE `last_telemetry_at > 60s` (spec §4); Fase 1 `IShiftOeeRepository` + use-case dengan fallback 404 (menunggu backend `shift-summary`/`shift-timeline`).
+
+## 14. Fase 1 shift-summary/shift-timeline (24 Sep 2026) — slice + fallback, ✅ SELESAI
+
+- Port `IShiftSummary` + DTO `shift.dto` (contoh JSON spec §3.1/§3.2 jadi test) + `GetShiftSummary/TimelineUseCase` (validasi + 404→null transparan) + `OeeHttpShift*Repository` (404→null, error lain throw) + endpoint + wiring `Container`/`DashboardPage`.
+- Hook `useShiftServerData` (summary + segmen server, null = belum ada); `currentMetrics` merge server-atas-klien (A/P/Q/OEE + time server, loss PCS klien s/d G1); `PasXProgressStrip` pakai segmen server bila ada via prop `serverSegments`.
+- Perilaku hari ini tidak berubah (backend belum implementasi → semua null → jalur §2). E2E menunggu endpoint nyata.
+- Verifikasi: `pnpm lint` + 50 test + `pnpm build` lolos.

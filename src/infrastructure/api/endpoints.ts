@@ -29,6 +29,8 @@ export const endpoints = {
   downtimeActive: () => '/api/v1/downtime-events/active',
   downtimesByDevice: (deviceId: string) => `/api/v1/downtime-events/${encodeURIComponent(deviceId)}`,
   downtimeReason: (id: number) => `/api/v1/downtime-events/${id}/reason`,
+  shiftSummary: () => '/api/v1/oee/shift-summary',
+  shiftTimeline: () => '/api/v1/oee/shift-timeline',
   operationalEvents: (deviceId: string) => `/api/v1/operational-events/${encodeURIComponent(deviceId)}`,
   authOperatorPin: () => '/api/v1/auth/operator-pin',
 } as const;

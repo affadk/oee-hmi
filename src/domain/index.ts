@@ -27,3 +27,4 @@ export * from './ports/IAuthTokenStorage';
 
 // Ports (backend lane — REST + WS)
 export * from './ports/IOeeBackend';
+export * from './ports/IShiftSummary';

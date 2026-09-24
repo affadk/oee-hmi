@@ -8,6 +8,7 @@ import {
   clockLabel,
   formatDuration,
   type TimelineKind,
+  type TimelineSegment,
 } from '../../../domain/services/ShiftTimeline';
 
 interface PasXProgressStripProps {
@@ -15,6 +16,8 @@ interface PasXProgressStripProps {
   metrics: CalculatedOeeMetrics;
   /** true = lane backend: kursor murni jam dinding (tanpa loop demo). */
   useBackend?: boolean;
+  /** Fase 2 server timeline (§3.2); null = client buildShiftTimeline. */
+  serverSegments?: TimelineSegment[] | null;
 }
 
 interface TimelineEvent {
@@ -66,7 +69,7 @@ const formatHM = (totalMin: number): string => {
   return `${String(Math.floor(norm / 60)).padStart(2, '0')}:${String(norm % 60).padStart(2, '0')}`;
 };
 
-export const PasXProgressStrip: React.FC<PasXProgressStripProps> = ({ machine, useBackend = false }) => {
+export const PasXProgressStrip: React.FC<PasXProgressStripProps> = ({ machine, useBackend = false, serverSegments = null }) => {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   const [selectedEvent, setSelectedEvent] = useState<TimelineEvent | null>(null);
@@ -82,8 +85,9 @@ export const PasXProgressStrip: React.FC<PasXProgressStripProps> = ({ machine, u
 
   // Segmen timeline nyata dari data mesin (downtimeReasons + window shift),
   // bukan mock statis. Changeover = label SETUP_AND_ADJUSTMENT, bukan FSM baru.
+  // Fase 2: segmen server (§3.2) menang bila ada; fallback komposisi klien.
   const SHIFT_EVENTS: TimelineEvent[] = useMemo(() => {
-    const segments = buildShiftTimeline(machine, windowMin);
+    const segments = serverSegments ?? buildShiftTimeline(machine, windowMin);
     return segments.map((seg) => {
       const startClock = clockLabel(startMin, seg.startOffsetMin);
       const endClock = clockLabel(startMin, seg.startOffsetMin + seg.durationMinutes);
@@ -99,7 +103,7 @@ export const PasXProgressStrip: React.FC<PasXProgressStripProps> = ({ machine, u
         durationFraction: seg.durationMinutes / 60,
       };
     });
-  }, [machine, windowMin]);
+  }, [machine, windowMin, serverSegments]);
 
   // Live clock — penanda real-time, refresh tiap detik
   const [now, setNow] = useState(() => new Date());

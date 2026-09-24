@@ -13,6 +13,8 @@ export * from './use-cases/MqttEdgeCommandUseCase';
 
 // Use Cases (backend lane — REST + WS)
 export * from './use-cases/ListWorkOrdersUseCase';
+export * from './use-cases/GetShiftSummaryUseCase';
+export * from './use-cases/GetShiftTimelineUseCase';
 export * from './use-cases/SubscribeTelemetryUseCase';
 export * from './use-cases/ListLabelableDowntimesUseCase';
 export * from './use-cases/LabelDowntimeReasonUseCase';
@@ -22,6 +24,7 @@ export * from './use-cases/ConfigureDeviceUseCase';
 export * from './dto/live-state.dto';
 export * from './dto/work-order.dto';
 export * from './dto/telemetry.dto';
+export * from './dto/shift.dto';
 
 // Hooks
 // NOTE: hooks must receive collaborators via arguments or via presentation
@@ -33,6 +36,7 @@ export * from './hooks/useSupplementalSync';
 export * from './hooks/useTelemetrySubscription';
 export * from './hooks/useSimulationTicker';
 export * from './hooks/useMachineActions';
+export * from './hooks/useShiftServerData';
 export * from './hooks/useDeviceRegistry';
 export * from './hooks/useWorkOrders';
 export * from './hooks/useDashboardUi';

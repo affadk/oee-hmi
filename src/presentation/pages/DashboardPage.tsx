@@ -47,6 +47,8 @@ export const DashboardPage: React.FC = () => {
     labelDowntimeReasonUseCase: container.labelDowntimeReasonUseCase,
     configureDeviceUseCase: container.configureDeviceUseCase,
     listWorkOrdersUseCase: container.listWorkOrdersUseCase,
+    getShiftSummaryUseCase: container.getShiftSummaryUseCase,
+    getShiftTimelineUseCase: container.getShiftTimelineUseCase,
     authGateway: container.authGateway,
     useBackend: container.useBackend,
   }), [container]);
@@ -180,6 +182,7 @@ export const DashboardPage: React.FC = () => {
           onLogReject={dashboard.logReject}
           onDispatchMqttCommand={dashboard.dispatchMqttCommand}
           onApplyJobConfig={dashboard.dispatchMqttJobConfig}
+          shiftSegments={dashboard.shiftSegments}
         />
       ) : (
         <div

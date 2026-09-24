@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { MachineConfig, CalculatedOeeMetrics, telemetryAgeSec } from '../../../domain/index';
+import type { TimelineSegment } from '../../../domain/services/ShiftTimeline';
 import { useTheme } from '../../providers/ThemeProvider';
 import {
   Maximize2,
@@ -46,6 +47,8 @@ interface FullscreenOeeViewProps {
     shiftOverride?: { shiftStart: string; shiftEnd: string; breakWindow: string; breakMin: number }
   ) => Promise<void>;
   useBackend?: boolean;
+  /** Fase 2 server timeline (§3.2); null = client buildShiftTimeline. */
+  shiftSegments?: TimelineSegment[] | null;
 }
 
 export const FullscreenOeeView: React.FC<FullscreenOeeViewProps> = ({
@@ -65,6 +68,7 @@ export const FullscreenOeeView: React.FC<FullscreenOeeViewProps> = ({
   onDispatchMqttCommand = async () => {},
   onApplyJobConfig = async () => {},
   useBackend,
+  shiftSegments = null,
 }) => {
   const { theme, toggleTheme } = useTheme();
   const isDark = theme === 'dark';
@@ -689,7 +693,7 @@ const formatStaffed = (totalMin: number): string => {
 
         {/* LOWER: Progress & Shift Timeline — horizontal grid, tinggi relatif vh, tetap proporsional */}
         <div id="shift-progress-fullwidth" className="shrink-0 h-[clamp(110px,16vh,190px)] min-h-0 w-full overflow-hidden">
-          <PasXProgressStrip machine={machine} metrics={metrics} useBackend={useBackend} />
+          <PasXProgressStrip machine={machine} metrics={metrics} useBackend={useBackend} serverSegments={shiftSegments} />
         </div>
       </main>
 

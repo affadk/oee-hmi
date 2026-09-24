@@ -1,7 +1,8 @@
 // /src/infrastructure/api/oeeApiClient.ts
 // HTTP adapter implementing backend ports (ILiveStateRepository,
 // IWorkOrderRepository, IDeviceCommandGateway, IMasterDataRepository,
-// ITelemetryRepository, IAuthGateway). The ONLY place that knows REST paths,
+// ITelemetryRepository, IAuthGateway, IShiftSummaryRepository,
+// IShiftTimelineRepository). The ONLY place that knows REST paths,
 // query-string shapes, and envelope unwrapping.
 
 import type {
@@ -13,6 +14,14 @@ import type {
   ITelemetryRepository,
   IWorkOrderRepository,
 } from '../../domain/ports/IOeeBackend';
+import type {
+  IShiftSummaryRepository,
+  IShiftTimelineRepository,
+  ShiftSummary,
+  ShiftSummaryQuery,
+  ShiftTimelineQuery,
+  ShiftTimelineSegment,
+} from '../../domain/ports/IShiftSummary';
 import type { LiveStateSnapshot } from '../../domain/entities/backend/LiveState';
 import type { DeviceCommandInput, DeviceRecord, MachineRecord, OperatorRecord, ProductRecord } from '../../domain/entities/backend/Device';
 import type { DeviceMetadataPatch, MachineMetadataPatch } from '../../domain/ports/IOeeBackend';
@@ -30,9 +39,10 @@ import {
   mapOperationalEventResultDto,
   mapTelemetryHistoryListDto,
 } from '../../application/dto/telemetry.dto';
+import { mapShiftSummaryDto, mapShiftTimelineListDto } from '../../application/dto/shift.dto';
 import { assertDeviceCommandReason } from '../../domain/entities/backend/Device';
 import { endpoints } from './endpoints';
-import { httpRequest } from './httpClient';
+import { BackendHttpError, httpRequest } from './httpClient';
 
 function withQuery(path: string, params: Record<string, string | number | boolean | undefined | null>): string {
   const qs = Object.entries(params)
@@ -233,5 +243,48 @@ export class OeeHttpAuthGateway implements IAuthGateway {
   }
   getToken(): string | null {
     return this.tokens.getToken();
+  }
+}
+
+/** Returns null when the endpoint is not implemented (404); throws otherwise. */
+function nullOnMissingEndpoint(err: unknown): null {
+  if (err instanceof BackendHttpError && err.status === 404) return null;
+  throw err;
+}
+
+export class OeeHttpShiftSummaryRepository implements IShiftSummaryRepository {
+  async getShiftSummary(query: ShiftSummaryQuery, signal?: AbortSignal): Promise<ShiftSummary | null> {
+    const path = withQuery(endpoints.shiftSummary(), {
+      machine_id: query.machineId,
+      device_id: query.deviceId,
+      from: query.from,
+      to: query.to,
+      date: query.date,
+      shift: query.shift,
+    });
+    try {
+      const raw = await httpRequest<unknown>(path, { signal });
+      return mapShiftSummaryDto(raw as Record<string, unknown>);
+    } catch (err) {
+      return nullOnMissingEndpoint(err);
+    }
+  }
+}
+
+export class OeeHttpShiftTimelineRepository implements IShiftTimelineRepository {
+  async getShiftTimeline(query: ShiftTimelineQuery, signal?: AbortSignal): Promise<ShiftTimelineSegment[] | null> {
+    const path = withQuery(endpoints.shiftTimeline(), {
+      machine_id: query.machineId,
+      device_id: query.deviceId,
+      from: query.from,
+      to: query.to,
+      bucket: query.bucket,
+    });
+    try {
+      const raw = await httpRequest<unknown>(path, { signal });
+      return mapShiftTimelineListDto(raw);
+    } catch (err) {
+      return nullOnMissingEndpoint(err);
+    }
   }
 }

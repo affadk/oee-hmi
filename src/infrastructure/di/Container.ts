@@ -31,6 +31,8 @@ import {
   OeeHttpDeviceCommandGateway,
   OeeHttpLiveStateRepository,
   OeeHttpMasterDataRepository,
+  OeeHttpShiftSummaryRepository,
+  OeeHttpShiftTimelineRepository,
   OeeHttpTelemetryRepository,
   OeeHttpWorkOrderRepository,
 } from '../api/oeeApiClient';
@@ -46,6 +48,8 @@ import { SimulateMachinePulseUseCase } from '../../application/use-cases/Simulat
 import { ManageAlarmsUseCase } from '../../application/use-cases/ManageAlarmsUseCase';
 import { MqttEdgeCommandUseCase } from '../../application/use-cases/MqttEdgeCommandUseCase';
 import { ListWorkOrdersUseCase } from '../../application/use-cases/ListWorkOrdersUseCase';
+import { GetShiftSummaryUseCase } from '../../application/use-cases/GetShiftSummaryUseCase';
+import { GetShiftTimelineUseCase } from '../../application/use-cases/GetShiftTimelineUseCase';
 import { SubscribeTelemetryUseCase } from '../../application/use-cases/SubscribeTelemetryUseCase';
 import { GetDowntimeReasonsUseCase } from '../../application/use-cases/GetDowntimeReasonsUseCase';
 import { GetHourlyTrendsUseCase } from '../../application/use-cases/GetHourlyTrendsUseCase';
@@ -85,6 +89,8 @@ export interface AppContainer {
 
   // Use cases (backend lane)
   listWorkOrdersUseCase: ListWorkOrdersUseCase;
+  getShiftSummaryUseCase: GetShiftSummaryUseCase;
+  getShiftTimelineUseCase: GetShiftTimelineUseCase;
   subscribeTelemetryUseCase: SubscribeTelemetryUseCase;
   getDowntimeReasonsUseCase: GetDowntimeReasonsUseCase;
   getHourlyTrendsUseCase: GetHourlyTrendsUseCase;
@@ -115,6 +121,8 @@ export function createContainer(): AppContainer {
   const authTokenStorage = new AuthTokenStorageAdapter();
   const authGateway = new OeeHttpAuthGateway(authTokenStorage);
   const realtimeGateway = new TelemetryWsClient();
+  const shiftSummaryRepository = new OeeHttpShiftSummaryRepository();
+  const shiftTimelineRepository = new OeeHttpShiftTimelineRepository();
 
   const machineRepository = useBackend
     ? new BackendMachineRepository(
@@ -146,6 +154,8 @@ export function createContainer(): AppContainer {
   const manageAlarmsUseCase = new ManageAlarmsUseCase(alarmRepository);
   const mqttEdgeCommandUseCase = new MqttEdgeCommandUseCase(mqttGateway, machineRepository);
   const listWorkOrdersUseCase = new ListWorkOrdersUseCase(workOrderRepository);
+  const getShiftSummaryUseCase = new GetShiftSummaryUseCase(shiftSummaryRepository);
+  const getShiftTimelineUseCase = new GetShiftTimelineUseCase(shiftTimelineRepository);
   const subscribeTelemetryUseCase = new SubscribeTelemetryUseCase(realtimeGateway);
   const getDowntimeReasonsUseCase = new GetDowntimeReasonsUseCase(telemetryRepository);
   const getHourlyTrendsUseCase = new GetHourlyTrendsUseCase(telemetryRepository);
@@ -176,6 +186,8 @@ export function createContainer(): AppContainer {
     manageAlarmsUseCase,
     mqttEdgeCommandUseCase,
     listWorkOrdersUseCase,
+    getShiftSummaryUseCase,
+    getShiftTimelineUseCase,
     subscribeTelemetryUseCase,
     getDowntimeReasonsUseCase,
     getHourlyTrendsUseCase,

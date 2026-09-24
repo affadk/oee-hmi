@@ -26,6 +26,7 @@ import type { AuthSession, IAuthGateway } from '../../domain/ports/IOeeBackend';
 import type { DeviceRecord, MachineRecord } from '../../domain/entities/backend/Device';
 import type { WorkOrderListItem, WorkOrderResolveResult } from '../../domain/entities/backend/WorkOrder';
 import type { DowntimeEvent } from '../../domain/entities/backend/Telemetry';
+import type { TimelineSegment } from '../../domain/services/ShiftTimeline';
 import type { CalculateOeeUseCase } from '../use-cases/CalculateOeeUseCase';
 import type { GetMachinesUseCase } from '../use-cases/GetMachinesUseCase';
 import type { UpdateMachineStatusUseCase } from '../use-cases/UpdateMachineStatusUseCase';
@@ -41,6 +42,8 @@ import type { ListLabelableDowntimesUseCase } from '../use-cases/ListLabelableDo
 import type { LabelDowntimeReasonUseCase } from '../use-cases/LabelDowntimeReasonUseCase';
 import type { ConfigureDeviceUseCase } from '../use-cases/ConfigureDeviceUseCase';
 import type { ListWorkOrdersUseCase } from '../use-cases/ListWorkOrdersUseCase';
+import type { GetShiftSummaryUseCase } from '../use-cases/GetShiftSummaryUseCase';
+import type { GetShiftTimelineUseCase } from '../use-cases/GetShiftTimelineUseCase';
 import { useAuthSession } from './useAuthSession';
 import { useMachinesQuery } from './useMachinesQuery';
 import { useSupplementalSync } from './useSupplementalSync';
@@ -51,6 +54,7 @@ import type { BackendDowntimeLabelInput } from './useMachineActions';
 import { useDeviceRegistry } from './useDeviceRegistry';
 import { useWorkOrders } from './useWorkOrders';
 import { useDashboardUi } from './useDashboardUi';
+import { useShiftServerData, mergeShiftSummary } from './useShiftServerData';
 import type { DashboardViewMode } from './useDashboardUi';
 import { resolveShiftWindowIso } from '../../domain/services/ShiftTimeline';
 
@@ -72,6 +76,8 @@ export interface OeeDashboardDeps {
   labelDowntimeReasonUseCase: LabelDowntimeReasonUseCase;
   configureDeviceUseCase: ConfigureDeviceUseCase;
   listWorkOrdersUseCase: ListWorkOrdersUseCase;
+  getShiftSummaryUseCase: GetShiftSummaryUseCase;
+  getShiftTimelineUseCase: GetShiftTimelineUseCase;
   authGateway: IAuthGateway;
   useBackend: boolean;
 }
@@ -101,6 +107,8 @@ export interface UseOeeDashboardReturn {
   authError: string;
   labelableDowntimes: DowntimeEvent[];
   supplementalError: string;
+  /** Fase 2 server timeline segments (§3.2); null = client buildShiftTimeline. */
+  shiftSegments: TimelineSegment[] | null;
   deviceRegistry: { devices: DeviceRecord[]; machines: MachineRecord[] } | null;
   deviceRegistryError: string;
   pendingWorkOrders: WorkOrderListItem[];
@@ -175,6 +183,8 @@ export function useOeeDashboard(deps: OeeDashboardDeps): UseOeeDashboardReturn {
     labelDowntimeReasonUseCase,
     configureDeviceUseCase,
     listWorkOrdersUseCase,
+    getShiftSummaryUseCase,
+    getShiftTimelineUseCase,
     authGateway,
     useBackend,
   } = deps;
@@ -265,10 +275,29 @@ export function useOeeDashboard(deps: OeeDashboardDeps): UseOeeDashboardReturn {
     setMachines: machines.setMachines,
   });
 
+  // Fase 1 server aggregates (§3.1/§3.2); null until the backend implements them.
+  const shiftServer = useShiftServerData({
+    useBackend,
+    currentMachineId: machines.currentMachineId,
+    currentDeviceId: machines.currentDeviceId,
+    shiftWindow,
+    getShiftSummaryUseCase,
+    getShiftTimelineUseCase,
+  });
+
   const currentMetrics = useMemo(() => {
     if (!machines.currentMachine) return null;
-    return calculateOeeUseCase.execute(machines.currentMachine);
-  }, [calculateOeeUseCase, machines.currentMachine]);
+    const clientMetrics = calculateOeeUseCase.execute(machines.currentMachine);
+    // Fase 1: server summary wins when the backend implements §3.1,
+    // otherwise the §2 client composition above (identical shape).
+    if (!shiftServer.shiftSummary) return clientMetrics;
+    return mergeShiftSummary(shiftServer.shiftSummary, clientMetrics, {
+      targetOee: machines.currentMachine.targetOee,
+      targetAvailability: machines.currentMachine.targetAvailability,
+      targetPerformance: machines.currentMachine.targetPerformance,
+      targetQuality: machines.currentMachine.targetQuality,
+    });
+  }, [calculateOeeUseCase, machines.currentMachine, shiftServer.shiftSummary]);
 
   const setViewMode = (mode: DashboardViewMode): void => ui.setViewMode(mode);
 
@@ -297,6 +326,7 @@ export function useOeeDashboard(deps: OeeDashboardDeps): UseOeeDashboardReturn {
     authError: auth.authError,
     labelableDowntimes: supplemental.labelableDowntimes,
     supplementalError: supplemental.supplementalError,
+    shiftSegments: shiftServer.shiftSegments,
     deviceRegistry: registry.deviceRegistry,
     deviceRegistryError: registry.deviceRegistryError,
     pendingWorkOrders: orders.pendingWorkOrders,
