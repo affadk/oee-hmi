@@ -197,3 +197,17 @@ npx tsc --noEmit                                                  # harap lolos 
 - **Alur benar kini:** pindai (kamera nyata `QrCameraScanner` via `html5-qrcode`: rear camera, 10 fps, qrbox 250, stop-setelah-baca, stream selalu dilepas; fallback tempel manual) → validasi `parseQrString` → `previewWorkOrder` (resolve) → REVIEW hanya data backend → "Mulai Setup Produksi" → dispatch di `ProductionSetupModal`.
 - **Kejujuran API (temuan Context7-types):** low-level `Html5Qrcode.start` tidak mendukung `formatsToSupport` (hanya wrapper UI) — semua teks ter-decode lewat `parseQrString` yang menolak non-QR dengan pesan operator. Kamera butuh secure-context (https/localhost); LAN http polos otomatis jatuh ke input manual dengan pesan jelas.
 - Verifikasi: `pnpm lint` + 55 test + `pnpm build` lolos (logika parse/resolve sudah teruji; komponen kamera DOM-tipis).
+
+## 17. Audit UX inisiasi batch via tombol fisik (24 Sep 2026) — temuan, belum dieksekusi
+
+Lingkup: `FloorPushButtonsPanel` (sim-only, `!useBackend`) + jalur terkait. Tidak ada perubahan kode.
+
+- **U1 — Tidak ada inisiasi batch dari tombol fisik.** Panel hanya START/STOP status yang sudah ada; `SET_JOB_CONFIG` (WO/produk/target) hanya via QR sim atau Setup Produksi backend. Jawaban backend lane = alur QR→resolve→dispatch (§16).
+- **U2 — Tombol no-op berbohong.** `COUNTING (+1)` dan `SPARE` tidak melakukan apa-apa tetapi menampilkan flash sukses; SPARE bahkan meminta konfirmasi lalu diam — pola terburuk (janji lalu ingkar).
+- **U3 — Tanpa error surface/busy.** `runAction` tanpa try/catch (START/STOP/REJECT): gagal = unhandled rejection diam-diam; double-tap = dispatch ganda.
+- **U4 — Teks guard tidak sadar-lane.** "di-nol-kan via MQTT" salah di lane backend (REST). Panel memang disembunyikan saat backend, tetapi teks harus netral bila dipakai ulang.
+- **U5 — START tanpa cek WO aktif.** Mesin `UNCONFIGURED`/tanpa job bisa di-START; tidak ada arahan "pilih WO dulu".
+- **U6 — Flash sukses tanpa melihat hasil.** `activeBtn` diset sebelum `await` dan dibersihkan timeout apa pun hasilnya.
+- **U7 — Backend lane nol tombol fisik.** Panel disembunyikan penuh saat `useBackend` — disengaja, tetapi berarti inisiasi fisik backend = QR (§16), bukan tombol.
+- **Positif:** dialog guard punya `role`/`aria`/`esc`/focus; tombol destruktif terkonfirmasi; ikon + label + pin DI jelas.
+- **Rekomendasi (frontend, belum dieksekusi):** nonaktifkan COUNTING/SPARE jujur (disabled + tooltip alasan) atau sambungkan ke endpoint nyata; tambah busy + error inline; teks guard netral-lane; cegah START tanpa WO aktif dengan CTA ke Setup Produksi/QR.
