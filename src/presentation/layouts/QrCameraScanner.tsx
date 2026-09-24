@@ -8,7 +8,7 @@
 // http the start fails — the parent must keep manual paste as fallback.
 
 import React, { useEffect, useId, useRef, useState } from 'react';
-import { Html5Qrcode } from 'html5-qrcode';
+import { Html5Qrcode, Html5QrcodeScannerState } from 'html5-qrcode';
 
 interface QrCameraScannerProps {
   onScanned: (text: string) => void;
@@ -26,6 +26,30 @@ export const QrCameraScanner: React.FC<QrCameraScannerProps> = ({ onScanned, onS
   useEffect(() => {
     let cancelled = false;
     let scanner: Html5Qrcode | null = null;
+
+    // Only stop() → renderedCamera.close() → videoTrack.stop() releases the
+    // MediaStream and powers down the sensor. clear() alone just wipes the
+    // container's innerHTML — and it *throws* while scanning is ongoing, so
+    // it must never be the sole teardown call.
+    const stopAndClear = (s: Html5Qrcode) => {
+      void (async () => {
+        try {
+          // stop() throws unless the scanner is in SCANNING/PAUSED; during
+          // the getUserMedia window getState() is still NOT_STARTED.
+          if (s.getState() !== Html5QrcodeScannerState.NOT_STARTED) {
+            await s.stop();
+          }
+        } catch {
+          // already stopped / start() rejected mid-transition — nothing to release
+        }
+        try {
+          s.clear();
+        } catch {
+          // ignore leftover-DOM cleanup errors
+        }
+      })();
+    };
+
     (async () => {
       try {
         scanner = new Html5Qrcode(elementId, false);
@@ -44,7 +68,14 @@ export const QrCameraScanner: React.FC<QrCameraScannerProps> = ({ onScanned, onS
           },
           undefined,
         );
-        if (!cancelled) setStarting(false);
+        if (cancelled) {
+          // Unmount raced the in-flight getUserMedia: the stream just landed
+          // on a detached node — release it now so the sensor powers down
+          // and no second instance can stack another <video> on top.
+          stopAndClear(scanner);
+          return;
+        }
+        setStarting(false);
       } catch (err) {
         if (!cancelled) {
           onScanErrorRef.current(
@@ -57,11 +88,7 @@ export const QrCameraScanner: React.FC<QrCameraScannerProps> = ({ onScanned, onS
     })();
     return () => {
       cancelled = true;
-      try {
-        scanner?.clear();
-      } catch {
-        // ignore teardown errors
-      }
+      if (scanner) stopAndClear(scanner);
     };
   }, [elementId]);
 
