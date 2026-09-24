@@ -211,3 +211,13 @@ Lingkup: `FloorPushButtonsPanel` (sim-only, `!useBackend`) + jalur terkait. Tida
 - **U7 — Backend lane nol tombol fisik.** Panel disembunyikan penuh saat `useBackend` — disengaja, tetapi berarti inisiasi fisik backend = QR (§16), bukan tombol.
 - **Positif:** dialog guard punya `role`/`aria`/`esc`/focus; tombol destruktif terkonfirmasi; ikon + label + pin DI jelas.
 - **Rekomendasi (frontend, belum dieksekusi):** nonaktifkan COUNTING/SPARE jujur (disabled + tooltip alasan) atau sambungkan ke endpoint nyata; tambah busy + error inline; teks guard netral-lane; cegah START tanpa WO aktif dengan CTA ke Setup Produksi/QR.
+
+## 18. Perbaikan UX tombol fisik (24 Sep 2026) — U2–U6 ✅ SELESAI
+
+- **U2:** COUNTING/SPARE dinonaktifkan jujur (`disabled` + tooltip alasan); cabang no-op + guard SPARE dihapus.
+- **U3:** `runAction` punya busy (tap digabung), try/catch → error inline `role="alert"`, tombol disabled saat sibuk.
+- **U4:** teks guard RESET netral-lane (tanpa "via MQTT").
+- **U5:** START tanpa WO aktif diblokir + pemberitahuan dengan CTA "Scan QR" (`onRequestWorkOrder` → buka QR modal).
+- **U6:** flash sukses hanya setelah `await` berhasil.
+- U1/U7 tetap dokumentasi: inisiasi fisik backend = alur QR §16.
+- Verifikasi: `pnpm lint` + 55 test + `pnpm build` lolos.

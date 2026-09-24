@@ -10,6 +10,8 @@ interface FloorPushButtonsPanelProps {
   onUpdateMachineStatus: (status: 'RUNNING' | 'DOWN' | 'IDLE') => Promise<void>;
   onLogReject: (reasonLabel: string, count: number) => Promise<void>;
   onDispatchMqttCommand: (command: 'RESET_COUNTER' | 'PAUSE' | 'RESUME') => Promise<void>;
+  /** Dipanggil saat START diminta tanpa WO aktif (arahkan ke QR/Setup Produksi). */
+  onRequestWorkOrder?: () => void;
 }
 
 export const FloorPushButtonsPanel: React.FC<FloorPushButtonsPanelProps> = ({
@@ -17,13 +19,18 @@ export const FloorPushButtonsPanel: React.FC<FloorPushButtonsPanelProps> = ({
   onUpdateMachineStatus,
   onLogReject,
   onDispatchMqttCommand,
+  onRequestWorkOrder,
 }) => {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
 
   const [activeBtn, setActiveBtn] = useState<string | null>(null);
-  const [pendingGuard, setPendingGuard] = useState<'RESET' | 'SPARE' | null>(null);
+  const [pendingGuard, setPendingGuard] = useState<'RESET' | null>(null);
   const [isBusy, setIsBusy] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [needsWorkOrder, setNeedsWorkOrder] = useState(false);
+
+  const hasActiveWorkOrder = Boolean(machine.jobConfig?.workOrder?.trim());
 
   // Tutup dialog guard dengan Escape
   useEffect(() => {
@@ -35,34 +42,48 @@ export const FloorPushButtonsPanel: React.FC<FloorPushButtonsPanelProps> = ({
     return () => window.removeEventListener('keydown', onKey);
   }, [pendingGuard, isBusy]);
 
-  const runAction = async (id: 'START' | 'STOP' | 'COUNTING' | 'REJECT' | 'RESET' | 'SPARE') => {
-    setActiveBtn(id);
-    setTimeout(() => setActiveBtn(null), 600);
-
-    switch (id) {
-      case 'START':
-        await onUpdateMachineStatus('RUNNING');
-        break;
-      case 'STOP':
-        await onUpdateMachineStatus('DOWN');
-        break;
-      case 'COUNTING':
-        // Simulated edge pulse for counting (+1)
-        break;
-      case 'REJECT':
-        await onLogReject('Manual Reject Button', 1);
-        break;
-      case 'RESET':
-        await onDispatchMqttCommand('RESET_COUNTER');
-        break;
-      case 'SPARE':
-        break;
+  const runAction = async (id: 'START' | 'STOP' | 'REJECT' | 'RESET') => {
+    if (isBusy) return;
+    // U5: jangan START tanpa WO aktif — arahkan ke QR/Setup Produksi.
+    if (id === 'START' && !hasActiveWorkOrder) {
+      setNeedsWorkOrder(true);
+      return;
+    }
+    setIsBusy(true);
+    setActionError(null);
+    setNeedsWorkOrder(false);
+    try {
+      switch (id) {
+        case 'START':
+          await onUpdateMachineStatus('RUNNING');
+          break;
+        case 'STOP':
+          await onUpdateMachineStatus('DOWN');
+          break;
+        case 'REJECT':
+          await onLogReject('Manual Reject Button', 1);
+          break;
+        case 'RESET':
+          await onDispatchMqttCommand('RESET_COUNTER');
+          break;
+      }
+      // U6: flash sukses hanya bila aksi benar-benar berhasil.
+      setActiveBtn(id);
+      setTimeout(() => setActiveBtn(null), 600);
+    } catch (err) {
+      // U3: kegagalan ditampilkan inline, bukan rejection diam-diam.
+      setActionError(err instanceof Error ? err.message : `Aksi ${id} gagal.`);
+    } finally {
+      setIsBusy(false);
     }
   };
 
   const triggerButton = async (id: 'START' | 'STOP' | 'COUNTING' | 'REJECT' | 'RESET' | 'SPARE') => {
-    // RESET & SPARE berbahaya — wajib konfirmasi guard
-    if (id === 'RESET' || id === 'SPARE') {
+    // U2: COUNTING/SPARE tidak terhubung ke apa pun — tombol dinonaktifkan
+    // jujur di bawah (tidak bisa diklik); cabang ini pertahanan terakhir.
+    if (id === 'COUNTING' || id === 'SPARE') return;
+    // RESET berbahaya — wajib konfirmasi guard
+    if (id === 'RESET') {
       setPendingGuard(id);
       return;
     }
@@ -71,11 +92,9 @@ export const FloorPushButtonsPanel: React.FC<FloorPushButtonsPanelProps> = ({
 
   const confirmGuard = async () => {
     if (!pendingGuard) return;
-    setIsBusy(true);
     try {
       await runAction(pendingGuard);
     } finally {
-      setIsBusy(false);
       setPendingGuard(null);
     }
   };
@@ -122,8 +141,10 @@ export const FloorPushButtonsPanel: React.FC<FloorPushButtonsPanelProps> = ({
       pin: 'DI 2 · PIN 14',
       icon: PlusCircle,
       accent: 'blue',
+      // U2: belum terhubung ke edge counter — dinonaktifkan jujur.
+      disabledReason: 'Pulsa counting berasal dari sensor edge, bukan tombol UI',
       activeColor: 'bg-blue-600 border-blue-500 text-white shadow-blue-600/30',
-      idleColor: isDark ? 'bg-[#132238] border-blue-900/60 text-blue-300 hover:bg-blue-950/40 hover:border-blue-600' : 'bg-blue-50 border-blue-300 text-blue-800 hover:bg-blue-100',
+      idleColor: isDark ? 'bg-[#132238] border-slate-700 text-slate-500' : 'bg-slate-100 border-slate-300 text-slate-400',
       isEngaged: false,
     },
     {
@@ -144,9 +165,10 @@ export const FloorPushButtonsPanel: React.FC<FloorPushButtonsPanelProps> = ({
       pin: 'DI 5 · PIN 17',
       icon: Wrench,
       accent: 'indigo',
-      guarded: true,
+      // U2: belum dipetakan ke aksi apa pun — dinonaktifkan jujur.
+      disabledReason: 'Tombol cadangan belum dipetakan ke aksi',
       activeColor: 'bg-indigo-600 border-indigo-500 text-white shadow-indigo-600/30',
-      idleColor: isDark ? 'bg-[#132238] border-indigo-900/60 text-indigo-300 hover:bg-indigo-950/40 hover:border-indigo-600' : 'bg-indigo-50 border-indigo-300 text-indigo-800 hover:bg-indigo-100',
+      idleColor: isDark ? 'bg-[#132238] border-slate-700 text-slate-500' : 'bg-slate-100 border-slate-300 text-slate-400',
       isEngaged: false,
     },
   ] as const;
@@ -183,20 +205,22 @@ export const FloorPushButtonsPanel: React.FC<FloorPushButtonsPanelProps> = ({
           const Icon = b.icon;
           const isEngaged = b.isEngaged;
           const isGuarded = 'guarded' in b && b.guarded === true;
+          const isDisabled = ('disabledReason' in b && typeof b.disabledReason === 'string') || isBusy;
 
           return (
             <button
               key={b.id}
               type="button"
               onClick={() => triggerButton(b.id)}
-              className={`px-1.5 py-2 rounded-lg border transition-all duration-150 flex items-center gap-1.5 relative cursor-pointer select-none active:scale-95 min-h-[52px] text-left overflow-hidden ${
+              disabled={isDisabled}
+              className={`px-1.5 py-2 rounded-lg border transition-all duration-150 flex items-center gap-1.5 relative cursor-pointer select-none active:scale-95 min-h-[52px] text-left overflow-hidden disabled:cursor-not-allowed disabled:opacity-70 ${
                 isTriggered
                   ? 'ring-2 ring-blue-500 scale-[1.03] ' + b.activeColor
                   : isEngaged
                   ? b.activeColor + ' ring-1 ring-white/30 font-bold shadow-md'
                   : b.idleColor
               }`}
-              title={isGuarded ? `${b.label} — ${b.sublabel} (perlu konfirmasi)` : `${b.label} — ${b.sublabel}`}
+              title={'disabledReason' in b && typeof b.disabledReason === 'string' ? `${b.label} — nonaktif: ${b.disabledReason}` : isGuarded ? `${b.label} — ${b.sublabel} (perlu konfirmasi)` : `${b.label} — ${b.sublabel}`}
             >
               {isEngaged && (
                 <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-white animate-ping" />
@@ -217,14 +241,40 @@ export const FloorPushButtonsPanel: React.FC<FloorPushButtonsPanelProps> = ({
         })}
       </div>
 
-      {/* Guard konfirmasi RESET / SPARE */}
+      {/* U3/U5: error aksi + arahan WO — inline, bukan diam-diam. */}
+      {actionError && (
+        <p role="alert" className="text-[11px] font-mono text-rose-500 px-1">
+          {actionError}
+        </p>
+      )}
+      {needsWorkOrder && (
+        <div className="flex items-center justify-between gap-2 px-2 py-1.5 rounded-lg border border-amber-500/40 bg-amber-500/10 text-[11px]">
+          <span className={isDark ? 'text-amber-200' : 'text-amber-800'}>
+            Belum ada WO aktif — pindai QR / buka Setup Produksi dulu.
+          </span>
+          {onRequestWorkOrder && (
+            <button
+              type="button"
+              onClick={() => {
+                setNeedsWorkOrder(false);
+                onRequestWorkOrder();
+              }}
+              className="px-2 py-1 rounded-md bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-bold shrink-0 cursor-pointer"
+            >
+              Scan QR
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Guard konfirmasi RESET */}
       {pendingGuard && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
           onClick={() => { if (!isBusy) setPendingGuard(null); }}
           role="dialog"
           aria-modal="true"
-          aria-label={pendingGuard === 'RESET' ? 'Konfirmasi Reset' : 'Konfirmasi Spare'}
+          aria-label="Konfirmasi Reset"
         >
           <div
             className={`w-full max-w-xs rounded-xl border p-4 shadow-xl ${isDark ? 'bg-[#0f1b2e] border-slate-700' : 'bg-white border-slate-200'}`}
@@ -232,11 +282,11 @@ export const FloorPushButtonsPanel: React.FC<FloorPushButtonsPanelProps> = ({
           >
             <div className="flex items-start justify-between gap-2">
               <div className="flex items-center gap-2">
-                <span className={`p-1.5 rounded-md ${pendingGuard === 'RESET' ? 'bg-rose-500/15 text-rose-500' : 'bg-indigo-500/15 text-indigo-500'}`}>
+                <span className="p-1.5 rounded-md bg-rose-500/15 text-rose-500">
                   <TriangleAlert className="w-4 h-4" />
                 </span>
                 <h4 className={`text-sm font-extrabold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
-                  {pendingGuard === 'RESET' ? 'Konfirmasi RESET' : 'Konfirmasi SPARE'}
+                  Konfirmasi RESET
                 </h4>
               </div>
               <button
@@ -249,10 +299,9 @@ export const FloorPushButtonsPanel: React.FC<FloorPushButtonsPanelProps> = ({
                 <X className="w-4 h-4" />
               </button>
             </div>
+            {/* U4: teks netral-lane (sim = MQTT, backend = REST). */}
             <p className={`mt-2 text-xs leading-relaxed ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
-              {pendingGuard === 'RESET'
-                ? 'Counter batch/shift akan di-nol-kan via MQTT (RESET_COUNTER). Tindakan ini tidak bisa dibatalkan. Lanjutkan?'
-                : 'Tombol cadangan / Andon akan dipicu. Lanjutkan?'}
+              Counter batch/shift akan di-nol-kan (RESET_COUNTER). Tindakan ini tidak bisa dibatalkan. Lanjutkan?
             </p>
             <div className="mt-3 flex items-center justify-end gap-2">
               <button
@@ -267,7 +316,7 @@ export const FloorPushButtonsPanel: React.FC<FloorPushButtonsPanelProps> = ({
                 type="button"
                 onClick={confirmGuard}
                 disabled={isBusy}
-                className={`px-3 py-1.5 rounded-lg text-xs font-extrabold text-white cursor-pointer transition-colors disabled:opacity-50 ${pendingGuard === 'RESET' ? 'bg-rose-600 hover:bg-rose-700' : 'bg-indigo-600 hover:bg-indigo-700'}`}
+                className="px-3 py-1.5 rounded-lg text-xs font-extrabold text-white cursor-pointer transition-colors disabled:opacity-50 bg-rose-600 hover:bg-rose-700"
               >
                 {isBusy ? 'Memproses…' : 'Ya, Lanjutkan'}
               </button>

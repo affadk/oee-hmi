@@ -707,6 +707,7 @@ const formatStaffed = (totalMin: number): string => {
                 onUpdateMachineStatus={onUpdateMachineStatus}
                 onLogReject={onLogReject}
                 onDispatchMqttCommand={onDispatchMqttCommand}
+                onRequestWorkOrder={() => setIsQrModalOpen(true)}
               />
             )}
           </div>
