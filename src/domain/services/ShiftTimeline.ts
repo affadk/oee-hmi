@@ -5,6 +5,7 @@
 // firmware only sends st 0..5 (UNCONFIGURED..BATCH_FINISHED).
 
 import type { MachineConfig } from '../entities/Machine';
+import { isPlannedDowntimeCategory } from '../entities/backend/Telemetry';
 
 export type TimelineKind = 'Active' | 'Breakdown' | 'Changeover' | 'Waiting' | 'Planned' | 'Undefined';
 
@@ -22,7 +23,7 @@ export function parseShiftHM(hm: string | undefined, fallbackMin: number): numbe
   if (!hm) return fallbackMin;
   const m = hm.match(/^(\d{1,2}):(\d{2})/);
   if (!m) return fallbackMin;
-  return (parseInt(m[1], 10) % 24) * 60 + (parseInt(m[2], 10) % 60);
+  return (parseInt(m[1] ?? '0', 10) % 24) * 60 + (parseInt(m[2] ?? '0', 10) % 60);
 }
 
 /** Shift window in minutes, handling overnight (end <= start means +24h). */
@@ -113,7 +114,7 @@ export function buildShiftTimeline(machine: MachineConfig, windowMinOverride?: n
 
   scaled.forEach((r, idx) => {
     pushActive(activePerGap);
-    const planned = r.type === 'PLANNED' || r.category === 'Planned';
+    const planned = r.type === 'PLANNED' || isPlannedDowntimeCategory(r.category);
     segments.push({
       key: r.id || `dt-${idx}`,
       kind: mapDowntimeToKind(r.category, r.label, r.type),
@@ -134,8 +135,8 @@ export function parseBreakWindow(breakTimeWindow: string | undefined): { startMi
   if (!breakTimeWindow) return null;
   const m = breakTimeWindow.match(/(\d{1,2}):(\d{2})\s*[-–—]\s*(\d{1,2}):(\d{2})/);
   if (!m) return null;
-  const s = (parseInt(m[1], 10) % 24) * 60 + (parseInt(m[2], 10) % 60);
-  let e = (parseInt(m[3], 10) % 24) * 60 + (parseInt(m[4], 10) % 60);
+  const s = (parseInt(m[1] ?? '0', 10) % 24) * 60 + (parseInt(m[2] ?? '0', 10) % 60);
+  let e = (parseInt(m[3] ?? '0', 10) % 24) * 60 + (parseInt(m[4] ?? '0', 10) % 60);
   if (e <= s) e += 24 * 60;
   return { startMin: s, endMin: e };
 }

@@ -23,6 +23,7 @@ export * from './ports/IMachineRepository';
 export * from './ports/IAlarmRepository';
 export * from './ports/IMqttGateway';
 export * from './ports/IThemeStorage';
+export * from './ports/IAuthTokenStorage';
 
 // Ports (backend lane — REST + WS)
 export * from './ports/IOeeBackend';

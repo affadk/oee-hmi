@@ -1,6 +1,6 @@
 // /src/domain/entities/Machine.ts
 
-import { MqttTelemetryPayload, MqttJobConfigPayload, MqttHealthPayload } from './MqttContracts';
+import { MqttTelemetryPayload, MqttHealthPayload } from './MqttContracts';
 
 export type MachineStatus = 'RUNNING' | 'IDLE' | 'DOWN' | 'SETUP' | 'PLANNED_STOP';
 

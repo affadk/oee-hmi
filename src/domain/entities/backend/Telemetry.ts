@@ -41,6 +41,19 @@ export const PLANNED_DOWNTIME_CATEGORIES: ReadonlySet<DowntimeCategory> = new Se
   'SETUP_AND_ADJUSTMENT',
 ]);
 
+export const ALL_DOWNTIME_CATEGORIES: readonly DowntimeCategory[] = [
+  'EQUIPMENT_FAILURE',
+  'SETUP_AND_ADJUSTMENT',
+  'IDLING_AND_MINOR_STOPPAGE',
+  'REDUCED_SPEED',
+  'PROCESS_DEFECT',
+  'MATERIAL_SHORTAGE',
+  'PLANNED_MAINTENANCE',
+  'REST_BREAK',
+  'CLEANING_5S',
+  'OTHER',
+];
+
 export function isPlannedDowntimeCategory(category: DowntimeCategory | string | null | undefined): boolean {
   if (!category) return false;
   return (PLANNED_DOWNTIME_CATEGORIES as ReadonlySet<string>).has(category);

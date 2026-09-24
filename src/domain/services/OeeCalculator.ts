@@ -56,16 +56,30 @@ export class OeeCalculator {
     const downtimeMin = machine.unplannedDowntimeMinutes;
     const runTimeMin = Math.max(0, plannedProductionTimeMin - downtimeMin);
 
-    // If telemetry values are available, prioritize MQTT contract values
-    const availabilityPct = machine.telemetry?.a ? Number((machine.telemetry.a / 100).toFixed(1)) : 0;
-    const performancePct = machine.telemetry?.p ? Number((machine.telemetry.p / 100).toFixed(1)) : 0;
-    const qualityPct = machine.telemetry?.q ? Number((machine.telemetry.q / 100).toFixed(1)) : 0;
-    const oeePct = machine.telemetry?.oee ? Number((machine.telemetry.oee / 100).toFixed(1)) : 0;
-
     const totalCount = machine.telemetry?.tot ?? machine.totalCount;
     const rejectCount = machine.telemetry?.rej ?? machine.rejectCount;
     const goodCount = Math.max(0, totalCount - rejectCount);
     const targetCount = machine.jobConfig?.targetQuantity ?? machine.targetCount;
+    const safeCycleTime = Math.max(0.1, machine.idealCycleTimeSec);
+
+    // Wire values (x100 ints) take precedence; wire 0 is valid data.
+    // Fall back to ISO-22400 computation from counts/runTime when wire is absent.
+    const availabilityPct = machine.telemetry?.a != null
+      ? Number((machine.telemetry.a / 100).toFixed(1))
+      : (plannedProductionTimeMin > 0
+        ? Number(Math.min(100, Math.max(0, (runTimeMin / plannedProductionTimeMin) * 100)).toFixed(1))
+        : 0);
+    const qualityPct = machine.telemetry?.q != null
+      ? Number((machine.telemetry.q / 100).toFixed(1))
+      : (totalCount > 0 ? Number(((goodCount / totalCount) * 100).toFixed(1)) : 0);
+    const performancePct = machine.telemetry?.p != null
+      ? Number((machine.telemetry.p / 100).toFixed(1))
+      : (runTimeMin > 0
+        ? Number(Math.max(0, ((safeCycleTime * totalCount) / (runTimeMin * 60)) * 100).toFixed(1))
+        : 0);
+    const oeePct = machine.telemetry?.oee != null
+      ? Number((machine.telemetry.oee / 100).toFixed(1))
+      : Number(((availabilityPct * performancePct * qualityPct) / 10000).toFixed(1));
 
     // Production Achievement
     const achievementPct = targetCount > 0 
@@ -73,7 +87,6 @@ export class OeeCalculator {
       : 0;
 
     // Equivalent units loss calculation
-    const safeCycleTime = Math.max(0.1, machine.idealCycleTimeSec);
     const potentialProductionPcs = Math.round((plannedProductionTimeMin * 60) / safeCycleTime);
     const totalLossPcs = Math.max(0, potentialProductionPcs - goodCount);
     const availabilityLossPcs = Math.round((downtimeMin * 60) / safeCycleTime);
@@ -81,7 +94,10 @@ export class OeeCalculator {
     const performanceLossPcs = Math.max(0, totalLossPcs - availabilityLossPcs - qualityLossPcs);
     const performanceLossMin = Math.round((performanceLossPcs * safeCycleTime) / 60);
 
-    const calendarUtilizationPct = 0;
+    // TEEP = OEE × calendar utilization. Utilization = shift window vs 24h calendar day.
+    const calendarUtilizationPct = machine.shiftDurationMinutes > 0
+      ? Number(Math.min(100, (machine.shiftDurationMinutes / 1440) * 100).toFixed(1))
+      : 0;
     const teepPct = Number(((oeePct * (calendarUtilizationPct / 100))).toFixed(1));
 
     return {

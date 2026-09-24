@@ -40,4 +40,10 @@ export interface IThemeStoragePort {
    * Returns an unsubscribe function.
    */
   subscribeToSystemChanges(listener: (systemTheme: ThemeMode) => void): () => void;
+
+  /**
+   * Applies a resolved mode to the DOM without touching storage.
+   * Optional — callers fall back to setTheme when absent.
+   */
+  applyResolvedTheme?(resolved: ThemeMode): void;
 }

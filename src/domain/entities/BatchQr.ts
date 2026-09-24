@@ -78,7 +78,7 @@ export function formatOperatorDisplay(op: QrOperatorPreset): string {
 /** Pecah "Budi Santoso (OP-4021)" menjadi { name, id } — tahan terhadap nama tanpa ID. */
 export function splitOperatorDisplay(display: string): { name: string; id: string } {
   const m = display.match(/^(.*?)\s*\(([^)]+)\)\s*$/);
-  if (m) return { name: m[1].trim() || display, id: m[2].trim() };
+  if (m) return { name: (m[1] ?? '').trim() || display, id: (m[2] ?? '').trim() || 'OP-EDGE' };
   return { name: display.trim(), id: 'OP-EDGE' };
 }
 
