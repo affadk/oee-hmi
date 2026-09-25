@@ -79,6 +79,28 @@ describe('mergeShiftSummary', () => {
     // Loss breakdown stays client-side until the backend provides it (G1).
     expect(merged.totalLossPcs).toBe(fallback.totalLossPcs);
   });
+
+  it('shows 0 when the backend reports zero planned time (no dummy floor)', () => {
+    const machine = makeMachine({
+      shiftDurationMinutes: 0,
+      plannedDowntimeMinutes: 0,
+      unplannedDowntimeMinutes: 0,
+    });
+    const fallback = OeeCalculator.calculate(machine);
+    const summaryWithZeros = {
+      ...SPEC_SUMMARY,
+      time_sec: { ...SPEC_SUMMARY.time_sec, planned: 0, run: 0, downtime: 0 },
+    };
+    const merged = mergeShiftSummary(mapShiftSummaryDto(summaryWithZeros), fallback, {
+      targetOee: machine.targetOee,
+      targetAvailability: machine.targetAvailability,
+      targetPerformance: machine.targetPerformance,
+      targetQuality: machine.targetQuality,
+    });
+    expect(merged.plannedProductionTimeMin).toBe(0);
+    expect(merged.runTimeMin).toBe(0);
+    expect(merged.downtimeMin).toBe(0);
+  });
 });
 
 describe('shift use-cases', () => {

@@ -52,7 +52,8 @@ export class OeeCalculator {
   }
 
   public static calculate(machine: MachineConfig): CalculatedOeeMetrics {
-    const plannedProductionTimeMin = Math.max(1, machine.shiftDurationMinutes - machine.plannedDowntimeMinutes);
+    // Shift plan kosong dari backend => 0, bukan floor 1 menit palsu.
+    const plannedProductionTimeMin = Math.max(0, machine.shiftDurationMinutes - machine.plannedDowntimeMinutes);
     const downtimeMin = machine.unplannedDowntimeMinutes;
     const runTimeMin = Math.max(0, plannedProductionTimeMin - downtimeMin);
 

@@ -168,7 +168,8 @@ export function buildFullscreenViewModel(
   const goodPcs = Math.max(0, actualPcs - rejectPcs);
 
   const runTimeMin = machine.telemetry?.run ? Math.round(machine.telemetry.run / 60) : (metrics.runTimeMin || 0);
-  const plannedTimeMin = metrics.plannedProductionTimeMin || Math.max(1, machine.shiftDurationMinutes - (machine.plannedDowntimeMinutes || 0));
+  // Shift plan kosong => 0, bukan 1 menit palsu.
+  const plannedTimeMin = metrics.plannedProductionTimeMin || Math.max(0, machine.shiftDurationMinutes - (machine.plannedDowntimeMinutes || 0));
   const downtimeMin = machine.telemetry?.dt ? Math.round(machine.telemetry.dt / 60) : (metrics.downtimeMin || 0);
 
   const isRunning = machine.status === 'RUNNING';

@@ -43,7 +43,8 @@ export function mergeShiftSummary(
   const oeePct = summary.oee.oee;
   return {
     ...fallback,
-    plannedProductionTimeMin: Math.max(1, Math.round(summary.timeSec.planned / 60)),
+    // Backend mengirim 0 => tampilkan 0, bukan floor 1 menit.
+    plannedProductionTimeMin: Math.max(0, Math.round(summary.timeSec.planned / 60)),
     runTimeMin: Math.max(0, Math.round(summary.timeSec.run / 60)),
     downtimeMin: Math.max(0, Math.round(summary.timeSec.downtime / 60)),
     availabilityPct,

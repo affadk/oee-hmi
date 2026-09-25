@@ -52,3 +52,21 @@ describe('OeeCalculator TEEP', () => {
     expect(m.teepPct).toBeCloseTo((m.oeePct * m.calendarUtilizationPct) / 100, 1);
   });
 });
+
+describe('OeeCalculator with empty backend shift plan', () => {
+  it('returns 0 for time accounts instead of fabricating a 1-minute dummy', () => {
+    const machine = makeMachine({
+      shiftDurationMinutes: 0,
+      plannedDowntimeMinutes: 0,
+      unplannedDowntimeMinutes: 0,
+      totalCount: 0,
+      rejectCount: 0,
+      telemetry: { ...makeMachine().telemetry, a: 0, p: 0, q: 0, oee: 0 } as MachineConfig['telemetry'],
+    });
+    const m = OeeCalculator.calculate(machine);
+    expect(m.plannedProductionTimeMin).toBe(0);
+    expect(m.runTimeMin).toBe(0);
+    expect(m.downtimeMin).toBe(0);
+    expect(m.availabilityPct).toBe(0);
+  });
+});

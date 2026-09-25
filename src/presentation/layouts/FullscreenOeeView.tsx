@@ -2,19 +2,19 @@
 // Main fullscreen OEE dashboard layout coordinator.
 // Delegates rendering to focused sub-components under sub-components/.
 
-import React, { useState, useEffect } from 'react';
-import { useTheme } from '../providers/ThemeProvider';
-import { BatchQrScannerModal } from '../components/modals/BatchQrScannerModal/BatchQrScannerModal';
-import { FloorPushButtonsPanel } from './FloorPushButtonsPanel';
-import { TimeSummaryPanel } from './panels/TimeSummaryPanel';
-import { PasXProgressStrip } from './panels/PasXProgressStrip';
-import { FullscreenHeader } from './sub-components/FullscreenHeader';
-import { FullscreenSubHeader } from './sub-components/FullscreenSubHeader';
-import { KpiCard } from './sub-components/KpiCard';
-import { ProductionRateCard } from './sub-components/ProductionRateCard';
-import { FullscreenFooter } from './sub-components/FullscreenFooter';
-import { buildFullscreenViewModel } from './sub-components/FullscreenViewModel';
-import type { FullscreenOeeViewProps } from './sub-components/FullscreenViewModel';
+import React, { useState, useEffect } from "react";
+import { useTheme } from "../providers/ThemeProvider";
+import { BatchQrScannerModal } from "../components/modals/BatchQrScannerModal/BatchQrScannerModal";
+import { FloorPushButtonsPanel } from "./FloorPushButtonsPanel";
+import { TimeSummaryPanel } from "./panels/TimeSummaryPanel";
+import { PasXProgressStrip } from "./panels/PasXProgressStrip";
+import { FullscreenHeader } from "./sub-components/FullscreenHeader";
+import { FullscreenSubHeader } from "./sub-components/FullscreenSubHeader";
+import { KpiCard } from "./sub-components/KpiCard";
+import { ProductionRateCard } from "./sub-components/ProductionRateCard";
+import { FullscreenFooter } from "./sub-components/FullscreenFooter";
+import { buildFullscreenViewModel } from "./sub-components/FullscreenViewModel";
+import type { FullscreenOeeViewProps } from "./sub-components/FullscreenViewModel";
 
 export type { FullscreenOeeViewProps };
 
@@ -50,23 +50,33 @@ export const FullscreenOeeView: React.FC<FullscreenOeeViewProps> = ({
     const t = setInterval(() => setHeaderNow(new Date()), 1000);
     return () => clearInterval(t);
   }, []);
-  const headerDate = headerNow.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-  const headerTime = [headerNow.getHours(), headerNow.getMinutes(), headerNow.getSeconds()]
-    .map((n) => String(n).padStart(2, '0'))
-    .join(':');
+  const headerDate = headerNow.toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+  const headerTime = [
+    headerNow.getHours(),
+    headerNow.getMinutes(),
+    headerNow.getSeconds(),
+  ]
+    .map((n) => String(n).padStart(2, "0"))
+    .join(":");
 
-  const vm = buildFullscreenViewModel(machine, metrics, theme === 'dark');
+  const vm = buildFullscreenViewModel(machine, metrics, theme === "dark");
 
   // Layout classes
   const outerShellClass = isFullscreen
-    ? `h-[100dvh] w-screen overflow-hidden flex flex-col font-sans select-none ${vm.isDark ? 'bg-black' : 'bg-[#e9edf4]'}`
-    : 'h-[100dvh] max-h-[100dvh] w-full overflow-hidden flex flex-col font-sans select-none transition-colors';
+    ? `h-[100dvh] w-screen overflow-hidden flex flex-col font-sans select-none ${vm.isDark ? "bg-black" : "bg-[#e9edf4]"}`
+    : "h-[100dvh] max-h-[100dvh] w-full overflow-hidden flex flex-col font-sans select-none transition-colors";
 
   const innerShellClass = isFullscreen
     ? `w-screen h-[100dvh] flex flex-col overflow-hidden ${
-        vm.isDark ? 'bg-[#080e1a] text-slate-100' : 'bg-[#e9edf4] text-slate-900'
+        vm.isDark
+          ? "bg-[#080e1a] text-slate-100"
+          : "bg-[#e9edf4] text-slate-900"
       }`
-    : `w-full flex-1 min-h-0 flex flex-col overflow-hidden ${vm.isDark ? 'bg-[#080e1a] text-slate-100' : 'bg-[#e9edf4] text-slate-900'}`;
+    : `w-full flex-1 min-h-0 flex flex-col overflow-hidden ${vm.isDark ? "bg-[#080e1a] text-slate-100" : "bg-[#e9edf4] text-slate-900"}`;
 
   return (
     <div id="oee-edge-dashboard" className={outerShellClass}>
@@ -170,10 +180,18 @@ export const FullscreenOeeView: React.FC<FullscreenOeeViewProps> = ({
             </div>
 
             {/* RIGHT COLUMN */}
-            <div id="oee-right-grid-group" className="lg:col-span-4 flex flex-col gap-[1vh] min-h-0 h-full overflow-hidden">
+            <div
+              id="oee-right-grid-group"
+              className="lg:col-span-4 flex flex-col gap-[1vh] min-h-0 h-full overflow-hidden"
+            >
               {/* Time Summary */}
               <div className="flex-[1.1] min-h-0 overflow-hidden">
-                <TimeSummaryPanel metrics={metrics} />
+                <TimeSummaryPanel
+                  metrics={metrics}
+                  shiftDurationMin={machine.shiftDurationMinutes}
+                  plannedStopMin={machine.plannedDowntimeMinutes}
+                  useBackend={useBackend}
+                />
               </div>
 
               {/* Production Rate */}
@@ -202,8 +220,16 @@ export const FullscreenOeeView: React.FC<FullscreenOeeViewProps> = ({
           </div>
 
           {/* LOWER: Progress & Shift Timeline */}
-          <div id="shift-progress-fullwidth" className="shrink-0 h-[clamp(110px,16vh,190px)] min-h-0 w-full overflow-hidden">
-            <PasXProgressStrip machine={machine} metrics={metrics} useBackend={useBackend} serverSegments={shiftSegments} />
+          <div
+            id="shift-progress-fullwidth"
+            className="shrink-0 h-[clamp(110px,16vh,190px)] min-h-0 w-full overflow-hidden"
+          >
+            <PasXProgressStrip
+              machine={machine}
+              metrics={metrics}
+              useBackend={useBackend}
+              serverSegments={shiftSegments}
+            />
           </div>
         </main>
 
