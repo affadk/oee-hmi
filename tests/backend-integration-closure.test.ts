@@ -9,6 +9,7 @@ import {
 } from '../src/application/dto/telemetry.dto';
 import { mapWorkOrderResolveDto } from '../src/application/dto/work-order.dto';
 import { decodeJwtExpMs, isTokenExpiringSoon } from '../src/application/authToken';
+import { EDGE_HEALTH_STALE_AFTER_SEC, isEdgeHealthOk } from '../src/domain/entities/MqttContracts';
 
 function jwt(exp: number): string {
   const b64 = (o: unknown): string =>
@@ -97,6 +98,17 @@ describe('G4 ack fields on operational events', () => {
     expect(out.acknowledgedAt).toBe('2026-09-25T04:00:00Z');
     expect(out.acknowledgedBy).toBe('OPR-1');
     expect(out.ackNote).toBeNull();
+  });
+});
+
+describe('G3 edge health freshness (age-aware badge)', () => {
+  it('OK only when fresh and fully healthy', () => {
+    expect(EDGE_HEALTH_STALE_AFTER_SEC).toBe(180);
+    const base = { timestamp: 1, heap_free: 1, tasks_healthy: 5, tasks_total: 5, stale_tasks: [], stale_count: 0, event_flags: 0 };
+    expect(isEdgeHealthOk({ ...base, age_sec: 10 })).toBe(true);
+    expect(isEdgeHealthOk({ ...base, age_sec: 2026 })).toBe(false);
+    expect(isEdgeHealthOk({ ...base, stale_count: 1, age_sec: 1 })).toBe(false);
+    expect(isEdgeHealthOk({ ...base })).toBe(true);
   });
 });
 

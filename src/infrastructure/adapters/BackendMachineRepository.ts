@@ -203,6 +203,7 @@ export class BackendMachineRepository implements IMachineRepository {
         stale_tasks: edgeHealth.staleTasks.map((name) => ({ name, age_ms: 0, alive: 1 as const })),
         stale_count: edgeHealth.staleCount,
         event_flags: edgeHealth.eventFlags,
+        age_sec: edgeHealth.ageSec,
       };
     }
 

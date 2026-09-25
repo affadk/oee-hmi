@@ -144,6 +144,7 @@ Audit 24 Sep 2026 — diverifikasi melawan pemanggil aktual di `src/` (bukan kla
   Sumber: kolom `reject_count` delta per `wo_id`/per jam dari `oee_telemetry_logs`, atau tabel `quality_events` baru bila alasan perlu input operator (sejajar `POST /downtime-events/:id/reason`).
 - **Kriteria selesai:** `LossAnalysisZone` menampilkan pareto alasan reject nyata (bukan daftar kosong); total persen = 100% dari `rejectCount` live-state pada window yang sama.
 - **Status 25 Sep 2026:** `LossAnalysisZone` + `useSupplementalSync` konsumsi `GET /quality/rejects/:device_id` via `GetRejectBreakdownUseCase`; kosong jujur + pesan empty-state bila backend tak punya data.
+- **Keputusan produk D1 (FINAL, 25 Sep 2026):** reject TANPA alasan — panel fisik hanya 6 tombol (START/STOP/COUNT/REJECT/RESET/SPARE, `tasks_config.h` `EVENT_BUTTON_REJECT` tanpa reason). Backend `UNCLASSIFIED` adalah kontrak final; tabel `quality_events` / endpoint per alasan DITUTUP permanen.
 - **Alternatif tanpa skema baru:** `GET /telemetry/:id/aggregate` diperkaya `rejectDelta` per bucket — frontend agregasi per alasan tetap butuh kolom alasan.
 
 ## G2 — Target produksi per jam (Prioritas: SEDANG)
@@ -166,6 +167,7 @@ Audit 24 Sep 2026 — diverifikasi melawan pemanggil aktual di `src/` (bukan kla
   Implementasi ringan: cache payload health terakhir di memori/Redis saat relay MQTT masuk (tanpa migrasi DB), `age_sec` menandakan stale.
 - **Workaround kini:** badge + tombol Edge I/O disembunyikan saat `useBackend=true`.
 - **Status 25 Sep 2026:** badge Edge tampil bila `GET /devices/:id/health` mengembalikan data (`HeaderZone` + `BackendMachineRepository`); tetap disembunyikan saat cache-miss.
+- **Keputusan produk D3 (25 Sep 2026):** Overview = badge minimal (`Edge: OK/WARN/STALE`); Audit = badge + detail inline (heap KB • tasks • umur cache); simulator parity penuh firmware (`device-simulation/specs/003-edge-health-telemetry`, live 8/9 tasks, age 1–4 dtk).
 
 ## G4 — Acknowledge / resolve alarm (Prioritas: RENDAH)
 
@@ -218,6 +220,7 @@ Audit 24 Sep 2026 — diverifikasi melawan pemanggil aktual di `src/` (bukan kla
   `state` = FSM dominan bucket (`RUNNING`/`DOWN`/…), `planned` = apakah bucket jatuh dalam planned stop (istirahat/maintenance terjadwal). Sumber: `oee_telemetry_logs.current_state` (downsample) + `downtime_events`.
 - **Workaround kini:** running = komplemen jendela istirahat; akurat untuk planned, buta untuk unplanned per jam.
 - **Status 25 Sep 2026:** tooltip grafik memakai `state` backend per bucket bila ada (`EChartsOeeTrend`); komplemen-istirahat tetap fallback.
+- **SCOPE FREEZE produk D2 (25 Sep 2026):** grafik HANYA jam produksi + istirahat. Tombol fisik → breakdown tak terjadwal di timeline realtime adalah ide masa depan — JANGAN implementasikan tanpa persetujuan eksplisit produk.
 
 ## G10 — Jendela istirahat terstruktur (Prioritas: SEDANG)
 

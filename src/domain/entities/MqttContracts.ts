@@ -52,4 +52,16 @@ export interface MqttHealthPayload {
   stale_tasks: Array<{ name: string; age_ms: number; alive: number }>;
   stale_count: number;
   event_flags: number;
+  /** G3: umur cache detik (hanya lane backend); undefined = frame MQTT langsung. */
+  age_sec?: number;
+}
+
+/** Batas umur health sebelum badge Edge dianggap STALE (G3: age menandakan stale). */
+export const EDGE_HEALTH_STALE_AFTER_SEC = 180;
+
+export function isEdgeHealthOk(health: MqttHealthPayload): boolean {
+  if ((health.stale_count ?? 0) !== 0) return false;
+  if ((health.tasks_healthy ?? 0) !== (health.tasks_total ?? 0)) return false;
+  if (health.age_sec != null && health.age_sec > EDGE_HEALTH_STALE_AFTER_SEC) return false;
+  return true;
 }

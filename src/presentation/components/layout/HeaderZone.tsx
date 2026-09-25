@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { MachineConfig, CalculatedOeeMetrics, MachineStatus } from '../../../domain/index';
 import type { MqttHealthPayload } from '../../../domain/entities/MqttContracts';
+import { EDGE_HEALTH_STALE_AFTER_SEC, isEdgeHealthOk } from '../../../domain/entities/MqttContracts';
 import { useTheme } from '../../providers/ThemeProvider';
 
 interface HeaderZoneProps {
@@ -97,7 +98,9 @@ export const HeaderZone: React.FC<HeaderZoneProps> = ({
     stale_count: 0,
     event_flags: 0,
   };
-  const isHealthy = (health.stale_count ?? 0) === 0;
+  const isHealthy = isEdgeHealthOk(health);
+  const healthAgeSec = health.age_sec ?? null;
+  const healthStale = healthAgeSec != null && healthAgeSec > EDGE_HEALTH_STALE_AFTER_SEC;
   const heapFreeKb = health.heap_free != null ? Math.round(health.heap_free / 1024) : 0;
 
   const isRunning = currentMachine.status === 'RUNNING';
@@ -280,13 +283,17 @@ export const HeaderZone: React.FC<HeaderZoneProps> = ({
                 ? 'bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-200 border-emerald-400/40'
                 : 'bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border-amber-400/40'
             }`}
-            title={`Edge Health: ${health.tasks_healthy}/${health.tasks_total} Tasks • Heap ${heapFreeKb} KB`}
+            title={`Edge Health: ${health.tasks_healthy}/${health.tasks_total} Tasks • Heap ${heapFreeKb} KB${healthAgeSec != null ? ` • Age ${healthAgeSec}s` : ''}`}
           >
             <span className="relative flex h-2.5 w-2.5 shrink-0">
               <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${isHealthy ? 'bg-emerald-400' : 'bg-amber-400'}`} />
               <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${isHealthy ? 'bg-emerald-400' : 'bg-amber-400'}`} />
             </span>
-            <span className="font-bold text-sm tracking-tight">Edge: {isHealthy ? 'OK' : 'WARN'}</span>
+            <span className="font-bold text-sm tracking-tight">Edge: {isHealthy ? 'OK' : healthStale ? 'STALE' : 'WARN'}</span>
+            {/* D3 audit-lengkap: detail health terlihat (overview hanya badge). */}
+            <span className="hidden lg:inline text-[10px] font-mono opacity-75">
+              {heapFreeKb}KB • {health.tasks_healthy}/{health.tasks_total}{healthAgeSec != null ? ` • ${healthAgeSec}s` : ''}
+            </span>
           </button>
           )}
         </div>

@@ -131,6 +131,9 @@ export const EChartsOeeTrend: React.FC<EChartsOeeTrendProps> = ({
     }
 
     // Arsiran biru pada jam-jam istirahat (planned downtime); sisanya = running.
+    // SCOPE FREEZE 2026-09-25 (produk D2): grafik HANYA menandai jam produksi
+    // + istirahat. JANGAN tambah shading breakdown tak terjadwal / tombol fisik
+    // → timeline realtime tanpa persetujuan eksplisit produk.
     // markArea memakai label kategori sumbu-X yang terlihat agar selalu menempel.
     const breakLabels = hours.filter((h) => isBreakHour(h));
     const breakMarkArea =

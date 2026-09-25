@@ -4,6 +4,7 @@
 
 import type { MachineConfig, CalculatedOeeMetrics } from '../../../domain/index';
 import { telemetryAgeSec } from '../../../domain/index';
+import { isEdgeHealthOk } from '../../../domain/entities/MqttContracts';
 import type { TimelineSegment } from '../../../domain/services/ShiftTimeline';
 import type { WorkOrderResolveResult } from '../../../domain/entities/backend/WorkOrder';
 import { fluid } from '../../utils/fluidType';
@@ -159,7 +160,7 @@ export function buildFullscreenViewModel(
     event_flags: 0,
     stale_tasks: [],
   };
-  const isHealthy = (health.stale_count ?? 0) === 0 && (health.tasks_healthy ?? 0) === (health.tasks_total ?? 0);
+  const isHealthy = isEdgeHealthOk(health);
   const heapFreeKb = health.heap_free != null ? Math.round(health.heap_free / 1024) : 0;
 
   const targetPcs = machine.jobConfig?.targetQuantity ?? machine.targetCount ?? 0;

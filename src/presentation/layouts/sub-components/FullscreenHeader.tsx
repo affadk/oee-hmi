@@ -152,8 +152,8 @@ export const FullscreenHeader: React.FC<FullscreenHeaderProps> = ({
           {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
         </button>
 
-        {/* MQTT Edge Controller health — lane simulasi saja */}
-        {!useBackend && (
+        {/* MQTT Edge Controller health — tampil bila ada data nyata (sim lane atau G3 backend). */}
+        {(!useBackend || (health.tasks_total ?? 0) > 0) && (
           <button
             type="button"
             onClick={onOpenMqttModal}
@@ -162,7 +162,7 @@ export const FullscreenHeader: React.FC<FullscreenHeaderProps> = ({
                 ? 'bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-200 border-emerald-400/40'
                 : 'bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border-amber-400/40'
             }`}
-            title={`Edge Health: ${health.tasks_healthy}/${health.tasks_total} Tasks • Heap ${heapFreeKb} KB`}
+            title={`Edge Health: ${health.tasks_healthy}/${health.tasks_total} Tasks • Heap ${heapFreeKb} KB${health.age_sec != null ? ` • Age ${health.age_sec}s` : ''}`}
           >
             <span className="relative flex h-2.5 w-2.5 shrink-0">
               <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
@@ -175,9 +175,7 @@ export const FullscreenHeader: React.FC<FullscreenHeaderProps> = ({
             <span className="font-bold text-sm tracking-tight">
               Edge: {isHealthy ? 'OK' : 'WARN'}
             </span>
-            <span className="text-xs opacity-75 hidden sm:inline">
-              ({health.tasks_healthy}/{health.tasks_total})
-            </span>
+            {/* D3 overview-minimal: badge saja (detail lengkap hanya di Audit). */}
           </button>
         )}
       </div>
