@@ -207,7 +207,12 @@ export const LossAnalysisZone: React.FC<LossAnalysisZoneProps> = ({ machine, met
             <span className={`audit-caption font-mono ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Total: {totalRejectCount} pcs</span>
           </div>
           <div className="space-y-2 mt-2">
-            {rejectReasons.map((item, idx) => {
+            {rejectReasons.length === 0 ? (
+              <div className={`p-4 text-center text-xs font-mono ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+                Belum ada data breakdown reject dari backend
+              </div>
+            ) : (
+            rejectReasons.map((item, idx) => {
               const pctOfMax = (item.count / maxReject) * 100;
               return (
                 <div key={item.id} className="text-xs min-w-0">
@@ -226,7 +231,8 @@ export const LossAnalysisZone: React.FC<LossAnalysisZoneProps> = ({ machine, met
                   </div>
                 </div>
               );
-            })}
+            }))
+            }
           </div>
         </div>
       </div>

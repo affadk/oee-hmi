@@ -32,6 +32,8 @@ export interface MachineActionsDeps {
   mqttEdgeCommandUseCase: MqttEdgeCommandUseCase;
   labelDowntimeReasonUseCase: LabelDowntimeReasonUseCase;
   runProtected: (action: () => Promise<void>) => Promise<void>;
+  /** Operator id untuk atribusi ack server (G4); null = ack lokal saja. */
+  getOperatorId?: () => string | null;
   setMachines: React.Dispatch<React.SetStateAction<MachineConfig[]>>;
   setAlarms: React.Dispatch<React.SetStateAction<MachineAlarmEvent[]>>;
   setLabelableDowntimes: React.Dispatch<React.SetStateAction<DowntimeEvent[]>>;
@@ -69,6 +71,7 @@ export function useMachineActions(deps: MachineActionsDeps): MachineActionsApi {
     mqttEdgeCommandUseCase,
     labelDowntimeReasonUseCase,
     runProtected,
+    getOperatorId,
     setMachines,
     setAlarms,
     setLabelableDowntimes,
@@ -142,17 +145,17 @@ export function useMachineActions(deps: MachineActionsDeps): MachineActionsApi {
 
   const acknowledgeAlarm = useCallback(async (alarmId: string) => {
     await runProtected(async () => {
-      const updated = await manageAlarmsUseCase.acknowledgeAlarm(alarmId);
+      const updated = await manageAlarmsUseCase.acknowledgeAlarm(alarmId, getOperatorId?.() ?? undefined);
       setAlarms((prev) => prev.map((a) => (a.id === alarmId ? updated : a)));
     });
-  }, [runProtected, manageAlarmsUseCase, setAlarms]);
+  }, [runProtected, manageAlarmsUseCase, getOperatorId, setAlarms]);
 
   const resolveAlarm = useCallback(async (alarmId: string) => {
     await runProtected(async () => {
-      const updated = await manageAlarmsUseCase.resolveAlarm(alarmId);
+      const updated = await manageAlarmsUseCase.resolveAlarm(alarmId, getOperatorId?.() ?? undefined);
       setAlarms((prev) => prev.map((a) => (a.id === alarmId ? updated : a)));
     });
-  }, [runProtected, manageAlarmsUseCase, setAlarms]);
+  }, [runProtected, manageAlarmsUseCase, getOperatorId, setAlarms]);
 
   const dispatchMqttCommand = useCallback(async (command: 'RESET_COUNTER' | 'PAUSE' | 'RESUME') => {
     await runProtected(async () => {

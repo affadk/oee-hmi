@@ -10,12 +10,12 @@ export class ManageAlarmsUseCase {
     return this.alarmRepo.getAllAlarms();
   }
 
-  public async acknowledgeAlarm(alarmId: string): Promise<MachineAlarmEvent> {
-    return this.alarmRepo.updateAlarmStatus(alarmId, 'Acknowledged');
+  public async acknowledgeAlarm(alarmId: string, operatorId?: string): Promise<MachineAlarmEvent> {
+    return this.alarmRepo.updateAlarmStatus(alarmId, 'Acknowledged', operatorId);
   }
 
-  public async resolveAlarm(alarmId: string): Promise<MachineAlarmEvent> {
-    return this.alarmRepo.updateAlarmStatus(alarmId, 'Resolved');
+  public async resolveAlarm(alarmId: string, operatorId?: string): Promise<MachineAlarmEvent> {
+    return this.alarmRepo.updateAlarmStatus(alarmId, 'Resolved', operatorId);
   }
 
   public async addCustomAlarm(alarm: MachineAlarmEvent): Promise<MachineAlarmEvent> {

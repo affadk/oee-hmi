@@ -32,6 +32,10 @@ export interface HourlyDataPoint {
   quality: number;
   status: MachineStatus;
   isBuffered?: boolean;
+  /** G9: FSM dominan bucket dari backend; undefined = fallback komplemen-istirahat. */
+  backendState?: string | null;
+  /** G9: true bila bucket dalam planned stop menurut backend. */
+  backendPlanned?: boolean;
 }
 
 /** Seconds after which telemetry counts as STALE (spec §4: tampilkan badge, jangan sembunyikan angka). */

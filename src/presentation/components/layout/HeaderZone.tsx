@@ -270,8 +270,8 @@ export const HeaderZone: React.FC<HeaderZoneProps> = ({
             {isDark ? <Sun className="w-3.5 h-3.5 text-amber-300" /> : <Moon className="w-3.5 h-3.5 text-white" />}
           </button>
 
-          {/* Edge health — lane simulasi saja (tanpa endpoint health di backend, GAP G3). */}
-          {!useBackend && (
+          {/* Edge health — tampil bila ada data nyata (sim lane atau G3 backend). */}
+          {(!useBackend || (health.tasks_total ?? 0) > 0) && (
           <button
             type="button"
             onClick={onOpenMqttModal}

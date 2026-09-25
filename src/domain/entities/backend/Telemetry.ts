@@ -75,6 +75,29 @@ export interface OperationalEvent {
   machineId: string | null;
   eventType: string;
   timestamp: string;
+  acknowledgedAt: string | null;
+  acknowledgedBy: string | null;
+  ackNote: string | null;
+}
+
+/** Reject pareto item — GET /api/v1/quality/rejects/:device_id (G1). */
+export interface RejectBreakdownItem {
+  reason: string;
+  count: number;
+  pct: number;
+}
+
+/** Latest cached STM32 edge health — GET /api/v1/devices/:id/health (G3). */
+export interface DeviceHealth {
+  deviceId: string;
+  timestamp: string;
+  heapFree: number;
+  tasksHealthy: number;
+  tasksTotal: number;
+  staleCount: number;
+  staleTasks: string[];
+  eventFlags: number;
+  ageSec: number;
 }
 
 /** WS telemetry broadcast frame (server → client), §4. is_buffered frames must not drive 60fps UI. */

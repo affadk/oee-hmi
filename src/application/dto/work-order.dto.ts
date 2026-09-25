@@ -40,6 +40,10 @@ interface RawWorkOrderResolve {
     plannedBreakMin?: number;
     plannedOperatingSec?: number;
   };
+  targetPerHour?: number | null;
+  target_per_hour?: number | null;
+  /** G10 terstruktur; string "HH:mm - HH:mm" tetap didukung via jobConfig. */
+  break?: { start?: string; end?: string; minutes?: number } | null;
   status?: string;
 }
 
@@ -76,6 +80,7 @@ export function mapWorkOrderListDto(raw: unknown): WorkOrderListItem[] {
 export function mapWorkOrderResolveDto(raw: RawWorkOrderResolve): WorkOrderResolveResult {
   const shiftPlan = raw.shift_plan ?? {};
   const camelShiftPlan = raw.shiftPlan ?? {};
+  const br = raw.break;
   return {
     woId: raw.wo_id ?? raw.woId ?? '',
     machineId: raw.machine_id ?? raw.machineId ?? '',
@@ -91,6 +96,10 @@ export function mapWorkOrderResolveDto(raw: RawWorkOrderResolve): WorkOrderResol
       plannedBreakMin: shiftPlan.planned_break_min ?? camelShiftPlan.plannedBreakMin ?? 0,
       plannedOperatingSec: shiftPlan.planned_operating_sec ?? camelShiftPlan.plannedOperatingSec ?? 0,
     },
+    targetPerHour: raw.targetPerHour ?? raw.target_per_hour ?? null,
+    break: br && br.start && br.end && Number.isFinite(br.minutes)
+      ? { start: br.start, end: br.end, minutes: br.minutes as number }
+      : null,
     status: normalizeStatus(raw.status),
   };
 }

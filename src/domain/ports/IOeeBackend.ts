@@ -5,7 +5,7 @@
 
 import type { LiveStateSnapshot } from '../entities/backend/LiveState';
 import type { WorkOrderListItem, WorkOrderQuery, WorkOrderResolveResult } from '../entities/backend/WorkOrder';
-import type { DowntimeCategory, DowntimeEvent, OperationalEvent, TelemetryHistoryPoint, WsLifecycleEvent, WsTelemetryFrame } from '../entities/backend/Telemetry';
+import type { DeviceHealth, DowntimeCategory, DowntimeEvent, OperationalEvent, RejectBreakdownItem, TelemetryHistoryPoint, WsLifecycleEvent, WsTelemetryFrame } from '../entities/backend/Telemetry';
 import type { DeviceCommandInput, DeviceRecord, MachineRecord, OperatorRecord, ProductRecord } from '../entities/backend/Device';
 
 export interface PageMeta {
@@ -57,10 +57,24 @@ export interface IMasterDataRepository {
   updateDevice(deviceId: string, patch: DeviceMetadataPatch): Promise<DeviceRecord>;
   getMachine(machineId: string, signal?: AbortSignal): Promise<MachineRecord>;
   updateMachine(machineId: string, patch: MachineMetadataPatch): Promise<MachineRecord>;
-  /** Bind device ↔ machine 1:1 (POST /machines/:machineId/bind). */
+  /** Bind device ↔ machine 1:1 (POST /machines/:machineId/bind → 200 + body). */
   bindDevice(machineId: string, deviceId: string): Promise<MachineRecord>;
-  /** Unbind device from machine (POST /machines/:machineId/unbind). */
-  unbindMachine(machineId: string): Promise<MachineRecord>;
+  /**
+   * Unbind device from machine (POST /machines/:machineId/unbind → 200 + body,
+   * G12). Returns void by contract — callers must reload registry/fleet
+   * instead of reading a return value.
+   */
+  unbindMachine(machineId: string): Promise<void>;
+}
+
+export interface OperationalEventsQuery {
+  machineId?: string;
+  eventType?: string;
+  from?: string;
+  to?: string;
+  limit?: number;
+  cursor?: string;
+  envelope?: boolean;
 }
 
 export interface ITelemetryRepository {
@@ -73,6 +87,14 @@ export interface ITelemetryRepository {
   getHourlyTrends(deviceId: string, from?: string, to?: string, limit?: number, envelope?: boolean, signal?: AbortSignal): Promise<{ data: HourlyTrendPoint[]; meta: PageMeta }>;
   getOperationalEvents(deviceId: string, from?: string, to?: string, limit?: number, cursor?: string, envelope?: boolean, signal?: AbortSignal): Promise<{ data: OperationalEvent[]; meta: PageMeta }>;
   labelDowntimeReason(id: number, category: DowntimeCategory, reason: string, notes?: string): Promise<void>;
+  /** G1: reject pareto — [] jujur bila backend tak punya data (jangan fabrikasi). */
+  getRejectBreakdown(deviceId: string, from?: string, to?: string, signal?: AbortSignal): Promise<RejectBreakdownItem[]>;
+  /** G3: cache health edge terakhir; null bila backend cache-miss. */
+  getDeviceHealth(deviceId: string, signal?: AbortSignal): Promise<DeviceHealth | null>;
+  /** G5: umpan audit global lintas device (tanpa N+1). */
+  getAllOperationalEvents(query?: OperationalEventsQuery, signal?: AbortSignal): Promise<{ data: OperationalEvent[]; meta: PageMeta }>;
+  /** G4: ack alarm — idempoten; operatorId wajib (fail-closed 401/403 di backend). */
+  acknowledgeOperationalEvent(id: number, operatorId: string, note?: string): Promise<OperationalEvent>;
 }
 
 export interface HourlyTrendPoint {
@@ -85,6 +107,12 @@ export interface HourlyTrendPoint {
   totalCount: number;
   goodCount: number;
   rejectCount: number;
+  /** G2: target per jam backend; null = hitung klien dari WO. */
+  targetPerHour: number | null;
+  /** G9: FSM dominan bucket; null = komplemen-istirahat (fallback lama). */
+  state: string | null;
+  /** G9: true bila bucket dalam planned stop. */
+  planned: boolean;
 }
 
 export interface AuthSession {
@@ -102,6 +130,12 @@ export interface IAuthGateway {
   loginWithPin(pin: string, operatorId?: string, stationId?: string): Promise<AuthSession>;
   logout(): void;
   getToken(): string | null;
+  /**
+   * G13: sliding refresh — renew token sebelum kedaluwarsa.
+   * Null bila tak ada token tersimpan / backend menolak (pemanggil wajib
+   * fallback ke modal PIN reaktif, bukan gagal-buta).
+   */
+  refreshSession(): Promise<AuthSession | null>;
 }
 
 export type RealtimeListener = {

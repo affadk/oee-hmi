@@ -52,6 +52,7 @@ export const DashboardPage: React.FC = () => {
     getDowntimeReasonsUseCase: container.getDowntimeReasonsUseCase,
     getActiveDowntimesUseCase: container.getActiveDowntimesUseCase,
     getHourlyTrendsUseCase: container.getHourlyTrendsUseCase,
+    getRejectBreakdownUseCase: container.getRejectBreakdownUseCase,
     getAggregateUseCase: container.getAggregateUseCase,
     getHistoryUseCase: container.getHistoryUseCase,
     subscribeTelemetryUseCase: container.subscribeTelemetryUseCase,

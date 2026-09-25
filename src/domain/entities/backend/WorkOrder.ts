@@ -33,6 +33,10 @@ export interface WorkOrderResolveResult {
     plannedBreakMin: number;
     plannedOperatingSec: number;
   };
+  /** G2: target per jam dari backend; null = hitung klien (fallback lama). */
+  targetPerHour: number | null;
+  /** G10: jendela istirahat terstruktur; null = parse string breakTimeWindow. */
+  break: { start: string; end: string; minutes: number } | null;
   status: WorkOrderStatus;
 }
 

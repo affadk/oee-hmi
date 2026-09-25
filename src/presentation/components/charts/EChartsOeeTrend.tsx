@@ -179,7 +179,11 @@ export const EChartsOeeTrend: React.FC<EChartsOeeTrendProps> = ({
           // from echarts' TopLevelFormatterParams type — read defensively.
           const axisValue = (params[0] as { axisValue?: unknown } | undefined)?.axisValue;
           const inBreak = isBreakHour(String(axisValue ?? ''));
-          let tip = `<div class="font-bold mb-1 font-mono ${isDark ? 'text-slate-200' : 'text-slate-800'}">Time: ${String(axisValue ?? '')} · ${inBreak ? 'Istirahat' : 'Running'}</div>`;
+          // G9: status FSM backend per bucket bila ada; fallback komplemen-istirahat.
+          const trendIdx = hours.indexOf(String(axisValue ?? ''));
+          const backendState = trendIdx >= 0 ? visibleTrends[trendIdx]?.backendState ?? null : null;
+          const stateLabel = backendState ?? (inBreak ? 'Istirahat' : 'Running');
+          let tip = `<div class="font-bold mb-1 font-mono ${isDark ? 'text-slate-200' : 'text-slate-800'}">Time: ${String(axisValue ?? '')} · ${stateLabel}</div>`;
           params.forEach((p) => {
             tip += `
               <div class="flex items-center justify-between gap-3 text-xs py-0.5">

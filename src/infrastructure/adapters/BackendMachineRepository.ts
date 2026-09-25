@@ -146,7 +146,7 @@ export class BackendMachineRepository implements IMachineRepository {
     const resolved = await this.resolveWorkOrderForSnapshot(snapshot).catch(() => null);
     const jobConfig = resolved ? buildJobConfigFromResolve(resolved) : this.buildDefaultJobConfig(snapshot);
 
-    const machine = this.buildMachineConfig(snapshot, machineRecord, jobConfig);
+    const machine = this.buildMachineConfig(snapshot, machineRecord, jobConfig, resolved);
 
     // G11: hourly scoped to the shift window; falls back to last-72 unwindowed.
     const window = resolveShiftWindowIso(jobConfig.shift_plan.shift_start, jobConfig.shift_plan.shift_end);
@@ -154,23 +154,25 @@ export class BackendMachineRepository implements IMachineRepository {
       ? { from: window.from, to: window.to, limit: 24 }
       : { from: undefined, to: undefined, limit: 72 };
 
-    // Fetch supplemental data in parallel
-    const [downtimeResult, hourlyResult] = await Promise.all([
+    // Fetch supplemental data in parallel; each degrades honestly on failure.
+    const [downtimeResult, hourlyResult, rejectReasons, edgeHealth] = await Promise.all([
       this.telemetryRepo.getDowntimes(snapshot.deviceId, undefined, undefined, 100, undefined, false).catch(() => ({ data: [], meta: { limit: 100, hasMore: false, nextCursor: null, count: 0 } })),
       this.telemetryRepo.getHourlyTrends(snapshot.deviceId, hourlyArgs.from, hourlyArgs.to, hourlyArgs.limit, false).catch(() => ({ data: [], meta: { limit: 72, hasMore: false, nextCursor: null, count: 0 } })),
+      // G1: pareto nyata atau [] (jangan fabrikasi).
+      this.telemetryRepo.getRejectBreakdown(snapshot.deviceId, hourlyArgs.from, hourlyArgs.to).catch(() => []),
+      // G3: health edge terakhir atau null (badge disembunyikan).
+      this.telemetryRepo.getDeviceHealth(snapshot.deviceId).catch(() => null),
     ]);
 
     machine.downtimeReasons = downtimeResult.data.map((e) => mapDowntimeEventToReasonItem(e));
-    // Target per jam diturunkan dari WO (target_qty / jam shift) — bukan mock.
-    // Reject breakdown TIDAK difabrikasi: backend belum punya endpoint-nya
-    // (lihat docs/specs/backend-gaps.md G1), jadi dikosongkan.
+    // G2: target backend menang; fallback hitung klien dari WO (perilaku lama).
     const windowHours = Math.max(1, machine.shiftDurationMinutes / 60);
-    const hourlyTarget = machine.jobConfig.targetQuantity > 0
+    const clientTarget = machine.jobConfig.targetQuantity > 0
       ? Math.round(machine.jobConfig.targetQuantity / windowHours)
       : 0;
     machine.hourlyTrends = hourlyResult.data.map((point) => ({
       hour: point.bucket,
-      target: hourlyTarget,
+      target: point.targetPerHour ?? clientTarget,
       actual: point.totalCount,
       good: point.goodCount,
       reject: point.rejectCount,
@@ -178,10 +180,31 @@ export class BackendMachineRepository implements IMachineRepository {
       availability: point.availability,
       performance: point.performance,
       quality: point.quality,
+      // G9: status snapshot tetap sebagai fallback bila backend tak mengirim state.
       status: mapLiveStateToMachineStatus(snapshot.currentState),
+      backendState: point.state,
+      backendPlanned: point.planned,
     }));
 
-    machine.rejectReasons = [];
+    machine.rejectReasons = rejectReasons.map((r, idx) => ({
+      id: `rej-${snapshot.deviceId}-${idx}`,
+      label: r.reason,
+      count: r.count,
+      percentage: r.pct,
+    }));
+
+    // G3: health nyata → badge Edge hidup; null → tetap nol (disembunyikan).
+    if (edgeHealth) {
+      machine.health = {
+        timestamp: Math.floor(new Date(edgeHealth.timestamp).getTime() / 1000),
+        heap_free: edgeHealth.heapFree,
+        tasks_healthy: edgeHealth.tasksHealthy,
+        tasks_total: edgeHealth.tasksTotal,
+        stale_tasks: edgeHealth.staleTasks.map((name) => ({ name, age_ms: 0, alive: 1 as const })),
+        stale_count: edgeHealth.staleCount,
+        event_flags: edgeHealth.eventFlags,
+      };
+    }
 
     return machine;
   }
@@ -323,7 +346,8 @@ export class BackendMachineRepository implements IMachineRepository {
   private buildMachineConfig(
     snapshot: LiveStateSnapshot,
     machineRecord: MachineRecord,
-    jobConfig: MqttJobConfigPayload
+    jobConfig: MqttJobConfigPayload,
+    resolved: WorkOrderResolveResult | null,
   ): MachineConfig {
     const status = mapLiveStateToMachineStatus(snapshot.currentState);
     const telemetry = mapLiveStateToTelemetry(snapshot);
@@ -334,6 +358,10 @@ export class BackendMachineRepository implements IMachineRepository {
     const plannedOperatingSec = shiftPlan.planned_operating_sec;
     const shiftDurationMinutes = Math.round(plannedOperatingSec / 60) + plannedBreakMin;
     const targetQty = shiftPlan.target_qty;
+    // G10: jendela terstruktur menang; string lama dipertahankan sebagai fallback.
+    const breakTimeWindow = resolved?.break
+      ? `${resolved.break.start} - ${resolved.break.end}`
+      : shiftPlan.break_window;
 
     return {
       id: machineRecord.machineId,
@@ -352,7 +380,7 @@ export class BackendMachineRepository implements IMachineRepository {
         targetQuantity: targetQty,
         shiftStart: shiftPlan.shift_start,
         shiftEnd: shiftPlan.shift_end,
-        breakTimeWindow: shiftPlan.break_window,
+        breakTimeWindow,
         plannedBreakMin,
         plannedOperatingSec,
       },

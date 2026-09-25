@@ -27,16 +27,18 @@ import type { DeviceCommandInput, DeviceRecord, MachineRecord, OperatorRecord, P
 import type { DeviceMetadataPatch, MachineMetadataPatch } from '../../domain/ports/IOeeBackend';
 import type { IAuthTokenStorage } from '../../domain/ports/IAuthTokenStorage';
 import { AuthTokenStorageAdapter } from '../storage/AuthTokenStorageAdapter';
-import type { DowntimeCategory, DowntimeEvent, OperationalEvent, TelemetryHistoryPoint } from '../../domain/entities/backend/Telemetry';
-import type { HourlyTrendPoint, PageMeta } from '../../domain/ports/IOeeBackend';
+import type { DowntimeCategory, DeviceHealth, DowntimeEvent, OperationalEvent, RejectBreakdownItem, TelemetryHistoryPoint } from '../../domain/entities/backend/Telemetry';
+import type { HourlyTrendPoint, OperationalEventsQuery, PageMeta } from '../../domain/ports/IOeeBackend';
 import type { WorkOrderListItem, WorkOrderQuery, WorkOrderResolveResult } from '../../domain/entities/backend/WorkOrder';
 import { mapLiveStateDto, mapLiveStateListDto } from '../../application/dto/live-state.dto';
 import { mapWorkOrderDto, mapWorkOrderListDto, mapWorkOrderResolveDto } from '../../application/dto/work-order.dto';
 import {
+  mapDeviceHealthDto,
   mapDowntimeEventDto,
   mapDowntimeResultDto,
   mapHourlyTrendResultDto,
   mapOperationalEventResultDto,
+  mapRejectBreakdownDto,
   mapTelemetryHistoryListDto,
 } from '../../application/dto/telemetry.dto';
 import { mapShiftSummaryDto, mapShiftTimelineListDto } from '../../application/dto/shift.dto';
@@ -144,8 +146,10 @@ export class OeeHttpMasterDataRepository implements IMasterDataRepository {
       body: { device_id: deviceId },
     });
   }
-  async unbindMachine(machineId: string): Promise<MachineRecord> {
-    return httpRequest<MachineRecord>(endpoints.machineUnbind(machineId), { method: 'POST' });
+  async unbindMachine(machineId: string): Promise<void> {
+    // G12: kontrak resmi 200 + body (bukan 204); return dibuang — pemanggil
+    // wajib reload registry + fleet (lihat useDeviceRegistry).
+    await httpRequest<MachineRecord>(endpoints.machineUnbind(machineId), { method: 'POST' });
   }
 }
 
@@ -217,9 +221,56 @@ export class OeeHttpTelemetryRepository implements ITelemetryRepository {
   async labelDowntimeReason(id: number, category: DowntimeCategory, reason: string, notes?: string): Promise<void> {
     await httpRequest(endpoints.downtimeReason(id), { method: 'POST', body: { category, reason, notes } });
   }
+  async getRejectBreakdown(deviceId: string, from?: string, to?: string, signal?: AbortSignal): Promise<RejectBreakdownItem[]> {
+    const path = withQuery(endpoints.qualityRejects(deviceId), { from, to, limit: 50, envelope: true });
+    const raw = await httpRequest<unknown>(path, { signal });
+    return mapRejectBreakdownDto(raw);
+  }
+  async getDeviceHealth(deviceId: string, signal?: AbortSignal): Promise<DeviceHealth | null> {
+    try {
+      const raw = await httpRequest<unknown>(endpoints.deviceHealth(deviceId), { signal });
+      return mapDeviceHealthDto(raw);
+    } catch (err) {
+      if (err instanceof BackendHttpError && err.status === 404) return null;
+      throw err;
+    }
+  }
+  async getAllOperationalEvents(query: OperationalEventsQuery = {}, signal?: AbortSignal): Promise<{ data: OperationalEvent[]; meta: PageMeta }> {
+    const path = withQuery(endpoints.operationalEventsGlobal(), {
+      machine_id: query.machineId,
+      event_type: query.eventType,
+      from: query.from,
+      to: query.to,
+      limit: query.limit ?? 100,
+      cursor: query.cursor,
+      envelope: query.envelope ?? true,
+    });
+    const raw = await httpRequest<unknown>(path, { signal });
+    return mapOperationalEventResultDto(raw);
+  }
+  async acknowledgeOperationalEvent(id: number, operatorId: string, note?: string): Promise<OperationalEvent> {
+    const raw = await httpRequest<unknown>(endpoints.operationalEventAck(id), {
+      method: 'PATCH',
+      body: { operator_id: operatorId, note },
+    });
+    // Respons ack ringkas {id, acknowledgedAt, ...} — gabung ke bentuk event penuh.
+    const ack = raw as { acknowledgedAt?: string; acknowledged_at?: string; acknowledgedBy?: string; acknowledged_by?: string; ackNote?: string; ack_note?: string };
+    return {
+      id,
+      deviceId: null,
+      machineId: null,
+      eventType: 'ACKNOWLEDGED',
+      timestamp: new Date().toISOString(),
+      acknowledgedAt: (ack.acknowledgedAt ?? ack.acknowledged_at ?? new Date().toISOString()) as string,
+      acknowledgedBy: (ack.acknowledgedBy ?? ack.acknowledged_by ?? operatorId) as string,
+      ackNote: (ack.ackNote ?? ack.ack_note ?? note ?? null) as string | null,
+    };
+  }
 }
 
 export class OeeHttpAuthGateway implements IAuthGateway {
+  private lastOperator: AuthSession['operator'] | null = null;
+
   constructor(private readonly tokens: IAuthTokenStorage = new AuthTokenStorageAdapter()) {}
 
   async loginWithPin(pin: string, operatorId?: string, stationId?: string): Promise<AuthSession> {
@@ -232,7 +283,7 @@ export class OeeHttpAuthGateway implements IAuthGateway {
       body: { pin, operator_id: operatorId, station_id: stationId },
     });
     this.tokens.setToken(raw.token);
-    return {
+    const session: AuthSession = {
       token: raw.token,
       expiresIn: raw.expires_in,
       operator: {
@@ -242,12 +293,35 @@ export class OeeHttpAuthGateway implements IAuthGateway {
         lineId: raw.operator?.line_id ?? raw.operator?.lineId ?? null,
       },
     };
+    this.lastOperator = session.operator;
+    return session;
   }
   logout(): void {
     this.tokens.clearToken();
+    this.lastOperator = null;
   }
   getToken(): string | null {
     return this.tokens.getToken();
+  }
+  /** G13 sliding refresh — null bila tak ada token / backend menolak. */
+  async refreshSession(): Promise<AuthSession | null> {
+    const current = this.tokens.getToken();
+    if (!current) return null;
+    try {
+      const raw = await httpRequest<{ token: string; expires_in: number }>(endpoints.authRefresh(), {
+        method: 'POST',
+        body: { token: current },
+      });
+      this.tokens.setToken(raw.token);
+      const session: AuthSession = {
+        token: raw.token,
+        expiresIn: raw.expires_in,
+        operator: this.lastOperator ?? { id: '', username: '', role: '', lineId: null },
+      };
+      return session;
+    } catch {
+      return null;
+    }
   }
 }
 

@@ -15,6 +15,8 @@ export interface IAlarmRepository {
 
   /**
    * Updates the status of an existing alarm (e.g. Acknowledged or Resolved).
+   * @param operatorId acknowledged-by attribution for server-synced backends
+   * (G4); omitted = local-only update.
    */
-  updateAlarmStatus(alarmId: string, status: AlarmStatus): Promise<MachineAlarmEvent>;
+  updateAlarmStatus(alarmId: string, status: AlarmStatus, operatorId?: string): Promise<MachineAlarmEvent>;
 }

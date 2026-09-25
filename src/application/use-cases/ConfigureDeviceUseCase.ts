@@ -37,7 +37,7 @@ export class ConfigureDeviceUseCase {
     return this.masterData.bindDevice(machineId, deviceId);
   }
 
-  unbindDeviceFromMachine(machineId: string): Promise<MachineRecord> {
+  unbindDeviceFromMachine(machineId: string): Promise<void> {
     if (!machineId) throw new Error('machineId is required.');
     return this.masterData.unbindMachine(machineId);
   }

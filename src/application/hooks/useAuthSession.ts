@@ -5,6 +5,7 @@
 
 import { useCallback, useRef, useState } from 'react';
 import type { AuthSession, IAuthGateway } from '../../domain/ports/IOeeBackend';
+import { isTokenExpiringSoon } from '../authToken';
 
 export interface AuthSessionDeps {
   authGateway: IAuthGateway;
@@ -58,6 +59,21 @@ export function useAuthSession(deps: AuthSessionDeps): AuthSessionApi {
       return;
     }
 
+    // G13: refresh diam-diam sebelum aksi bila token hampir kedaluwarsa —
+    // menghilangkan kegagalan-buta pertama pasca-TTL. Gagal refresh →
+    // jalur modal PIN reaktif seperti biasa (bukan throw buta).
+    if (useBackend && isTokenExpiringSoon(authGateway.getToken())) {
+      const renewed = await authGateway.refreshSession().catch(() => null);
+      if (renewed) {
+        setAuthSession(renewed);
+      } else {
+        pendingProtectedActionRef.current = action;
+        setAuthError('Sesi operator hampir kedaluwarsa — silakan PIN ulang.');
+        setIsAuthModalOpen(true);
+        return;
+      }
+    }
+
     try {
       await action();
     } catch (err) {
@@ -69,7 +85,7 @@ export function useAuthSession(deps: AuthSessionDeps): AuthSessionApi {
       }
       throw err;
     }
-  }, [hasAuthToken, isUnauthorizedError, useBackend]);
+  }, [authGateway, hasAuthToken, isUnauthorizedError, useBackend]);
 
   const closeAuthModal = useCallback(() => {
     setIsAuthModalOpen(false);

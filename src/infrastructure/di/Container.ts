@@ -58,6 +58,7 @@ import { GetTelemetryAggregateUseCase } from '../../application/use-cases/GetTel
 import { GetTelemetryHistoryUseCase } from '../../application/use-cases/GetTelemetryHistoryUseCase';
 import { ListLabelableDowntimesUseCase } from '../../application/use-cases/ListLabelableDowntimesUseCase';
 import { LabelDowntimeReasonUseCase } from '../../application/use-cases/LabelDowntimeReasonUseCase';
+import { GetRejectBreakdownUseCase } from '../../application/use-cases/GetRejectBreakdownUseCase';
 import { ConfigureDeviceUseCase } from '../../application/use-cases/ConfigureDeviceUseCase';
 
 export interface AppContainer {
@@ -98,6 +99,7 @@ export interface AppContainer {
   getDowntimeReasonsUseCase: GetDowntimeReasonsUseCase;
   getActiveDowntimesUseCase: GetActiveDowntimesUseCase;
   getHourlyTrendsUseCase: GetHourlyTrendsUseCase;
+  getRejectBreakdownUseCase: GetRejectBreakdownUseCase;
   getAggregateUseCase: GetTelemetryAggregateUseCase;
   getHistoryUseCase: GetTelemetryHistoryUseCase;
   listLabelableDowntimesUseCase: ListLabelableDowntimesUseCase;
@@ -166,6 +168,7 @@ export function createContainer(): AppContainer {
   const getDowntimeReasonsUseCase = new GetDowntimeReasonsUseCase(telemetryRepository);
   const getActiveDowntimesUseCase = new GetActiveDowntimesUseCase(telemetryRepository);
   const getHourlyTrendsUseCase = new GetHourlyTrendsUseCase(telemetryRepository);
+  const getRejectBreakdownUseCase = new GetRejectBreakdownUseCase(telemetryRepository);
   const getAggregateUseCase = new GetTelemetryAggregateUseCase(telemetryRepository);
   const getHistoryUseCase = new GetTelemetryHistoryUseCase(telemetryRepository);
   const listLabelableDowntimesUseCase = new ListLabelableDowntimesUseCase(telemetryRepository);
@@ -201,6 +204,7 @@ export function createContainer(): AppContainer {
     getDowntimeReasonsUseCase,
     getActiveDowntimesUseCase,
     getHourlyTrendsUseCase,
+    getRejectBreakdownUseCase,
     getAggregateUseCase,
     getHistoryUseCase,
     listLabelableDowntimesUseCase,

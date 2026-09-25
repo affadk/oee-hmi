@@ -26,9 +26,9 @@ const TYPE_MAP: Record<string, AlarmType> = {
 function mapOperationalEventToAlarm(event: OperationalEvent): MachineAlarmEvent {
   const alarmType = TYPE_MAP[event.eventType] ?? 'Warning';
 
-  // Operational events don't carry a status field; default to 'In Progress'
-  // and let operator actions (acknowledge/resolve) update via UI callbacks.
-  const status: AlarmStatus = 'In Progress';
+  // G4: event yang sudah di-ack backend tampil Acknowledged + operator.
+  const acked = !!event.acknowledgedAt;
+  const status: AlarmStatus = acked ? 'Acknowledged' : 'In Progress';
 
   return {
     id: `alm-${event.id}`,
@@ -38,7 +38,7 @@ function mapOperationalEventToAlarm(event: OperationalEvent): MachineAlarmEvent 
     durationMinutes: 1,
     status,
     description: `${event.eventType}${event.machineId ? ` on ${event.machineId}` : ''}`,
-    operator: 'System',
+    operator: event.acknowledgedBy ?? 'System',
   };
 }
 
@@ -49,6 +49,18 @@ export class BackendAlarmRepository implements IAlarmRepository {
   ) {}
 
   async getAllAlarms(): Promise<MachineAlarmEvent[]> {
+    // G5: umpan global tunggal (tanpa N+1). Gagal → fallback fan-out per
+    // device (perilaku lama); gagal total → [] jujur.
+    try {
+      const global = await this.telemetryRepo.getAllOperationalEvents({ limit: 100, envelope: true });
+      if (global.data.length > 0) {
+        const alarms = global.data.map(mapOperationalEventToAlarm);
+        alarms.sort((a, b) => (a.timestamp < b.timestamp ? 1 : a.timestamp > b.timestamp ? -1 : 0));
+        return alarms.slice(0, 200);
+      }
+    } catch {
+      // fall through to per-device fan-out
+    }
     try {
       // Route backend GET /operational-events/:deviceId mewajibkan deviceId
       // non-kosong — ambil daftar device dari registry lalu query per device.
@@ -85,8 +97,27 @@ export class BackendAlarmRepository implements IAlarmRepository {
     return alarm;
   }
 
-  async updateAlarmStatus(alarmId: string, status: AlarmStatus): Promise<MachineAlarmEvent> {
+  async updateAlarmStatus(alarmId: string, status: AlarmStatus, operatorId?: string): Promise<MachineAlarmEvent> {
     const id = alarmId.replace('alm-', '');
+    // G4: sinkron ack ke server bila operator diketahui; gagal/unknown →
+    // perilaku lokal lama (antar-sesi tak sinkron, tapi tak pernah merusak UI).
+    if ((status === 'Acknowledged' || status === 'Resolved') && operatorId && /^\d+$/.test(id)) {
+      try {
+        const acked = await this.telemetryRepo.acknowledgeOperationalEvent(Number(id), operatorId);
+        return {
+          id: alarmId,
+          timestamp: acked.timestamp,
+          type: 'Warning',
+          machineId: acked.machineId ?? acked.deviceId ?? 'unknown',
+          durationMinutes: 1,
+          status: 'Acknowledged',
+          description: `Event ${id} acknowledged by ${acked.acknowledgedBy ?? operatorId}`,
+          operator: acked.acknowledgedBy ?? operatorId,
+        };
+      } catch {
+        // fall through to local-only below
+      }
+    }
     return {
       id: alarmId,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -95,7 +126,7 @@ export class BackendAlarmRepository implements IAlarmRepository {
       durationMinutes: 1,
       status,
       description: `Alarm ${id} updated to ${status}`,
-      operator: 'System',
+      operator: operatorId ?? 'System',
     };
   }
 }

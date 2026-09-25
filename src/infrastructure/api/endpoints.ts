@@ -32,5 +32,10 @@ export const endpoints = {
   shiftSummary: () => '/api/v1/oee/shift-summary',
   shiftTimeline: () => '/api/v1/oee/shift-timeline',
   operationalEvents: (deviceId: string) => `/api/v1/operational-events/${encodeURIComponent(deviceId)}`,
+  operationalEventsGlobal: () => '/api/v1/operational-events',
+  operationalEventAck: (id: number) => `/api/v1/operational-events/${encodeURIComponent(String(id))}/ack`,
+  qualityRejects: (deviceId: string) => `/api/v1/quality/rejects/${encodeURIComponent(deviceId)}`,
+  deviceHealth: (deviceId: string) => `/api/v1/devices/${encodeURIComponent(deviceId)}/health`,
   authOperatorPin: () => '/api/v1/auth/operator-pin',
+  authRefresh: () => '/api/v1/auth/refresh',
 } as const;

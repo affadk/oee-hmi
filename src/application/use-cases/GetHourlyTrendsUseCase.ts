@@ -11,7 +11,7 @@ export class GetHourlyTrendsUseCase {
     const result = await this.telemetryRepo.getHourlyTrends(deviceId, from, to, limit, false);
     return result.data.map((point: HourlyTrendPoint) => ({
       hour: point.bucket,
-      target: 0,
+      target: point.targetPerHour ?? 0,
       actual: point.totalCount > 0 ? Math.round(point.totalCount / Math.max(1, result.data.length)) : 0,
       good: point.goodCount,
       reject: point.rejectCount,
@@ -20,6 +20,8 @@ export class GetHourlyTrendsUseCase {
       performance: point.performance,
       quality: point.quality,
       status: 'RUNNING',
+      backendState: point.state,
+      backendPlanned: point.planned,
     }));
   }
 }

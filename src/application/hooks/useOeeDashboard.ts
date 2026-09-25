@@ -38,6 +38,7 @@ import type { MqttEdgeCommandUseCase } from '../use-cases/MqttEdgeCommandUseCase
 import type { GetDowntimeReasonsUseCase } from '../use-cases/GetDowntimeReasonsUseCase';
 import type { GetActiveDowntimesUseCase } from '../use-cases/GetActiveDowntimesUseCase';
 import type { GetHourlyTrendsUseCase } from '../use-cases/GetHourlyTrendsUseCase';
+import type { GetRejectBreakdownUseCase } from '../use-cases/GetRejectBreakdownUseCase';
 import type { GetTelemetryAggregateUseCase } from '../use-cases/GetTelemetryAggregateUseCase';
 import type { GetTelemetryHistoryUseCase } from '../use-cases/GetTelemetryHistoryUseCase';
 import { useLiveTrend } from './useLiveTrend';
@@ -76,6 +77,7 @@ export interface OeeDashboardDeps {
   getDowntimeReasonsUseCase: GetDowntimeReasonsUseCase;
   getActiveDowntimesUseCase: GetActiveDowntimesUseCase;
   getHourlyTrendsUseCase: GetHourlyTrendsUseCase;
+  getRejectBreakdownUseCase: GetRejectBreakdownUseCase;
   getAggregateUseCase: GetTelemetryAggregateUseCase;
   getHistoryUseCase: GetTelemetryHistoryUseCase;
   subscribeTelemetryUseCase: SubscribeTelemetryUseCase;
@@ -189,6 +191,7 @@ export function useOeeDashboard(deps: OeeDashboardDeps): UseOeeDashboardReturn {
     getDowntimeReasonsUseCase,
     getActiveDowntimesUseCase,
     getHourlyTrendsUseCase,
+    getRejectBreakdownUseCase,
     getAggregateUseCase,
     getHistoryUseCase,
     subscribeTelemetryUseCase,
@@ -236,6 +239,7 @@ export function useOeeDashboard(deps: OeeDashboardDeps): UseOeeDashboardReturn {
     getDowntimeReasonsUseCase,
     getActiveDowntimesUseCase,
     getHourlyTrendsUseCase,
+    getRejectBreakdownUseCase,
     listLabelableDowntimesUseCase,
     setMachines: machines.setMachines,
   });
@@ -275,6 +279,7 @@ export function useOeeDashboard(deps: OeeDashboardDeps): UseOeeDashboardReturn {
     mqttEdgeCommandUseCase,
     labelDowntimeReasonUseCase,
     runProtected: auth.runProtected,
+    getOperatorId: () => auth.authSession?.operator.id ?? null,
     setMachines: machines.setMachines,
     setAlarms: machines.setAlarms,
     setLabelableDowntimes: supplemental.setLabelableDowntimes,

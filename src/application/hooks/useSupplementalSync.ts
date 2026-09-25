@@ -10,6 +10,7 @@ import type { ShiftWindowIso } from '../../domain/services/ShiftTimeline';
 import type { GetDowntimeReasonsUseCase } from '../use-cases/GetDowntimeReasonsUseCase';
 import type { GetActiveDowntimesUseCase } from '../use-cases/GetActiveDowntimesUseCase';
 import type { GetHourlyTrendsUseCase } from '../use-cases/GetHourlyTrendsUseCase';
+import type { GetRejectBreakdownUseCase } from '../use-cases/GetRejectBreakdownUseCase';
 import type { ListLabelableDowntimesUseCase } from '../use-cases/ListLabelableDowntimesUseCase';
 
 export interface SupplementalSyncDeps {
@@ -21,6 +22,7 @@ export interface SupplementalSyncDeps {
   getDowntimeReasonsUseCase: GetDowntimeReasonsUseCase;
   getActiveDowntimesUseCase: GetActiveDowntimesUseCase;
   getHourlyTrendsUseCase: GetHourlyTrendsUseCase;
+  getRejectBreakdownUseCase: GetRejectBreakdownUseCase;
   listLabelableDowntimesUseCase: ListLabelableDowntimesUseCase;
   setMachines: React.Dispatch<React.SetStateAction<MachineConfig[]>>;
 }
@@ -43,6 +45,7 @@ export function useSupplementalSync(deps: SupplementalSyncDeps): SupplementalSyn
     getDowntimeReasonsUseCase,
     getActiveDowntimesUseCase,
     getHourlyTrendsUseCase,
+    getRejectBreakdownUseCase,
     listLabelableDowntimesUseCase,
     setMachines,
   } = deps;
@@ -58,7 +61,7 @@ export function useSupplementalSync(deps: SupplementalSyncDeps): SupplementalSyn
 
     async function loadSupplementalData() {
       try {
-        const [downtimeReasons, hourlyTrends, labelable, activeDowntimes] = await Promise.all([
+        const [downtimeReasons, hourlyTrends, labelable, activeDowntimes, rejectReasons] = await Promise.all([
           getDowntimeReasonsUseCase.execute(currentDeviceId),
           // G11: windowed hourly scoped to the shift; falls back to last-72 unwindowed.
           shiftWindow
@@ -67,6 +70,11 @@ export function useSupplementalSync(deps: SupplementalSyncDeps): SupplementalSyn
           listLabelableDowntimesUseCase.execute(currentDeviceId).catch(() => []),
           // B3: global active count must not fail the per-device supplemental.
           getActiveDowntimesUseCase.execute().then((list) => list.length).catch(() => null),
+          // G1: pareto nyata (window shift bila ada); [] jujur bila backend kosong.
+          (shiftWindow
+            ? getRejectBreakdownUseCase.execute(currentDeviceId, shiftWindow.from, shiftWindow.to)
+            : getRejectBreakdownUseCase.execute(currentDeviceId)
+          ).catch(() => []),
         ]);
 
         if (!isMounted) return;
@@ -81,9 +89,7 @@ export function useSupplementalSync(deps: SupplementalSyncDeps): SupplementalSyn
                   ...m,
                   downtimeReasons,
                   hourlyTrends,
-                  // Backend belum punya endpoint reject-breakdown (GAP G1):
-                  // jangan fabrikasi 60/30/10 — kosongkan sampai endpoint ada.
-                  rejectReasons: [],
+                  rejectReasons,
                 }
               : m
           )
@@ -103,7 +109,7 @@ export function useSupplementalSync(deps: SupplementalSyncDeps): SupplementalSyn
     return () => {
       isMounted = false;
     };
-  }, [useBackend, currentMachineId, currentDeviceId, shiftWindow, getDowntimeReasonsUseCase, getActiveDowntimesUseCase, getHourlyTrendsUseCase, listLabelableDowntimesUseCase, setMachines]);
+  }, [useBackend, currentMachineId, currentDeviceId, shiftWindow, getDowntimeReasonsUseCase, getActiveDowntimesUseCase, getHourlyTrendsUseCase, getRejectBreakdownUseCase, listLabelableDowntimesUseCase, setMachines]);
 
   return { labelableDowntimes, setLabelableDowntimes, supplementalError, activeDowntimeCount };
 }

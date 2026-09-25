@@ -11,6 +11,7 @@ import type {
 } from '../../domain/entities/backend/Telemetry';
 import { ALL_DOWNTIME_CATEGORIES } from '../../domain/entities/backend/Telemetry';
 import type { HourlyTrendPoint, PageMeta } from '../../domain/ports/IOeeBackend';
+import type { DeviceHealth, RejectBreakdownItem } from '../../domain/entities/backend/Telemetry';
 import { toFiniteNumber } from '../../domain/entities/backend/LiveState';
 
 interface RawFrame {
@@ -54,6 +55,9 @@ interface RawHourlyTrend {
   totalCount?: number; total_count?: number;
   goodCount?: number; good_count?: number;
   rejectCount?: number; reject_count?: number;
+  targetPerHour?: number | null; target_per_hour?: number | null;
+  state?: string | null;
+  planned?: boolean | null;
 }
 
 interface RawDowntime {
@@ -72,6 +76,27 @@ interface RawOperationalEvent {
   machineId?: string | null; machine_id?: string | null;
   eventType?: string; event_type?: string;
   timestamp?: string; created_at?: string;
+  acknowledgedAt?: string | null; acknowledged_at?: string | null;
+  acknowledgedBy?: string | null; acknowledged_by?: string | null;
+  ackNote?: string | null; ack_note?: string | null;
+}
+
+interface RawRejectBreakdown {
+  reason?: string;
+  count?: number;
+  pct?: number;
+}
+
+interface RawDeviceHealth {
+  deviceId?: string; device_id?: string;
+  timestamp?: string;
+  heapFree?: number; heap_free?: number;
+  tasksHealthy?: number; tasks_healthy?: number;
+  tasksTotal?: number; tasks_total?: number;
+  staleCount?: number; stale_count?: number;
+  staleTasks?: string[]; stale_tasks?: string[];
+  eventFlags?: number; event_flags?: number;
+  ageSec?: number; age_sec?: number;
 }
 
 interface RawLifecycleEvent {
@@ -171,6 +196,9 @@ export function mapHourlyTrendDto(raw: RawHourlyTrend): HourlyTrendPoint {
     totalCount: toFiniteNumber(raw.totalCount ?? raw.total_count),
     goodCount: toFiniteNumber(raw.goodCount ?? raw.good_count),
     rejectCount: toFiniteNumber(raw.rejectCount ?? raw.reject_count),
+    targetPerHour: raw.targetPerHour ?? raw.target_per_hour ?? null,
+    state: raw.state ?? null,
+    planned: raw.planned ?? false,
   };
 }
 
@@ -219,6 +247,45 @@ export function mapOperationalEventDto(raw: RawOperationalEvent): OperationalEve
     machineId: raw.machineId ?? raw.machine_id ?? null,
     eventType: raw.eventType ?? raw.event_type ?? 'UNKNOWN',
     timestamp: raw.timestamp ?? raw.created_at ?? new Date(0).toISOString(),
+    acknowledgedAt: (raw.acknowledgedAt ?? raw.acknowledged_at ?? null) as string | null,
+    acknowledgedBy: raw.acknowledgedBy ?? raw.acknowledged_by ?? null,
+    ackNote: raw.ackNote ?? raw.ack_note ?? null,
+  };
+}
+
+/** G1: pareto reject — lewati baris tak valid, jangan fabrikasi. */
+export function mapRejectBreakdownDto(raw: unknown): RejectBreakdownItem[] {
+  const list = Array.isArray(raw) ? raw : (raw as { data?: unknown }).data;
+  if (!Array.isArray(list)) return [];
+  const out: RejectBreakdownItem[] = [];
+  for (const item of list as RawRejectBreakdown[]) {
+    if (!item || typeof item.reason !== 'string' || !Number.isFinite(item.count)) continue;
+    out.push({
+      reason: item.reason,
+      count: Math.max(0, Math.floor(item.count as number)),
+      pct: Number.isFinite(item.pct) ? (item.pct as number) : 0,
+    });
+  }
+  return out;
+}
+
+/** G3: health edge — null bila bentuk tak dikenali (cache-miss jujur). */
+export function mapDeviceHealthDto(raw: unknown): DeviceHealth | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const r = raw as RawDeviceHealth;
+  const deviceId = r.deviceId ?? r.device_id;
+  if (!deviceId) return null;
+  const ageSec = r.ageSec ?? r.age_sec ?? null;
+  return {
+    deviceId,
+    timestamp: r.timestamp ?? new Date(0).toISOString(),
+    heapFree: r.heapFree ?? r.heap_free ?? 0,
+    tasksHealthy: r.tasksHealthy ?? r.tasks_healthy ?? 0,
+    tasksTotal: r.tasksTotal ?? r.tasks_total ?? 0,
+    staleCount: r.staleCount ?? r.stale_count ?? 0,
+    staleTasks: r.staleTasks ?? r.stale_tasks ?? [],
+    eventFlags: r.eventFlags ?? r.event_flags ?? 0,
+    ageSec: ageSec ?? 999999,
   };
 }
 

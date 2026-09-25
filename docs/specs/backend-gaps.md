@@ -143,6 +143,7 @@ Audit 24 Sep 2026 — diverifikasi melawan pemanggil aktual di `src/` (bukan kla
   ```
   Sumber: kolom `reject_count` delta per `wo_id`/per jam dari `oee_telemetry_logs`, atau tabel `quality_events` baru bila alasan perlu input operator (sejajar `POST /downtime-events/:id/reason`).
 - **Kriteria selesai:** `LossAnalysisZone` menampilkan pareto alasan reject nyata (bukan daftar kosong); total persen = 100% dari `rejectCount` live-state pada window yang sama.
+- **Status 25 Sep 2026:** `LossAnalysisZone` + `useSupplementalSync` konsumsi `GET /quality/rejects/:device_id` via `GetRejectBreakdownUseCase`; kosong jujur + pesan empty-state bila backend tak punya data.
 - **Alternatif tanpa skema baru:** `GET /telemetry/:id/aggregate` diperkaya `rejectDelta` per bucket — frontend agregasi per alasan tetap butuh kolom alasan.
 
 ## G2 — Target produksi per jam (Prioritas: SEDANG)
@@ -151,6 +152,7 @@ Audit 24 Sep 2026 — diverifikasi melawan pemanggil aktual di `src/` (bukan kla
 - **Kondisi kini:** `GET /telemetry/:id/hourly` tidak membawa target. Workaround frontend: `target_per_jam = target_qty(WO) / jam_shift`, dihitung di `BackendMachineRepository.buildOneSnapshot`.
 - **Usulan:** sertakan `target_per_hour` pada respons `shift-summary` Fase 2 (sudah dispec di `specs/shift-overview-api.md §3.1`), atau field `hourly_target` di `work-orders/:id/resolve`.
 - **Workaround kini:** cukup akurat; endpoint hanya untuk konsistensi antar layar.
+- **Status 25 Sep 2026:** frontend konsumsi `targetPerHour` backend bila ada (`BackendMachineRepository`, `GetHourlyTrendsUseCase`); fallback hitung klien dipertahankan.
 
 ## G3 — Status kesehatan edge controller (Prioritas: SEDANG)
 
@@ -163,6 +165,7 @@ Audit 24 Sep 2026 — diverifikasi melawan pemanggil aktual di `src/` (bukan kla
   ```
   Implementasi ringan: cache payload health terakhir di memori/Redis saat relay MQTT masuk (tanpa migrasi DB), `age_sec` menandakan stale.
 - **Workaround kini:** badge + tombol Edge I/O disembunyikan saat `useBackend=true`.
+- **Status 25 Sep 2026:** badge Edge tampil bila `GET /devices/:id/health` mengembalikan data (`HeaderZone` + `BackendMachineRepository`); tetap disembunyikan saat cache-miss.
 
 ## G4 — Acknowledge / resolve alarm (Prioritas: RENDAH)
 
@@ -170,6 +173,7 @@ Audit 24 Sep 2026 — diverifikasi melawan pemanggil aktual di `src/` (bukan kla
 - **Kondisi kini:** tanpa endpoint; ack tersimpan lokal saja (`BackendAlarmRepository.updateAlarmStatus` memalsukan objek).
 - **Usulan:** `PATCH /api/v1/operational-events/:id/ack {operator_id}` atau terima keputusan "alarm read-only, ack lokal saja" sebagai kontrak resmi.
 - **Workaround kini:** lokal saja; antar sesi tidak sinkron.
+- **Status 25 Sep 2026:** ack via `PATCH /operational-events/:id/ack` (`BackendAlarmRepository`, atribusi operator); gagal → fallback lokal lama.
 
 ## G5 — Umpan audit global lintas device (Prioritas: RENDAH)
 
@@ -181,6 +185,7 @@ Audit 24 Sep 2026 — diverifikasi melawan pemanggil aktual di `src/` (bukan kla
   ```
   (query global, konsisten dengan pola cursor `{data,meta}` yang sudah ada).
 - **Workaround kini:** fan-out per device di `BackendAlarmRepository.getAllAlarms` (50/event/device, cap 200).
+- **Status 25 Sep 2026:** `GET /operational-events` global dicoba dulu; fan-out hanya fallback bila global kosong/gagal.
 
 ## G6 — Penyelarasan nama state FSM (Prioritas: RENDAH, non-breaking)
 
@@ -212,6 +217,7 @@ Audit 24 Sep 2026 — diverifikasi melawan pemanggil aktual di `src/` (bukan kla
   ```
   `state` = FSM dominan bucket (`RUNNING`/`DOWN`/…), `planned` = apakah bucket jatuh dalam planned stop (istirahat/maintenance terjadwal). Sumber: `oee_telemetry_logs.current_state` (downsample) + `downtime_events`.
 - **Workaround kini:** running = komplemen jendela istirahat; akurat untuk planned, buta untuk unplanned per jam.
+- **Status 25 Sep 2026:** tooltip grafik memakai `state` backend per bucket bila ada (`EChartsOeeTrend`); komplemen-istirahat tetap fallback.
 
 ## G10 — Jendela istirahat terstruktur (Prioritas: SEDANG)
 
@@ -223,6 +229,7 @@ Audit 24 Sep 2026 — diverifikasi melawan pemanggil aktual di `src/` (bukan kla
   ```
   plus `window: { from, to, tz }` yang sudah dispec di `specs/shift-overview-api.md §3.1`. Frontend tetap fallback ke parse string selama field ini belum ada.
 - **Workaround kini:** parse string klien; tanpa window valid, istirahat disembunyikan (bukan ditebak).
+- **Status 25 Sep 2026:** `resolve.break` terstruktur dipakai bila ada (disintesis ke `breakTimeWindow` string di `BackendMachineRepository`); parse string tetap fallback.
 
 ## G11 — Seri per-jam terlingkup shift (Prioritas: RENDAH)
 
@@ -266,6 +273,7 @@ Audit 24 Sep 2026 — diverifikasi melawan pemanggil aktual di `src/` (bukan kla
 - **Yang harus dilakukan backend:** satu tabel di API docs: `endpoint | sukses → 200+body / 204 | skema body`. Meliputi minimal `machineBind`, `machineUnbind`, `workOrderDispatch`, `workOrderComplete`, `workOrderCancel`, `downtimeReason`.
 - **Yang harus dilakukan frontend (jika `unbind → 204` resmi):** ubah `IMasterDataRepository.unbindMachine` ke `Promise<void>`, perbarui `OeeHttpMasterDataRepository`, dan hapus ekspektasi return di `ConfigureDeviceUseCase`.
 - **Kriteria selesai:** tabel ada; `unbind` dengan device terikat me-return sesuai tabel (klien verifikasi via tab Network: body valid atau 204 murni, bukan 200-kosong); tipe klien sudah disesuaikan dengan kontrak.
+- **Status 25 Sep 2026:** kontrak resmi `unbind → 200 + body`; `IMasterDataRepository.unbindMachine` kini `Promise<void>` — return dibuang, reload registry + fleet seperti sebelumnya.
 
 ## G13 — Refresh / revoke token operator (Prioritas: SEDANG)
 
@@ -274,6 +282,7 @@ Audit 24 Sep 2026 — diverifikasi melawan pemanggil aktual di `src/` (bukan kla
 - **Usulan (salah satu):** `POST /auth/refresh` (sliding session HMI) dengan adopsi klien pre-emptive, atau nyatakan TTL panjang + 401-reaktif sebagai kontrak resmi.
 - **Yang harus dilakukan backend:** bila pilih refresh — `POST /api/v1/auth/refresh {token} → {token, expires_in}` (atau cookie httpOnly + endpoint); bila pilih TTL — cantumkan angka TTL di API docs (klien menampilkan countdown/himbauan login ulang bila < 15 menit).
 - **Kriteria selesai:** salah satu terdokumentasi; skenario uji: login → tunggu lewat TTL → aksi dispatch → tidak ada kegagalan-buta pertama (refresh diam-diam renew, atau modal PIN muncul proaktif).
+- **Status 25 Sep 2026:** `runProtected` me-refresh diam-diam bila token kedaluwarsa < 120 dtk (`useAuthSession` + `OeeHttpAuthGateway.refreshSession`); gagal refresh → modal PIN (proaktif, bukan gagal-buta).
 
 ## G14 — Dukungan `active_only` + `unlabeled_only` di downtimes (Prioritas: TINGGI)
 
