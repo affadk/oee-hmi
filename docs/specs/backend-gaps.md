@@ -227,11 +227,11 @@ Audit 24 Sep 2026 — diverifikasi melawan pemanggil aktual di `src/` (bukan kla
 ## G11 — Seri per-jam terlingkup shift (Prioritas: RENDAH)
 
 - **Kebutuhan UI:** `EChartsOeeTrend` menampilkan grafik penuh mengikuti window shift (Mulai–Selesai), terurut menaik, tanpa sisa label lama saat data realtime bergerak.
-- **Kondisi kini:** `GET /telemetry/:id/hourly` mendukung `from`/`to`/`limit`, tetapi frontend memanggil tanpa `from`/`to` (72 bucket terakhir) lalu mengurut + memfilter ke window shift sisi klien (`visibleTrends`, `setOption notMerge`). Berfungsi, tetapi memindahkan 72 bucket lintas hari setiap refresh 5 menit dan logika window terduplikasi di klien.
+- **Kondisi kini (update 25 Sep 2026):** frontend sudah meneruskan window shift ke `GET /telemetry/:id/hourly` melalui `useSupplementalSync` dan `BackendMachineRepository.buildOneSnapshot` (`hourly?from=:shiftStart&to=:shiftEnd&limit=24`). Sisa duplikasi: klien masih mengurutkan (`visibleTrends`) dan memfilter ke window shift sebagai pertahanan ganda, karena backend belum menjamin respons `from`/`to` dihormati sepenuhnya.
 - **Usulan (salah satu):**
-  1. Frontend teruskan window shift ke query existing (`hourly?from=:shiftStart&to=:now&limit=24`, pola §2.1 spec) — tanpa perubahan backend; atau
+  1. Backend menjamin `from`/`to` dihormati sehingga frontend bisa menghapus filter ganda di `EChartsOeeTrend` — tanpa perubahan endpoint; atau
   2. `shift-summary` Fase 2 menyertakan `hourly[]` yang sudah terlingkup + terurut per shift (konsisten dengan `window` respons yang sama), sehingga grafik OEE cukup satu panggilan.
-- **Workaround kini:** filter + sort klien; sudah benar, hanya boros dan duplikatif.
+- **Workaround kini:** filter + sort klien masih aktif sebagai pertahanan ganda; tidak boros asal backend menghormati window.
 
 ---
 
@@ -243,13 +243,13 @@ Audit 24 Sep 2026 — diverifikasi melawan pemanggil aktual di `src/` (bukan kla
 | G14 | Konfirmasi `active_only` + `unlabeled_only` di downtimes | TINGGI | Terkirim tanpa verifikasi dukungan |
 | G2 | `target_per_hour` di shift-summary/resolve | SEDANG | Diturunkan klien dari WO |
 | G3 | `GET /devices/:id/health` (cache) | SEDANG | Badge disembunyikan |
-| G8 | Pemicu RESET_COUNTER di UI backend | SEDANG | Aksi tersedia di API, tanpa tombol |
+| G8 | Pemicu RESET_COUNTER di UI backend | SEDANG | Tombol RESET tersedia di `MachineStatusZone` backend-only |
 | G9 | `state`+`planned` per bucket hourly | SEDANG | Running = komplemen istirahat |
 | G10 | `break{start,end,minutes}` terstruktur | SEDANG | Parse string `break_window` |
-| G12 | Kontrak 204-vs-body endpoint mutasi | SEDANG | Tipe klien berbohong untuk unbind |
+| G12 | Kontrak 204-vs-body endpoint mutasi | SEDANG | `Promise<MachineRecord>` untuk unbind padahal backend bisa 204 → `undefined` runtime |
 | G13 | Refresh/revoke token operator | SEDANG | Reaktif-401 saja, tanpa refresh |
 | G16 | Bentuk `GET /live-state` (array vs envelope) | SEDANG | Hanya array telanjang didukung |
-| G11 | Seri per-jam terlingkup shift | RENDAH | Filter + sort klien |
+| G11 | Seri per-jam terlingkup shift | RENDAH | Window shift sudah dikirim ke backend; filter/sort klien masih pertahanan ganda |
 | G4 | `PATCH /operational-events/:id/ack` | RENDAH | Ack lokal |
 | G5 | `GET /operational-events` global | RENDAH | Fan-out per device |
 | G6 | Dokumentasikan himpunan FSM | RENDAH | Dinormalkan klien |
@@ -261,10 +261,11 @@ Audit 24 Sep 2026 — diverifikasi melawan pemanggil aktual di `src/` (bukan kla
 ## G12 — Kontrak 204-vs-body endpoint mutasi (Prioritas: SEDANG, klarifikasi)
 
 - **Kondisi:** `POST /machines/:machineId/unbind` diketik klien `Promise<MachineRecord>` (`IMasterDataRepository.unbindMachine`, dipakai `ConfigureDeviceUseCase`). Bila backend menjawab `204 No Content`, `httpClient` mengembalikan `undefined` dan tipe berbohong saat runtime.
-- **Kondisi kini:** tidak meledak hari ini (hook membuang return lalu reload registry + fleet), tetapi rapuh bila return dipakai langsung di masa depan.
+- **Kondisi kini (update 25 Sep 2026):** bug tipe/runtime masih ada. `OeeHttpMasterDataRepository.unbindMachine()` mengembalikan `httpRequest<MachineRecord>(...)`, sementara `httpClient` mengembalikan `undefined` untuk status 204. Saat ini tidak meledak karena `useDeviceRegistry.unbindDeviceFromMachine` membuang return dan reload registry + fleet, tetapi rapuh bila return dipakai langsung di masa depan.
 - **Usulan:** dokumentasikan per endpoint mutasi (`bind`/`unbind`/`dispatch`/`complete`/`cancel`/`downtime-reason`) mana yang mengembalikan body vs `204`. Bila `unbind → 204` resmi, klien akan mengubah signature ke `Promise<void>` + reload (tanpa reload ganda).
 - **Yang harus dilakukan backend:** satu tabel di API docs: `endpoint | sukses → 200+body / 204 | skema body`. Meliputi minimal `machineBind`, `machineUnbind`, `workOrderDispatch`, `workOrderComplete`, `workOrderCancel`, `downtimeReason`.
-- **Kriteria selesai:** tabel ada; `unbind` dengan device terikat me-return sesuai tabel (klien verifikasi via tab Network: body valid atau 204 murni, bukan 200-kosong).
+- **Yang harus dilakukan frontend (jika `unbind → 204` resmi):** ubah `IMasterDataRepository.unbindMachine` ke `Promise<void>`, perbarui `OeeHttpMasterDataRepository`, dan hapus ekspektasi return di `ConfigureDeviceUseCase`.
+- **Kriteria selesai:** tabel ada; `unbind` dengan device terikat me-return sesuai tabel (klien verifikasi via tab Network: body valid atau 204 murni, bukan 200-kosong); tipe klien sudah disesuaikan dengan kontrak.
 
 ## G13 — Refresh / revoke token operator (Prioritas: SEDANG)
 
