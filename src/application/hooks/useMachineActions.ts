@@ -50,10 +50,10 @@ export interface MachineActionsApi {
   resolveAlarm: (alarmId: string) => Promise<void>;
   /** Counter reset via edge command (RESET_COUNTER). Caller owns the confirm guard. */
   resetCounters: () => Promise<void>;
-  dispatchMqttCommand: (command: 'RESET_COUNTER' | 'PAUSE' | 'RESUME') => Promise<void>;
+  dispatchMachineCommand: (command: 'RESET_COUNTER' | 'PAUSE' | 'RESUME') => Promise<void>;
   /** B6: returns raw export Blob; presentation owns the object-URL download. */
   exportTelemetry: (format?: TelemetryExportFormat) => Promise<Blob | null>;
-  dispatchMqttJobConfig: (
+  applyJobConfig: (
     wo: string,
     product: string,
     operator: string,
@@ -162,7 +162,7 @@ export function useMachineActions(deps: MachineActionsDeps): MachineActionsApi {
     });
   }, [runProtected, manageAlarmsUseCase, getOperatorId, setAlarms]);
 
-  const dispatchMqttCommand = useCallback(async (command: 'RESET_COUNTER' | 'PAUSE' | 'RESUME') => {
+  const dispatchMachineCommand = useCallback(async (command: 'RESET_COUNTER' | 'PAUSE' | 'RESUME') => {
     await runProtected(async () => {
       const { updatedMachine } = await machineCommandUseCase.dispatchCommand(
         currentMachineId,
@@ -175,8 +175,8 @@ export function useMachineActions(deps: MachineActionsDeps): MachineActionsApi {
   }, [runProtected, machineCommandUseCase, currentMachineId, setMachines]);
 
   const resetCounters = useCallback(async () => {
-    await dispatchMqttCommand('RESET_COUNTER');
-  }, [dispatchMqttCommand]);
+    await dispatchMachineCommand('RESET_COUNTER');
+  }, [dispatchMachineCommand]);
 
   const exportTelemetry = useCallback(async (format: TelemetryExportFormat = 'csv'): Promise<Blob | null> => {
     if (!useBackend) return null;
@@ -185,7 +185,7 @@ export function useMachineActions(deps: MachineActionsDeps): MachineActionsApi {
     return exportTelemetryUseCase.execute(deviceId, format);
   }, [useBackend, currentMachine, currentMachineId, exportTelemetryUseCase]);
 
-  const dispatchMqttJobConfig = useCallback(async (
+  const applyJobConfig = useCallback(async (
     wo: string,
     product: string,
     operator: string,
@@ -230,8 +230,8 @@ export function useMachineActions(deps: MachineActionsDeps): MachineActionsApi {
     acknowledgeAlarm,
     resolveAlarm,
     resetCounters,
-    dispatchMqttCommand,
+    dispatchMachineCommand,
     exportTelemetry,
-    dispatchMqttJobConfig,
+    applyJobConfig,
   };
 }

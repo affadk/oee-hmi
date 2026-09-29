@@ -33,8 +33,8 @@ export const OverviewPage: React.FC = () => {
       onViewAllEvents={() => navigate('/audit')}
       onUpdateMachineStatus={dashboard.updateMachineStatus}
       onLogReject={dashboard.logReject}
-      onDispatchMqttCommand={dashboard.dispatchMqttCommand}
-      onApplyJobConfig={dashboard.dispatchMqttJobConfig}
+      onDispatchMachineCommand={dashboard.dispatchMachineCommand}
+      onApplyJobConfig={dashboard.applyJobConfig}
       backendHealth={dashboard.backendHealth}
       catalog={dashboard.catalog}
       onRefreshCatalog={dashboard.refreshCatalog}

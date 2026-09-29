@@ -49,7 +49,7 @@ export const PerangkatTab: React.FC<PerangkatTabProps> = ({
   fifoEnable,
   setFifoEnable,
 }) => {
-  const { machine, topicPrefix, pushLog, isDark, skins, useBackend } = ctx;
+  const { machine, pushLog, isDark, skins, useBackend } = ctx;
   const { panel, label, value, inputCls } = skins;
 
   return (
@@ -106,7 +106,7 @@ export const PerangkatTab: React.FC<PerangkatTabProps> = ({
       <div className="flex items-center justify-between flex-wrap gap-2">
         <p className={`text-[11px] font-mono ${label}`}>MCU STM32H723ZGT6 · Cortex-M7 550MHz · FW v0.3.1 · FreeRTOS 10.6</p>
         <button type="button"
-          onClick={() => { pushLog('TX', `PUB ${topicPrefix}/config → SET_DEVICE_CONFIG name="${devName}" ip=${dhcp ? 'dhcp' : ipAddr}`); pushLog('RX', 'ACK edge: device.bin ditulis + reboot netif'); }}
+          onClick={() => { pushLog('SYS', `Draft perangkat lokal disimpan (name="${devName}", ip=${dhcp ? 'dhcp' : ipAddr}) — terapkan via backend /api/v1/devices/:id`); pushLog('RX', 'Backend yang menulis config ke edge'); }}
           className="px-4 py-2 rounded-lg bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold flex items-center gap-1.5"
         >
           <Save className="w-3.5 h-3.5" /> Simpan ke Edge

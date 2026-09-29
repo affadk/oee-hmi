@@ -9,7 +9,7 @@ interface FloorPushButtonsPanelProps {
   machine: MachineConfig;
   onUpdateMachineStatus: (status: 'RUNNING' | 'DOWN' | 'IDLE') => Promise<void>;
   onLogReject: (reasonLabel: string, count: number) => Promise<void>;
-  onDispatchMqttCommand: (command: 'RESET_COUNTER' | 'PAUSE' | 'RESUME') => Promise<void>;
+  onDispatchMachineCommand: (command: 'RESET_COUNTER' | 'PAUSE' | 'RESUME') => Promise<void>;
   /** Dipanggil saat START diminta tanpa WO aktif (arahkan ke QR/Setup Produksi). */
   onRequestWorkOrder?: () => void;
 }
@@ -18,7 +18,7 @@ export const FloorPushButtonsPanel: React.FC<FloorPushButtonsPanelProps> = ({
   machine,
   onUpdateMachineStatus,
   onLogReject,
-  onDispatchMqttCommand,
+  onDispatchMachineCommand,
   onRequestWorkOrder,
 }) => {
   const { theme } = useTheme();
@@ -64,7 +64,7 @@ export const FloorPushButtonsPanel: React.FC<FloorPushButtonsPanelProps> = ({
           await onLogReject('Manual Reject Button', 1);
           break;
         case 'RESET':
-          await onDispatchMqttCommand('RESET_COUNTER');
+          await onDispatchMachineCommand('RESET_COUNTER');
           break;
       }
       // U6: flash sukses hanya bila aksi benar-benar berhasil.

@@ -32,7 +32,7 @@ export const FullscreenOeeView: React.FC<FullscreenOeeViewProps> = ({
   onViewAllEvents,
   onUpdateMachineStatus = async () => {},
   onLogReject = async () => {},
-  onDispatchMqttCommand = async () => {},
+  onDispatchMachineCommand = async () => {},
   onApplyJobConfig = async () => {},
   useBackend,
   backendHealth = null,
@@ -222,7 +222,7 @@ export const FullscreenOeeView: React.FC<FullscreenOeeViewProps> = ({
                   machine={machine}
                   onUpdateMachineStatus={onUpdateMachineStatus}
                   onLogReject={onLogReject}
-                  onDispatchMqttCommand={onDispatchMqttCommand}
+                  onDispatchMachineCommand={onDispatchMachineCommand}
                   onRequestWorkOrder={() => setIsQrModalOpen(true)}
                 />
               )}

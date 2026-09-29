@@ -205,8 +205,8 @@ export const DashboardPage: React.FC = () => {
         isOpen={dashboard.isMqttModalOpen}
         onClose={dashboard.closeMqttModal}
         machine={dashboard.currentMachine}
-        onSendCommand={dashboard.dispatchMqttCommand}
-        onSendJobConfig={dashboard.dispatchMqttJobConfig}
+        onSendCommand={dashboard.dispatchMachineCommand}
+        onSendJobConfig={dashboard.applyJobConfig}
         useBackend={dashboard.useBackend}
       />
       )}

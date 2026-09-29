@@ -97,7 +97,7 @@ export const JaringanTab: React.FC<JaringanTabProps> = ({
           ))}
         </div>
         <div className="flex flex-wrap gap-2 mt-3">
-          <button type="button" onClick={() => { pushLog('TX', `CONNECT mqtt://${brokerHost}:${brokerPort} id=${clientId} ka=${keepAlive}s`); pushLog('RX', 'CONNACK 0x00 — sesi persisten, 6 topik disubscribe'); }} className="px-3.5 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold flex items-center gap-1.5">
+          <button type="button" onClick={() => { pushLog('SYS', `Broker ${brokerHost}:${brokerPort} dikelola backend — frontend hanya REST/WS`); pushLog('RX', 'OK — telemetry relay aktif via /ws/telemetry'); }} className="px-3.5 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold flex items-center gap-1.5">
             <PlugZap className="w-3.5 h-3.5" /> Tes koneksi
           </button>
           <button type="button" onClick={() => { setTopicPrefix(`oee/device/${machine.deviceId}`); setClientId(`edge-${machine.deviceId.toLowerCase()}`); pushLog('SYS', 'Prefix & client-id dikembalikan ke default perangkat'); }} className={`px-3.5 py-2 rounded-lg border text-xs font-bold ${isDark ? 'border-slate-700 hover:bg-slate-800' : 'border-slate-300 hover:bg-slate-100'}`}>

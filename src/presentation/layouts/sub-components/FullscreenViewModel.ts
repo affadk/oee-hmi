@@ -25,7 +25,7 @@ export interface FullscreenOeeViewProps {
   onViewAllEvents?: () => void;
   onUpdateMachineStatus?: (status: 'RUNNING' | 'DOWN' | 'IDLE') => Promise<void>;
   onLogReject?: (reasonLabel: string, count: number) => Promise<void>;
-  onDispatchMqttCommand?: (command: 'RESET_COUNTER' | 'PAUSE' | 'RESUME') => Promise<void>;
+  onDispatchMachineCommand?: (command: 'RESET_COUNTER' | 'PAUSE' | 'RESUME') => Promise<void>;
   onApplyJobConfig?: (
     wo: string,
     product: string,

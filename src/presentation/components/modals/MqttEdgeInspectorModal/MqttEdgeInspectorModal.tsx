@@ -52,7 +52,7 @@ export const MqttEdgeInspectorModal: React.FC<MqttEdgeInspectorModalProps> = ({
   const [copied, setCopied] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
   const [consoleLog, setConsoleLog] = useState<ConsoleLine[]>([
-    { ts: nowClock(), kind: 'SYS', text: `Terminal tersambung — subscribe oee/device/${machine.deviceId}/# (QoS 1)` },
+    { ts: nowClock(), kind: 'SYS', text: `Terminal tersambung — relay backend oee/device/${machine.deviceId}/#` },
   ]);
 
   // ---- Perangkat Edge (local draft, diinisialisasi dari machine) ----
@@ -162,16 +162,16 @@ export const MqttEdgeInspectorModal: React.FC<MqttEdgeInspectorModalProps> = ({
   const jobValid = wo.trim().length > 0 && productName.trim().length > 0 && Number(targetQty) > 0 && Number(stdCycle) > 0;
 
   const sendCmd = (cmd: 'RESET_COUNTER' | 'PAUSE' | 'RESUME') => {
-    pushLog('TX', `PUB ${topicPrefix}/command → "${cmd}" (QoS ${qos})`);
+    pushLog('TX', `POST /api/v1/devices/${machine.deviceId}/command → "${cmd}"`);
     onSendCommand(cmd);
-    pushLog('RX', `ACK edge: FSM event ${cmd === 'RESET_COUNTER' ? 'EVENT_BUTTON_RESET' : cmd === 'PAUSE' ? 'FSM→UNPLANNED_DT' : 'FSM→RUNNING'} diterima`);
+    pushLog('RX', `ACK backend: FSM event ${cmd === 'RESET_COUNTER' ? 'EVENT_BUTTON_RESET' : cmd === 'PAUSE' ? 'FSM→UNPLANNED_DT' : 'FSM→RUNNING'} diteruskan ke edge`);
   };
 
   const publishJob = () => {
     if (!jobValid) return;
-    pushLog('TX', `PUB ${topicPrefix}/config → SET_JOB_CONFIG ${wo} / ${productName} / target ${targetQty}`);
+    pushLog('TX', `POST job-config ${wo} / ${productName} / target ${targetQty} (relay backend → ${topicPrefix}/config)`);
     onSendJobConfig(wo, productName, operatorName, Number(targetQty), Number(stdCycle));
-    pushLog('RX', `ACK edge: job.bin ditulis + CRC32 OK (${txId})`);
+    pushLog('RX', `ACK backend: job.bin ditulis + CRC32 OK (${txId})`);
   };
 
   const resetJobDraft = () => {

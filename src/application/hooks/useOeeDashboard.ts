@@ -150,10 +150,10 @@ export interface UseOeeDashboardReturn {
   logReject: (reasonLabel: string, count: number) => Promise<void>;
   acknowledgeAlarm: (alarmId: string) => Promise<void>;
   resolveAlarm: (alarmId: string) => Promise<void>;
-  dispatchMqttCommand: (command: 'RESET_COUNTER' | 'PAUSE' | 'RESUME') => Promise<void>;
+  dispatchMachineCommand: (command: 'RESET_COUNTER' | 'PAUSE' | 'RESUME') => Promise<void>;
   resetCounters: () => Promise<void>;
   exportTelemetry: (format?: TelemetryExportFormat) => Promise<Blob | null>;
-  dispatchMqttJobConfig: (
+  applyJobConfig: (
     wo: string,
     product: string,
     operator: string,
@@ -410,10 +410,10 @@ export function useOeeDashboard(deps: OeeDashboardDeps): UseOeeDashboardReturn {
     logReject: actions.logReject,
     acknowledgeAlarm: actions.acknowledgeAlarm,
     resolveAlarm: actions.resolveAlarm,
-    dispatchMqttCommand: actions.dispatchMqttCommand,
+    dispatchMachineCommand: actions.dispatchMachineCommand,
     resetCounters: actions.resetCounters,
     exportTelemetry: actions.exportTelemetry,
-    dispatchMqttJobConfig: actions.dispatchMqttJobConfig,
+    applyJobConfig: actions.applyJobConfig,
     openFormulaModal: ui.openFormulaModal,
     closeFormulaModal: ui.closeFormulaModal,
     openLogModal: ui.openLogModal,
