@@ -49,7 +49,7 @@ export const DashboardPage: React.FC = () => {
     logRejectUseCase: container.logRejectUseCase,
     simulateMachinePulseUseCase: container.simulateMachinePulseUseCase,
     manageAlarmsUseCase: container.manageAlarmsUseCase,
-    mqttEdgeCommandUseCase: container.mqttEdgeCommandUseCase,
+    machineCommandUseCase: container.machineCommandUseCase,
     getDowntimeReasonsUseCase: container.getDowntimeReasonsUseCase,
     getActiveDowntimesUseCase: container.getActiveDowntimesUseCase,
     getHourlyTrendsUseCase: container.getHourlyTrendsUseCase,

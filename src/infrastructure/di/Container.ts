@@ -5,7 +5,6 @@
 
 import { IMachineRepository } from '../../domain/ports/IMachineRepository';
 import { IAlarmRepository } from '../../domain/ports/IAlarmRepository';
-import { IMqttGateway } from '../../domain/ports/IMqttGateway';
 import { IThemeStoragePort } from '../../domain/ports/IThemeStorage';
 import type { IAuthTokenStorage } from '../../domain/ports/IAuthTokenStorage';
 import type { IErrorReporter } from '../../domain/ports/IErrorReporter';
@@ -21,8 +20,6 @@ import type {
 
 import { InMemoryMachineRepository } from '../backend/services/InMemoryMachineRepository';
 import { InMemoryAlarmRepository } from '../backend/services/InMemoryAlarmRepository';
-import { MqttEdgeSimulatorAdapter } from '../simulation/MqttEdgeSimulatorAdapter';
-import { NoOpMqttGateway } from '../backend/services/NoOpMqttGateway';
 import { BackendMachineRepository } from '../backend/services/BackendMachineRepository';
 import { BackendAlarmRepository } from '../backend/services/BackendAlarmRepository';
 import { LocalStorageThemeAdapter } from '../storage/LocalStorageThemeAdapter';
@@ -49,7 +46,7 @@ import { LogDowntimeUseCase } from '../../application/use-cases/LogDowntimeUseCa
 import { LogRejectUseCase } from '../../application/use-cases/LogRejectUseCase';
 import { SimulateMachinePulseUseCase } from '../../application/simulation/use-cases/SimulateMachinePulseUseCase';
 import { ManageAlarmsUseCase } from '../../application/use-cases/ManageAlarmsUseCase';
-import { MqttEdgeCommandUseCase } from '../../application/use-cases/MqttEdgeCommandUseCase';
+import { MachineCommandUseCase } from '../../application/use-cases/MachineCommandUseCase';
 import { ListWorkOrdersUseCase } from '../../application/use-cases/ListWorkOrdersUseCase';
 import { GetShiftSummaryUseCase } from '../../application/use-cases/GetShiftSummaryUseCase';
 import { GetShiftTimelineUseCase } from '../../application/use-cases/GetShiftTimelineUseCase';
@@ -73,7 +70,6 @@ export interface AppContainer {
   // Ports / Repositories (lane depends on useBackend flag)
   machineRepository: IMachineRepository;
   alarmRepository: IAlarmRepository;
-  mqttGateway: IMqttGateway;
   themeStorage: IThemeStoragePort;
   authTokenStorage: IAuthTokenStorage;
   errorReporter: IErrorReporter;
@@ -95,7 +91,7 @@ export interface AppContainer {
   logRejectUseCase: LogRejectUseCase;
   simulateMachinePulseUseCase: SimulateMachinePulseUseCase;
   manageAlarmsUseCase: ManageAlarmsUseCase;
-  mqttEdgeCommandUseCase: MqttEdgeCommandUseCase;
+  machineCommandUseCase: MachineCommandUseCase;
 
   // Use cases (backend lane)
   listWorkOrdersUseCase: ListWorkOrdersUseCase;
@@ -123,7 +119,7 @@ export interface AppContainer {
  * Data source is controlled by VITE_USE_BACKEND:
  * - 'true': backend lane with HTTP repositories + TelemetryWsClient
  *   (.env.example ships 'true'; no env file at all falls back to 'false')
- * - otherwise: simulation lane with InMemory repositories + MqttEdgeSimulatorAdapter
+ * - otherwise: simulation lane with InMemory repositories
  */
 export function createContainer(): AppContainer {
   const useBackend = env.useBackend;
@@ -156,10 +152,6 @@ export function createContainer(): AppContainer {
     ? new BackendAlarmRepository(telemetryRepository, masterDataRepository)
     : new InMemoryAlarmRepository();
 
-  const mqttGateway = useBackend
-    ? new NoOpMqttGateway()
-    : new MqttEdgeSimulatorAdapter();
-
   const themeStorage = new LocalStorageThemeAdapter();
 
   // 2. Use Cases (Application) with Injected Adapters
@@ -170,7 +162,7 @@ export function createContainer(): AppContainer {
   const logRejectUseCase = new LogRejectUseCase(machineRepository);
   const simulateMachinePulseUseCase = new SimulateMachinePulseUseCase(machineRepository);
   const manageAlarmsUseCase = new ManageAlarmsUseCase(alarmRepository);
-  const mqttEdgeCommandUseCase = new MqttEdgeCommandUseCase(mqttGateway, machineRepository);
+  const machineCommandUseCase = new MachineCommandUseCase(machineRepository);
   const listWorkOrdersUseCase = new ListWorkOrdersUseCase(workOrderRepository);
   const getShiftSummaryUseCase = new GetShiftSummaryUseCase(shiftSummaryRepository);
   const getShiftTimelineUseCase = new GetShiftTimelineUseCase(shiftTimelineRepository);
@@ -191,7 +183,6 @@ export function createContainer(): AppContainer {
     useBackend,
     machineRepository,
     alarmRepository,
-    mqttGateway,
     themeStorage,
     authTokenStorage,
     errorReporter,
@@ -209,7 +200,7 @@ export function createContainer(): AppContainer {
     logRejectUseCase,
     simulateMachinePulseUseCase,
     manageAlarmsUseCase,
-    mqttEdgeCommandUseCase,
+    machineCommandUseCase,
     listWorkOrdersUseCase,
     getShiftSummaryUseCase,
     getShiftTimelineUseCase,

@@ -3,7 +3,6 @@
 
 export * from './backend/services/InMemoryMachineRepository';
 export * from './backend/services/InMemoryAlarmRepository';
-export * from './simulation/MqttEdgeSimulatorAdapter';
 // NOTE: LocalStorageThemeAdapter canonical path is ./storage — the old
 // adapters/ shim was removed; only the storage canonical file is exported
 // here to avoid duplicate-symbol barrels.

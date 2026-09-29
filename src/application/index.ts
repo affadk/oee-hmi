@@ -1,17 +1,20 @@
 // /src/application/index.ts
-// Canonical application barrel — use-cases + hooks + DTO mappers.
+// Canonical application barrel — use-cases + hooks.
+// NOTE: DTO mappers moved to infrastructure/backend/dto.
 
-// Use Cases (simulation lane)
+// Use Cases — non-simulation core (domain logic only, no I/O)
 export * from './use-cases/CalculateOeeUseCase';
 export * from './use-cases/GetMachinesUseCase';
 export * from './use-cases/UpdateMachineStatusUseCase';
 export * from './use-cases/LogDowntimeUseCase';
 export * from './use-cases/LogRejectUseCase';
-export * from './simulation/use-cases/SimulateMachinePulseUseCase';
 export * from './use-cases/ManageAlarmsUseCase';
-export * from './use-cases/MqttEdgeCommandUseCase';
+export * from './use-cases/MachineCommandUseCase';
 
-// Use Cases (backend lane — REST + WS)
+// Simulation — domain orchestrators & infra adapters (injected via DI)
+export * from './simulation/use-cases/SimulateMachinePulseUseCase';
+
+// Use Cases — backend lane (REST + WS)
 export * from './use-cases/ListWorkOrdersUseCase';
 export * from './use-cases/GetDowntimeReasonsUseCase';
 export * from './use-cases/GetTelemetryAggregateUseCase';

@@ -12,8 +12,8 @@ import type { UpdateMachineStatusUseCase } from '../use-cases/UpdateMachineStatu
 import type { LogDowntimeUseCase } from '../use-cases/LogDowntimeUseCase';
 import type { LogRejectUseCase } from '../use-cases/LogRejectUseCase';
 import type { ManageAlarmsUseCase } from '../use-cases/ManageAlarmsUseCase';
-import type { MqttEdgeCommandUseCase } from '../use-cases/MqttEdgeCommandUseCase';
-import { buildJobConfigPayload, deriveActualRate } from '../use-cases/MqttEdgeCommandUseCase';
+import type { MachineCommandUseCase } from '../use-cases/MachineCommandUseCase';
+import { buildJobConfigPayload, deriveActualRate } from '../use-cases/MachineCommandUseCase';
 import type { LabelDowntimeReasonUseCase } from '../use-cases/LabelDowntimeReasonUseCase';
 import type { ExportTelemetryUseCase, TelemetryExportFormat } from '../use-cases/ExportTelemetryUseCase';
 
@@ -30,7 +30,7 @@ export interface MachineActionsDeps {
   logDowntimeUseCase: LogDowntimeUseCase;
   logRejectUseCase: LogRejectUseCase;
   manageAlarmsUseCase: ManageAlarmsUseCase;
-  mqttEdgeCommandUseCase: MqttEdgeCommandUseCase;
+  machineCommandUseCase: MachineCommandUseCase;
   labelDowntimeReasonUseCase: LabelDowntimeReasonUseCase;
   exportTelemetryUseCase: ExportTelemetryUseCase;
   runProtected: (action: () => Promise<void>) => Promise<void>;
@@ -72,7 +72,7 @@ export function useMachineActions(deps: MachineActionsDeps): MachineActionsApi {
     logDowntimeUseCase,
     logRejectUseCase,
     manageAlarmsUseCase,
-    mqttEdgeCommandUseCase,
+    machineCommandUseCase,
     labelDowntimeReasonUseCase,
     exportTelemetryUseCase,
     runProtected,
@@ -164,7 +164,7 @@ export function useMachineActions(deps: MachineActionsDeps): MachineActionsApi {
 
   const dispatchMqttCommand = useCallback(async (command: 'RESET_COUNTER' | 'PAUSE' | 'RESUME') => {
     await runProtected(async () => {
-      const { updatedMachine } = await mqttEdgeCommandUseCase.dispatchCommand(
+      const { updatedMachine } = await machineCommandUseCase.dispatchCommand(
         currentMachineId,
         command
       );
@@ -172,7 +172,7 @@ export function useMachineActions(deps: MachineActionsDeps): MachineActionsApi {
         setMachines((prev) => prev.map((m) => (m.id === updatedMachine.id ? updatedMachine : m)));
       }
     });
-  }, [runProtected, mqttEdgeCommandUseCase, currentMachineId, setMachines]);
+  }, [runProtected, machineCommandUseCase, currentMachineId, setMachines]);
 
   const resetCounters = useCallback(async () => {
     await dispatchMqttCommand('RESET_COUNTER');
@@ -209,7 +209,7 @@ export function useMachineActions(deps: MachineActionsDeps): MachineActionsApi {
     });
 
     await runProtected(async () => {
-      const { updatedMachine } = await mqttEdgeCommandUseCase.setJobConfig(currentMachineId, payload);
+      const { updatedMachine } = await machineCommandUseCase.setJobConfig(currentMachineId, payload);
 
       const syncedMachine: MachineConfig = {
         ...updatedMachine,
@@ -221,7 +221,7 @@ export function useMachineActions(deps: MachineActionsDeps): MachineActionsApi {
       setMachines((prev) => prev.map((m) => (m.id === currentMachineId ? syncedMachine : m)));
       closeMqttModal();
     });
-  }, [runProtected, mqttEdgeCommandUseCase, currentMachineId, currentMachine, setMachines, closeMqttModal]);
+  }, [runProtected, machineCommandUseCase, currentMachineId, currentMachine, setMachines, closeMqttModal]);
 
   return {
     updateMachineStatus,

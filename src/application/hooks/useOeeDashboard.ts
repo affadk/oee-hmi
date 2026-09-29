@@ -34,7 +34,7 @@ import type { LogDowntimeUseCase } from '../use-cases/LogDowntimeUseCase';
 import type { LogRejectUseCase } from '../use-cases/LogRejectUseCase';
 import type { SimulateMachinePulseUseCase } from '../simulation/use-cases/SimulateMachinePulseUseCase';
 import type { ManageAlarmsUseCase } from '../use-cases/ManageAlarmsUseCase';
-import type { MqttEdgeCommandUseCase } from '../use-cases/MqttEdgeCommandUseCase';
+import type { MachineCommandUseCase } from '../use-cases/MachineCommandUseCase';
 import type { GetDowntimeReasonsUseCase } from '../use-cases/GetDowntimeReasonsUseCase';
 import type { GetActiveDowntimesUseCase } from '../use-cases/GetActiveDowntimesUseCase';
 import type { GetHourlyTrendsUseCase } from '../use-cases/GetHourlyTrendsUseCase';
@@ -77,7 +77,7 @@ export interface OeeDashboardDeps {
   logRejectUseCase: LogRejectUseCase;
   simulateMachinePulseUseCase: SimulateMachinePulseUseCase;
   manageAlarmsUseCase: ManageAlarmsUseCase;
-  mqttEdgeCommandUseCase: MqttEdgeCommandUseCase;
+  machineCommandUseCase: MachineCommandUseCase;
   getDowntimeReasonsUseCase: GetDowntimeReasonsUseCase;
   getActiveDowntimesUseCase: GetActiveDowntimesUseCase;
   getHourlyTrendsUseCase: GetHourlyTrendsUseCase;
@@ -202,7 +202,7 @@ export function useOeeDashboard(deps: OeeDashboardDeps): UseOeeDashboardReturn {
     logRejectUseCase,
     simulateMachinePulseUseCase,
     manageAlarmsUseCase,
-    mqttEdgeCommandUseCase,
+    machineCommandUseCase,
     getDowntimeReasonsUseCase,
     getActiveDowntimesUseCase,
     getHourlyTrendsUseCase,
@@ -307,7 +307,7 @@ export function useOeeDashboard(deps: OeeDashboardDeps): UseOeeDashboardReturn {
     logDowntimeUseCase,
     logRejectUseCase,
     manageAlarmsUseCase,
-    mqttEdgeCommandUseCase,
+    machineCommandUseCase,
     labelDowntimeReasonUseCase,
     exportTelemetryUseCase,
     runProtected: auth.runProtected,

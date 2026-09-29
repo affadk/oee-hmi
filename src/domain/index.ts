@@ -21,7 +21,6 @@ export * from './services/ShiftTimeline';
 // Ports (legacy simulation lane)
 export * from './ports/IMachineRepository';
 export * from './ports/IAlarmRepository';
-export * from './ports/IMqttGateway';
 export * from './ports/IThemeStorage';
 export * from './ports/IAuthTokenStorage';
 
