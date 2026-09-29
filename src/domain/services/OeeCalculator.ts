@@ -2,7 +2,7 @@
 
 import { MachineConfig } from '../entities/Machine';
 import { CalculatedOeeMetrics } from '../entities/OeeMetrics';
-import { MqttTelemetryPayload } from '../entities/MqttContracts';
+import { EdgeTelemetryPayload } from '../entities/EdgeContracts';
 
 /**
  * Domain Service: Pure OEE Calculation and MQTT Contract Decoders.
@@ -16,7 +16,7 @@ export class OeeCalculator {
   /**
    * Decodes raw MQTT scaled integers from STM32 telemetry payload to real engineering units.
    */
-  public static decodeMqttTelemetry(telemetry: MqttTelemetryPayload) {
+  public static decodeMqttTelemetry(telemetry: EdgeTelemetryPayload) {
     return {
       oeePct: Number((telemetry.oee / 100).toFixed(1)),
       availabilityPct: Number((telemetry.a / 100).toFixed(1)),

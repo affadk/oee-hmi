@@ -139,7 +139,9 @@ export function useMachineActions(deps: MachineActionsDeps): MachineActionsApi {
   }, [currentMachineId, labelDowntimeReasonUseCase, logDowntimeUseCase, runProtected, setLabelableDowntimes, setAlarms, setMachines, useBackend]);
 
   const logReject = useCallback(async (reasonLabel: string, count: number) => {
-    if (useBackend) return;
+    if (useBackend) {
+      throw new Error('Manual reject logging is not available in backend mode. Reject counts are only updated via work order completion on the backend.');
+    }
     const updatedMachine = await logRejectUseCase.execute(
       currentMachineId,
       reasonLabel,

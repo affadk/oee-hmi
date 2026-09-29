@@ -32,7 +32,6 @@ import type { GetMachinesUseCase } from '../use-cases/GetMachinesUseCase';
 import type { UpdateMachineStatusUseCase } from '../use-cases/UpdateMachineStatusUseCase';
 import type { LogDowntimeUseCase } from '../use-cases/LogDowntimeUseCase';
 import type { LogRejectUseCase } from '../use-cases/LogRejectUseCase';
-import type { SimulateMachinePulseUseCase } from '../simulation/use-cases/SimulateMachinePulseUseCase';
 import type { ManageAlarmsUseCase } from '../use-cases/ManageAlarmsUseCase';
 import type { MachineCommandUseCase } from '../use-cases/MachineCommandUseCase';
 import type { GetDowntimeReasonsUseCase } from '../use-cases/GetDowntimeReasonsUseCase';
@@ -75,9 +74,9 @@ export interface OeeDashboardDeps {
   updateMachineStatusUseCase: UpdateMachineStatusUseCase;
   logDowntimeUseCase: LogDowntimeUseCase;
   logRejectUseCase: LogRejectUseCase;
-  simulateMachinePulseUseCase: SimulateMachinePulseUseCase;
   manageAlarmsUseCase: ManageAlarmsUseCase;
   machineCommandUseCase: MachineCommandUseCase;
+  machineRepository: import('../../domain/ports/IMachineRepository').IMachineRepository;
   getDowntimeReasonsUseCase: GetDowntimeReasonsUseCase;
   getActiveDowntimesUseCase: GetActiveDowntimesUseCase;
   getHourlyTrendsUseCase: GetHourlyTrendsUseCase;
@@ -200,9 +199,9 @@ export function useOeeDashboard(deps: OeeDashboardDeps): UseOeeDashboardReturn {
     updateMachineStatusUseCase,
     logDowntimeUseCase,
     logRejectUseCase,
-    simulateMachinePulseUseCase,
     manageAlarmsUseCase,
     machineCommandUseCase,
+    machineRepository,
     getDowntimeReasonsUseCase,
     getActiveDowntimesUseCase,
     getHourlyTrendsUseCase,
@@ -286,7 +285,7 @@ export function useOeeDashboard(deps: OeeDashboardDeps): UseOeeDashboardReturn {
     isSimulating: ui.isSimulating,
     currentMachine: machines.currentMachine,
     useBackend,
-    simulateMachinePulseUseCase,
+    machineRepository,
     setMachines: machines.setMachines,
   });
 

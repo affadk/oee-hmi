@@ -5,7 +5,7 @@
 export * from './entities/Machine';
 export * from './entities/OeeMetrics';
 export * from './entities/Alarm';
-export * from './entities/MqttContracts';
+export * from './entities/EdgeContracts';
 export * from './entities/BatchQr';
 
 // Entities (backend lane — mirrors API_DOCUMENTATION.md)

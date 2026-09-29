@@ -2,7 +2,7 @@
 
 import { IMachineRepository } from '../../../domain/ports/IMachineRepository';
 import { MachineConfig, MachineStatus } from '../../../domain/entities/Machine';
-import { MqttJobConfigPayload, MqttTelemetryPayload } from '../../../domain/entities/MqttContracts';
+import { EdgeJobConfigPayload, EdgeTelemetryPayload } from '../../../domain/entities/EdgeContracts';
 import { INITIAL_MACHINES } from '../../simulation/data-generation/seedData';
 
 export class InMemoryMachineRepository implements IMachineRepository {
@@ -43,7 +43,7 @@ export class InMemoryMachineRepository implements IMachineRepository {
     if (!target) {
       throw new Error('Machine not found in simulation store.');
     }
-    const newTelemetry: MqttTelemetryPayload = {
+    const newTelemetry: EdgeTelemetryPayload = {
       ...target.telemetry,
       st: stateMap[status] ?? 2,
       rpm: status === 'RUNNING' ? 1450 : 0,
@@ -60,7 +60,7 @@ export class InMemoryMachineRepository implements IMachineRepository {
 
   public async updateTelemetry(
     machineId: string,
-    telemetry: Partial<MqttTelemetryPayload>
+    telemetry: Partial<EdgeTelemetryPayload>
   ): Promise<MachineConfig> {
     const index = this.machines.findIndex((m) => m.id === machineId || m.deviceId === machineId);
     if (index === -1) {
@@ -71,7 +71,7 @@ export class InMemoryMachineRepository implements IMachineRepository {
     if (!target) {
       throw new Error('Machine not found in simulation store.');
     }
-    const updatedTelemetry: MqttTelemetryPayload = {
+    const updatedTelemetry: EdgeTelemetryPayload = {
       ...target.telemetry,
       ...telemetry,
       ts: telemetry.ts ?? Math.floor(Date.now() / 1000),
@@ -108,7 +108,7 @@ export class InMemoryMachineRepository implements IMachineRepository {
       throw new Error('Machine not found in simulation store.');
     }
     const cycScaled = Math.round(actualCycleTimeSec * 100);
-    const updatedTelemetry: MqttTelemetryPayload = {
+    const updatedTelemetry: EdgeTelemetryPayload = {
       ...target.telemetry,
       tot: totalCount,
       rej: rejectCount,
@@ -167,7 +167,7 @@ export class InMemoryMachineRepository implements IMachineRepository {
     if (!target) {
       throw new Error('Machine not found in simulation store.');
     }
-    const updatedTelemetry: MqttTelemetryPayload = {
+    const updatedTelemetry: EdgeTelemetryPayload = {
       ...target.telemetry,
       tot: 0,
       rej: 0,
@@ -200,7 +200,7 @@ export class InMemoryMachineRepository implements IMachineRepository {
 
   public async setJobConfig(
     machineId: string,
-    jobConfig: MqttJobConfigPayload
+    jobConfig: EdgeJobConfigPayload
   ): Promise<MachineConfig> {
     const index = this.machines.findIndex((m) => m.id === machineId || m.deviceId === machineId);
     if (index === -1) {

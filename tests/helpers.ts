@@ -2,9 +2,9 @@
 // Covers domain entities/services, DTO mappers, and endpoint builders.
 
 import type { MachineConfig } from '../src/domain/entities/Machine';
-import type { MqttTelemetryPayload, MqttHealthPayload } from '../src/domain/entities/MqttContracts';
+import type { EdgeTelemetryPayload, EdgeHealthPayload } from '../src/domain/entities/EdgeContracts';
 
-export function makeTelemetry(overrides: Partial<MqttTelemetryPayload> = {}): MqttTelemetryPayload {
+export function makeTelemetry(overrides: Partial<EdgeTelemetryPayload> = {}): EdgeTelemetryPayload {
   return {
     ts: 1_700_000_000,
     st: 2,
@@ -26,7 +26,7 @@ export function makeTelemetry(overrides: Partial<MqttTelemetryPayload> = {}): Mq
   };
 }
 
-export function makeHealth(overrides: Partial<MqttHealthPayload> = {}): MqttHealthPayload {
+export function makeHealth(overrides: Partial<EdgeHealthPayload> = {}): EdgeHealthPayload {
   return {
     timestamp: 1_700_000_000,
     heap_free: 184320,

@@ -4,7 +4,7 @@
 // (IDeviceCommandGateway) — the frontend NEVER opens a direct MQTT connection.
 
 import { IMachineRepository } from '../../domain/ports/IMachineRepository';
-import { MqttJobConfigPayload } from '../../domain/entities/MqttContracts';
+import { EdgeJobConfigPayload } from '../../domain/entities/EdgeContracts';
 import { MachineConfig } from '../../domain/entities/Machine';
 import { splitOperatorDisplay } from '../../domain/entities/BatchQr';
 
@@ -22,7 +22,7 @@ export interface JobConfigDraft {
   fallbackPlannedOperatingSec?: number;
 }
 
-export function buildJobConfigPayload(draft: JobConfigDraft): MqttJobConfigPayload {
+export function buildJobConfigPayload(draft: JobConfigDraft): EdgeJobConfigPayload {
   const stdCycleSec = draft.stdCycleTimeSec ?? draft.fallbackCycleSec ?? 9.0;
   const { name: operatorName, id: operatorId } = splitOperatorDisplay(draft.operatorDisplay);
   return {
@@ -76,7 +76,7 @@ export class MachineCommandUseCase {
 
   public async setJobConfig(
     machineId: string,
-    payload: MqttJobConfigPayload
+    payload: EdgeJobConfigPayload
   ): Promise<{ transactionId: string; updatedMachine: MachineConfig }> {
     const updatedMachine = await this.machineRepo.setJobConfig(machineId, payload);
     return { transactionId: payload.transaction_id, updatedMachine };

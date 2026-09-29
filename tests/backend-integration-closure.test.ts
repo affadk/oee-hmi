@@ -9,7 +9,7 @@ import {
 } from '../src/infrastructure/backend/dto/telemetry.dto';
 import { mapWorkOrderResolveDto } from '../src/infrastructure/backend/dto/work-order.dto';
 import { decodeJwtExpMs, isTokenExpiringSoon } from '../src/application/authToken';
-import { EDGE_HEALTH_STALE_AFTER_SEC, isEdgeHealthOk } from '../src/domain/entities/MqttContracts';
+import { EDGE_HEALTH_STALE_AFTER_SEC, isEdgeHealthOk } from '../src/domain/entities/EdgeContracts';
 
 function jwt(exp: number): string {
   const b64 = (o: unknown): string =>

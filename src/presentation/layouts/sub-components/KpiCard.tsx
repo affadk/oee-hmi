@@ -1,11 +1,11 @@
 // /src/presentation/layouts/sub-components/KpiCard.tsx
 // KPIs & OEE trend gauge card (left upper panel in fullscreen layout).
 
-import React from "react";
+import React, { Suspense } from "react";
 import { HelpCircle } from "lucide-react";
 import type { MachineConfig } from "../../../domain/index";
 import { PasXDonutGauge } from "../../components/charts/PasXDonutGauge";
-import { EChartsOeeTrend } from "../../components/charts/EChartsOeeTrend";
+const EChartsOeeTrend = React.lazy(() => import("../../components/charts/EChartsOeeTrend"));
 
 export interface KpiCardProps {
   // Gauge data
@@ -269,16 +269,18 @@ export const KpiCard: React.FC<KpiCardProps> = ({
       {/* OEE Trend Chart */}
       <div className="flex-1 min-h-0 flex flex-col overflow-hidden mt-[0.6vh]">
         <div className="flex-1 min-h-0 w-full overflow-hidden">
-          <EChartsOeeTrend
-            hourlyTrends={machine.hourlyTrends}
-            isBuffered={machine.telemetry?.is_buffered}
-            title="Grafik OEE Shift Trend"
-            shiftStart={shiftStart}
-            shiftEnd={shiftEnd}
-            showBenchmark
-            breakTimeWindow={breakTimeWindow}
-            livePoints={livePoints}
-          />
+          <Suspense fallback={<div className="w-full h-full bg-slate-100 dark:bg-slate-800 animate-pulse rounded-lg" />}>
+            <EChartsOeeTrend
+              hourlyTrends={machine.hourlyTrends}
+              isBuffered={machine.telemetry?.is_buffered}
+              title="Grafik OEE Shift Trend"
+              shiftStart={shiftStart}
+              shiftEnd={shiftEnd}
+              showBenchmark
+              breakTimeWindow={breakTimeWindow}
+              livePoints={livePoints}
+            />
+          </Suspense>
         </div>
       </div>
     </div>

@@ -1,7 +1,7 @@
-// /src/domain/entities/MqttContracts.ts
+// /src/domain/entities/EdgeContracts.ts
 
-// MQTT Edge Controller Contracts (STM32H723 Spec v0.3.1)
-export interface MqttTelemetryPayload {
+// Edge Device Contracts (STM32H723 Spec v0.3.1)
+export interface EdgeTelemetryPayload {
   ts: number;           // Unix epoch timestamp
   st: number;           // 0=UNCONFIGURED, 1=READY, 2=RUNNING, 3=PLANNED_DT, 4=UNPLANNED_DT, 5=BATCH_FINISHED
   tot: number;          // total count
@@ -20,7 +20,7 @@ export interface MqttTelemetryPayload {
   is_buffered: boolean; // true if draining from OSPI FIFO
 }
 
-export interface MqttJobConfigPayload {
+export interface EdgeJobConfigPayload {
   command: 'SET_JOB_CONFIG';
   transaction_id: string;
   work_order: string;
@@ -44,7 +44,7 @@ export interface MqttJobConfigPayload {
   };
 }
 
-export interface MqttHealthPayload {
+export interface EdgeHealthPayload {
   timestamp: number;
   heap_free: number;
   tasks_healthy: number;
@@ -59,7 +59,7 @@ export interface MqttHealthPayload {
 /** Batas umur health sebelum badge Edge dianggap STALE (G3: age menandakan stale). */
 export const EDGE_HEALTH_STALE_AFTER_SEC = 180;
 
-export function isEdgeHealthOk(health: MqttHealthPayload): boolean {
+export function isEdgeHealthOk(health: EdgeHealthPayload): boolean {
   if ((health.stale_count ?? 0) !== 0) return false;
   if ((health.tasks_healthy ?? 0) !== (health.tasks_total ?? 0)) return false;
   if (health.age_sec != null && health.age_sec > EDGE_HEALTH_STALE_AFTER_SEC) return false;

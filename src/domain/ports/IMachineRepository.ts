@@ -1,7 +1,7 @@
 // /src/domain/ports/IMachineRepository.ts
 
 import { MachineConfig, MachineStatus } from '../entities/Machine';
-import { MqttJobConfigPayload, MqttTelemetryPayload } from '../entities/MqttContracts';
+import { EdgeJobConfigPayload, EdgeTelemetryPayload } from '../entities/EdgeContracts';
 
 export interface IMachineRepository {
   /**
@@ -34,7 +34,7 @@ export interface IMachineRepository {
   /**
    * Updates live MQTT telemetry frame.
    */
-  updateTelemetry(machineId: string, telemetry: Partial<MqttTelemetryPayload>): Promise<MachineConfig>;
+  updateTelemetry(machineId: string, telemetry: Partial<EdgeTelemetryPayload>): Promise<MachineConfig>;
 
   /**
    * Resets production counters (e.g. at start of new shift or job).
@@ -44,6 +44,6 @@ export interface IMachineRepository {
   /**
    * Applies job configuration (Work order, product recipe, target count).
    */
-  setJobConfig(machineId: string, jobConfig: MqttJobConfigPayload): Promise<MachineConfig>;
+  setJobConfig(machineId: string, jobConfig: EdgeJobConfigPayload): Promise<MachineConfig>;
 }
 

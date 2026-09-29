@@ -1,6 +1,6 @@
 // /src/domain/entities/Machine.ts
 
-import { MqttTelemetryPayload, MqttHealthPayload } from './MqttContracts';
+import { EdgeTelemetryPayload, EdgeHealthPayload } from './EdgeContracts';
 
 export type MachineStatus = 'RUNNING' | 'IDLE' | 'DOWN' | 'SETUP' | 'PLANNED_STOP';
 
@@ -80,10 +80,10 @@ export interface MachineConfig {
   };
 
   // Live MQTT Telemetry State (Direct payload fields)
-  telemetry: MqttTelemetryPayload;
+  telemetry: EdgeTelemetryPayload;
 
   // Edge Health Telemetry (From oee/device/{id}/health)
-  health: MqttHealthPayload;
+  health: EdgeHealthPayload;
 
   // Time-series trend buffer
   hourlyTrends: HourlyDataPoint[];

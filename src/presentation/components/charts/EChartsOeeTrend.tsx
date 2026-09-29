@@ -1,12 +1,17 @@
 // /src/presentation/components/echarts/EChartsOeeTrend.tsx
 
 import React, { useRef, useState, useEffect, useMemo } from 'react';
-import * as echarts from 'echarts';
+import * as echarts from 'echarts/core';
+import { LineChart } from 'echarts/charts';
+import { GridComponent, TooltipComponent, MarkAreaComponent } from 'echarts/components';
+import { CanvasRenderer } from 'echarts/renderers';
 import type { TooltipComponentFormatterCallbackParams } from 'echarts';
 import { HourlyDataPoint } from '../../../domain/index';
 import { useTheme } from '../../providers/ThemeProvider';
 import { Radio } from 'lucide-react';
 import { fluid, containerScale, scaledFont } from '../../utils/fluidType';
+
+echarts.use([LineChart, GridComponent, TooltipComponent, MarkAreaComponent, CanvasRenderer]);
 
 interface EChartsOeeTrendProps {
   hourlyTrends: HourlyDataPoint[];
@@ -164,7 +169,7 @@ export const EChartsOeeTrend: React.FC<EChartsOeeTrendProps> = ({
           }
         : undefined;
 
-    const option: echarts.EChartsOption = {
+    const option: echarts.EChartsCoreOption = {
       backgroundColor: 'transparent',
       tooltip: {
         trigger: 'axis',
@@ -337,8 +342,9 @@ export const EChartsOeeTrend: React.FC<EChartsOeeTrendProps> = ({
         Math.abs(prev.w - r.width) < 1 && Math.abs(prev.h - r.height) < 1
           ? prev
           : { w: r.width, h: r.height },
-      );
-    };
+   );
+};
+
     measure();
     const ro = new ResizeObserver(() => {
       chartInstance.resize();
@@ -408,3 +414,4 @@ export const EChartsOeeTrend: React.FC<EChartsOeeTrendProps> = ({
   );
 };
 
+export default EChartsOeeTrend;

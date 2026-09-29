@@ -14,7 +14,7 @@ import type {
 } from '../../../domain/ports/IOeeBackend';
 import type { IMachineRepository } from '../../../domain/ports/IMachineRepository';
 import type { MachineConfig, MachineStatus, DowntimeReasonItem } from '../../../domain/entities/Machine';
-import type { MqttTelemetryPayload, MqttJobConfigPayload } from '../../../domain/entities/MqttContracts';
+import type { EdgeTelemetryPayload, EdgeJobConfigPayload } from '../../../domain/entities/EdgeContracts';
 import type { LiveStateSnapshot, LiveMachineState } from '../../../domain/entities/backend/LiveState';
 import type { MachineRecord } from '../../../domain/entities/backend/Device';
 import type { WorkOrderResolveResult } from '../../../domain/entities/backend/WorkOrder';
@@ -45,7 +45,7 @@ function mapLiveStateToMachineStatus(state: LiveMachineState): MachineStatus {
   }
 }
 
-function mapLiveStateToTelemetry(snapshot: LiveStateSnapshot): MqttTelemetryPayload {
+function mapLiveStateToTelemetry(snapshot: LiveStateSnapshot): EdgeTelemetryPayload {
   return {
     ts: Math.floor(new Date(snapshot.lastTelemetryAt).getTime() / 1000),
     st: snapshot.currentState === 'RUNNING' ? 2
@@ -82,7 +82,7 @@ function mapDowntimeEventToReasonItem(event: DowntimeEvent): DowntimeReasonItem 
   };
 }
 
-function buildJobConfigFromResolve(wo: WorkOrderResolveResult): MqttJobConfigPayload {
+function buildJobConfigFromResolve(wo: WorkOrderResolveResult): EdgeJobConfigPayload {
   return {
     command: 'SET_JOB_CONFIG',
     transaction_id: '',
@@ -273,7 +273,7 @@ export class BackendMachineRepository implements IMachineRepository {
 
   async updateTelemetry(
     machineId: string,
-    _telemetry: Partial<MqttTelemetryPayload>
+    _telemetry: Partial<EdgeTelemetryPayload>
   ): Promise<MachineConfig> {
     const current = await this.getMachineById(machineId);
     if (!current) throw new Error(`Machine ${machineId} not found`);
@@ -288,22 +288,14 @@ export class BackendMachineRepository implements IMachineRepository {
     return updated;
   }
 
-  async setJobConfig(machineId: string, jobConfig: MqttJobConfigPayload): Promise<MachineConfig> {
+  async setJobConfig(machineId: string, jobConfig: EdgeJobConfigPayload): Promise<MachineConfig> {
     const machines = await this.masterDataRepo.listMachines();
     const machine = machines.find((m) => m.machineId === machineId || m.deviceId === machineId);
     const deviceId = machine?.deviceId ?? machineId;
 
     const woId = jobConfig.work_order;
     if (woId) {
-      try {
-        await this.workOrderRepo.dispatch(woId, deviceId, 'Job config from dashboard');
-      } catch {
-        try {
-          await this.workOrderRepo.resolve(woId, deviceId);
-        } catch {
-          // swallow — backend will return proper error on next read
-        }
-      }
+      await this.workOrderRepo.dispatch(woId, deviceId, 'Job config from dashboard');
     }
 
     const updated = await this.getMachineById(machineId);
@@ -327,7 +319,7 @@ export class BackendMachineRepository implements IMachineRepository {
     return machine?.deviceId ?? machineOrDeviceId;
   }
 
-  private buildDefaultJobConfig(snapshot: LiveStateSnapshot): MqttJobConfigPayload {
+  private buildDefaultJobConfig(snapshot: LiveStateSnapshot): EdgeJobConfigPayload {
     return {
       command: 'SET_JOB_CONFIG',
       transaction_id: '',
@@ -347,7 +339,7 @@ export class BackendMachineRepository implements IMachineRepository {
   private buildMachineConfig(
     snapshot: LiveStateSnapshot,
     machineRecord: MachineRecord,
-    jobConfig: MqttJobConfigPayload,
+    jobConfig: EdgeJobConfigPayload,
     resolved: WorkOrderResolveResult | null,
   ): MachineConfig {
     const status = mapLiveStateToMachineStatus(snapshot.currentState);

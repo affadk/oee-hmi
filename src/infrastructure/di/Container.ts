@@ -44,7 +44,6 @@ import { GetMachinesUseCase } from '../../application/use-cases/GetMachinesUseCa
 import { UpdateMachineStatusUseCase } from '../../application/use-cases/UpdateMachineStatusUseCase';
 import { LogDowntimeUseCase } from '../../application/use-cases/LogDowntimeUseCase';
 import { LogRejectUseCase } from '../../application/use-cases/LogRejectUseCase';
-import { SimulateMachinePulseUseCase } from '../../application/simulation/use-cases/SimulateMachinePulseUseCase';
 import { ManageAlarmsUseCase } from '../../application/use-cases/ManageAlarmsUseCase';
 import { MachineCommandUseCase } from '../../application/use-cases/MachineCommandUseCase';
 import { ListWorkOrdersUseCase } from '../../application/use-cases/ListWorkOrdersUseCase';
@@ -89,7 +88,6 @@ export interface AppContainer {
   updateMachineStatusUseCase: UpdateMachineStatusUseCase;
   logDowntimeUseCase: LogDowntimeUseCase;
   logRejectUseCase: LogRejectUseCase;
-  simulateMachinePulseUseCase: SimulateMachinePulseUseCase;
   manageAlarmsUseCase: ManageAlarmsUseCase;
   machineCommandUseCase: MachineCommandUseCase;
 
@@ -160,7 +158,6 @@ export function createContainer(): AppContainer {
   const updateMachineStatusUseCase = new UpdateMachineStatusUseCase(machineRepository, alarmRepository);
   const logDowntimeUseCase = new LogDowntimeUseCase(machineRepository, alarmRepository);
   const logRejectUseCase = new LogRejectUseCase(machineRepository);
-  const simulateMachinePulseUseCase = new SimulateMachinePulseUseCase(machineRepository);
   const manageAlarmsUseCase = new ManageAlarmsUseCase(alarmRepository);
   const machineCommandUseCase = new MachineCommandUseCase(machineRepository);
   const listWorkOrdersUseCase = new ListWorkOrdersUseCase(workOrderRepository);
@@ -198,7 +195,6 @@ export function createContainer(): AppContainer {
     updateMachineStatusUseCase,
     logDowntimeUseCase,
     logRejectUseCase,
-    simulateMachinePulseUseCase,
     manageAlarmsUseCase,
     machineCommandUseCase,
     listWorkOrdersUseCase,
