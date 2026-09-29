@@ -75,7 +75,7 @@ interface RawOperationalEvent {
   deviceId?: string | null; device_id?: string | null;
   machineId?: string | null; machine_id?: string | null;
   eventType?: string; event_type?: string;
-  timestamp?: string; created_at?: string;
+  timestamp?: string; created_at?: string; recordedAt?: string; recorded_at?: string;
   acknowledgedAt?: string | null; acknowledged_at?: string | null;
   acknowledgedBy?: string | null; acknowledged_by?: string | null;
   ackNote?: string | null; ack_note?: string | null;
@@ -246,7 +246,7 @@ export function mapOperationalEventDto(raw: RawOperationalEvent): OperationalEve
     deviceId: raw.deviceId ?? raw.device_id ?? null,
     machineId: raw.machineId ?? raw.machine_id ?? null,
     eventType: raw.eventType ?? raw.event_type ?? 'UNKNOWN',
-    timestamp: raw.timestamp ?? raw.created_at ?? new Date(0).toISOString(),
+    timestamp: raw.timestamp ?? raw.recordedAt ?? raw.recorded_at ?? raw.created_at ?? new Date(0).toISOString(),
     acknowledgedAt: (raw.acknowledgedAt ?? raw.acknowledged_at ?? null) as string | null,
     acknowledgedBy: raw.acknowledgedBy ?? raw.acknowledged_by ?? null,
     ackNote: raw.ackNote ?? raw.ack_note ?? null,

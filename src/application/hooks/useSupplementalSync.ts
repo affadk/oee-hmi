@@ -12,6 +12,7 @@ import type { GetActiveDowntimesUseCase } from '../use-cases/GetActiveDowntimesU
 import type { GetHourlyTrendsUseCase } from '../use-cases/GetHourlyTrendsUseCase';
 import type { GetRejectBreakdownUseCase } from '../use-cases/GetRejectBreakdownUseCase';
 import type { ListLabelableDowntimesUseCase } from '../use-cases/ListLabelableDowntimesUseCase';
+import type { IErrorReporter } from '../../domain/ports/IErrorReporter';
 
 export interface SupplementalSyncDeps {
   useBackend: boolean;
@@ -24,6 +25,7 @@ export interface SupplementalSyncDeps {
   getHourlyTrendsUseCase: GetHourlyTrendsUseCase;
   getRejectBreakdownUseCase: GetRejectBreakdownUseCase;
   listLabelableDowntimesUseCase: ListLabelableDowntimesUseCase;
+  errorReporter: IErrorReporter;
   setMachines: React.Dispatch<React.SetStateAction<MachineConfig[]>>;
 }
 
@@ -47,6 +49,7 @@ export function useSupplementalSync(deps: SupplementalSyncDeps): SupplementalSyn
     getHourlyTrendsUseCase,
     getRejectBreakdownUseCase,
     listLabelableDowntimesUseCase,
+    errorReporter,
     setMachines,
   } = deps;
 
@@ -97,7 +100,7 @@ export function useSupplementalSync(deps: SupplementalSyncDeps): SupplementalSyn
       } catch (err) {
         if (!isMounted) return;
         if (err instanceof Error && err.name !== 'AbortError') {
-          console.error('Failed to load supplemental data:', err);
+          errorReporter.captureException(err, { hook: 'useSupplementalSync' });
           // Surface partial-data state instead of failing silently:
           // tren/downtime yang tampil mungkin basi atau kosong.
           setSupplementalError(err.message || 'Gagal memuat data tren/downtime.');
@@ -109,7 +112,7 @@ export function useSupplementalSync(deps: SupplementalSyncDeps): SupplementalSyn
     return () => {
       isMounted = false;
     };
-  }, [useBackend, currentMachineId, currentDeviceId, shiftWindow, getDowntimeReasonsUseCase, getActiveDowntimesUseCase, getHourlyTrendsUseCase, getRejectBreakdownUseCase, listLabelableDowntimesUseCase, setMachines]);
+  }, [useBackend, currentMachineId, currentDeviceId, shiftWindow, getDowntimeReasonsUseCase, getActiveDowntimesUseCase, getHourlyTrendsUseCase, getRejectBreakdownUseCase, listLabelableDowntimesUseCase, errorReporter, setMachines]);
 
   return { labelableDowntimes, setLabelableDowntimes, supplementalError, activeDowntimeCount };
 }

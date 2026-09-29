@@ -99,6 +99,10 @@ describe('G4 ack fields on operational events', () => {
     expect(out.acknowledgedBy).toBe('OPR-1');
     expect(out.ackNote).toBeNull();
   });
+  it('prefers recordedAt over created_at (backend contract)', () => {
+    const out = mapOperationalEventDto({ id: 1, recordedAt: '2026-09-25T05:00:00.000Z', created_at: '2026-09-25T05:00:01.000Z' });
+    expect(out.timestamp).toBe('2026-09-25T05:00:00.000Z');
+  });
 });
 
 describe('G3 edge health freshness (age-aware badge)', () => {

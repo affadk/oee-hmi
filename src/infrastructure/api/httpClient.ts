@@ -61,3 +61,19 @@ export async function httpRequest<T>(path: string, options: HttpOptions = {}): P
   }
   return payload as T;
 }
+
+export async function httpDownload(path: string, options: HttpOptions = {}): Promise<Blob> {
+  const token = resolveToken(options.token);
+  const res = await fetch(`${env.apiBaseUrl}${path}`, {
+    method: options.method ?? 'GET',
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    signal: options.signal,
+  });
+  if (!res.ok) {
+    const message = res.statusText || `Download failed for ${path}`;
+    throw new BackendHttpError(res.status, `HTTP_${res.status}`, message);
+  }
+  return res.blob();
+}

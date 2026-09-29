@@ -33,6 +33,7 @@ interface ProductionSetupModalProps {
   onLoadPending: () => Promise<void>;
   onPreview: (woId: string) => Promise<void>;
   onClearPreview: () => void;
+  onOpenDetail: (woId: string) => Promise<void>;
   onDispatch: (woId: string, deviceId: string) => Promise<void>;
   onComplete: (woId: string, finalRejectCount: number) => Promise<void>;
   onCancel: (woId: string, reason?: string) => Promise<void>;
@@ -51,6 +52,7 @@ export const ProductionSetupModal: React.FC<ProductionSetupModalProps> = ({
   onLoadPending,
   onPreview,
   onClearPreview,
+  onOpenDetail,
   onDispatch,
   onComplete,
   onCancel,
@@ -139,6 +141,19 @@ export const ProductionSetupModal: React.FC<ProductionSetupModalProps> = ({
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    disabled={busy || !isBackendMode}
+                    onClick={() => {
+                      setActionError('');
+                      void onOpenDetail(wo.woId).catch((err: unknown) =>
+                        setActionError(err instanceof Error ? err.message : 'Detail gagal.'),
+                      );
+                    }}
+                    className={`px-3 py-1.5 rounded-lg border text-[11px] font-bold ${isDark ? 'border-slate-700 hover:bg-slate-800 text-slate-300' : 'border-slate-300 hover:bg-slate-100 text-slate-600'}`}
+                  >
+                    Detail
+                  </button>
                   <button
                     type="button"
                     disabled={busy || !isBackendMode}

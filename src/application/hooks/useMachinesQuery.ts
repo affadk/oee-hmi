@@ -9,11 +9,13 @@ import type { MachineConfig } from '../../domain/entities/Machine';
 import type { MachineAlarmEvent } from '../../domain/entities/Alarm';
 import type { GetMachinesUseCase } from '../use-cases/GetMachinesUseCase';
 import type { ManageAlarmsUseCase } from '../use-cases/ManageAlarmsUseCase';
+import type { IErrorReporter } from '../../domain/ports/IErrorReporter';
 
 export interface MachinesQueryDeps {
   getMachinesUseCase: GetMachinesUseCase;
   manageAlarmsUseCase: ManageAlarmsUseCase;
   useBackend: boolean;
+  errorReporter: IErrorReporter;
   /** Called when boot load fails with 401/UNAUTHORIZED (opens the PIN modal). */
   onUnauthorized: () => void;
 }
@@ -39,7 +41,7 @@ export interface MachinesQueryApi {
 }
 
 export function useMachinesQuery(deps: MachinesQueryDeps): MachinesQueryApi {
-  const { getMachinesUseCase, manageAlarmsUseCase, useBackend, onUnauthorized } = deps;
+  const { getMachinesUseCase, manageAlarmsUseCase, useBackend, errorReporter, onUnauthorized } = deps;
 
   const [machines, setMachines] = useState<MachineConfig[]>([]);
   const [currentMachineId, setCurrentMachineId] = useState<string>('');
@@ -74,7 +76,7 @@ export function useMachinesQuery(deps: MachinesQueryDeps): MachinesQueryApi {
         if (!isMounted) return;
         // Only log if not aborted
         if (err instanceof Error && err.name !== 'AbortError') {
-          console.error('Failed to initialize dashboard data:', err);
+          errorReporter.captureException(err, { hook: 'useMachinesQuery' });
           // Backend 401 saat boot = sesi operator diperlukan: buka modal PIN
           // agar operator bisa login lalu retry.
           if (useBackend && !!err && typeof err === 'object'
@@ -96,7 +98,7 @@ export function useMachinesQuery(deps: MachinesQueryDeps): MachinesQueryApi {
       isMounted = false;
       abortController?.abort();
     };
-  }, [getMachinesUseCase, manageAlarmsUseCase, useBackend, retrySeq, onUnauthorized]);
+  }, [getMachinesUseCase, manageAlarmsUseCase, useBackend, errorReporter, retrySeq, onUnauthorized]);
 
   const currentMachine = useMemo(() => {
     return machines.find((m) => m.id === currentMachineId) ?? machines[0] ?? null;

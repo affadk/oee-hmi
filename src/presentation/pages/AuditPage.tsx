@@ -10,6 +10,7 @@ import { LossAnalysisZone } from '../components/zones/LossAnalysisZone';
 import { TrendZone } from '../components/zones/TrendZone';
 import { AlarmsZone } from '../components/zones/AlarmsZone';
 import type { DashboardOutletContext } from './DashboardPage';
+import { HealthFooter } from '../components/footer/HealthFooter';
 
 export const AuditPage: React.FC = () => {
   const { dashboard } = useOutletContext<DashboardOutletContext>();
@@ -75,6 +76,7 @@ export const AuditPage: React.FC = () => {
           onUpdateMachineStatus={dashboard.updateMachineStatus}
           useBackend={dashboard.useBackend}
           onResetCounters={dashboard.resetCounters}
+          onExportTelemetry={dashboard.exportTelemetry}
         />
 
         <LossAnalysisZone
@@ -120,6 +122,7 @@ export const AuditPage: React.FC = () => {
             ) : null}
           </div>
           <div className="flex items-center gap-3">
+            <HealthFooter health={dashboard.backendHealth} useBackend={dashboard.useBackend} isDark={isDark} />
             <span>Planned Time: <strong>{metrics.plannedProductionTimeMin || 420}m</strong></span>
             <span>OEE: <strong className={isDark ? 'text-slate-200' : 'text-slate-800'}>{metrics.oeePct?.toFixed(1)}%</strong></span>
             <span className="hidden sm:inline">A × P × Q = {metrics.availabilityPct?.toFixed(1)}% × {metrics.performancePct?.toFixed(1)}% × {metrics.qualityPct?.toFixed(1)}%</span>

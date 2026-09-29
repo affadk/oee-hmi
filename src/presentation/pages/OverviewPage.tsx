@@ -35,6 +35,9 @@ export const OverviewPage: React.FC = () => {
       onLogReject={dashboard.logReject}
       onDispatchMqttCommand={dashboard.dispatchMqttCommand}
       onApplyJobConfig={dashboard.dispatchMqttJobConfig}
+      backendHealth={dashboard.backendHealth}
+      catalog={dashboard.catalog}
+      onRefreshCatalog={dashboard.refreshCatalog}
       shiftSegments={dashboard.shiftSegments}
       livePoints={dashboard.liveTrend}
       workOrderPreview={dashboard.workOrderPreview}

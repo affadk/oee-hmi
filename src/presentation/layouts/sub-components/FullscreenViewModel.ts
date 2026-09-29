@@ -3,6 +3,8 @@
 // Kept as a plain object type so each sub-component receives only the data it needs.
 
 import type { MachineConfig, CalculatedOeeMetrics } from '../../../domain/index';
+import type { BackendHealth } from '../../../domain/ports/IOeeBackend';
+import type { OperatorRecord, ProductRecord } from '../../../domain/entities/backend/Device';
 import { telemetryAgeSec } from '../../../domain/index';
 import { isEdgeHealthOk } from '../../../domain/entities/MqttContracts';
 import type { TimelineSegment } from '../../../domain/services/ShiftTimeline';
@@ -33,6 +35,9 @@ export interface FullscreenOeeViewProps {
     shiftOverride?: { shiftStart: string; shiftEnd: string; breakWindow: string; breakMin: number }
   ) => Promise<void>;
   useBackend?: boolean;
+  backendHealth?: BackendHealth | null;
+  catalog?: { products: ProductRecord[]; operators: OperatorRecord[] } | null;
+  onRefreshCatalog?: () => Promise<void>;
   shiftSegments?: TimelineSegment[] | null;
   livePoints?: Array<{ timestamp: string; oee: number }> | null;
   workOrderPreview?: { woId: string; result: WorkOrderResolveResult } | null;

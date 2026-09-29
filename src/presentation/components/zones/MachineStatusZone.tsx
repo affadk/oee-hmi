@@ -14,6 +14,8 @@ interface MachineStatusZoneProps {
   /** Backend lane only: counter reset via POST /devices/:id/command. */
   useBackend?: boolean;
   onResetCounters?: () => Promise<void>;
+  /** B6: raw export download (CSV/NDJSON); presentation owns the object-URL. */
+  onExportTelemetry?: (format?: 'csv' | 'ndjson') => Promise<Blob | null>;
 }
 
 export const MachineStatusZone: React.FC<MachineStatusZoneProps> = ({
@@ -24,10 +26,30 @@ export const MachineStatusZone: React.FC<MachineStatusZoneProps> = ({
   onUpdateMachineStatus,
   useBackend = false,
   onResetCounters,
+  onExportTelemetry,
 }) => {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   const [resetError, setResetError] = useState<string>('');
+  const [exportError, setExportError] = useState<string>('');
+
+  const handleExportTelemetry = (): void => {
+    if (!onExportTelemetry) return;
+    setExportError('');
+    void onExportTelemetry('csv').then((blob) => {
+      if (!blob) return;
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `telemetry-${machine.deviceId || machine.id}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    }).catch((err: unknown) => {
+      setExportError(err instanceof Error ? err.message : 'Export telemetri gagal.');
+    });
+  };
 
   const handleResetCounters = (): void => {
     if (!onResetCounters) return;
@@ -82,6 +104,17 @@ export const MachineStatusZone: React.FC<MachineStatusZoneProps> = ({
                   {st}
                 </button>
               ))}
+              {useBackend && onExportTelemetry && (
+                <button type="button"
+                  onClick={handleExportTelemetry}
+                  title="Unduh bukti audit CSV via GET /telemetry/:id/export"
+                  className={`px-2 py-0.5 rounded audit-micro font-bold border transition-all cursor-pointer ${
+                    isDark ? 'bg-transparent text-blue-400 border-blue-500/40 hover:bg-blue-500/10' : 'bg-transparent text-blue-600 border-blue-300 hover:bg-blue-50'
+                  }`}
+                >
+                  EXPORT
+                </button>
+              )}
               {useBackend && onResetCounters && (
                 <button type="button"
                   onClick={handleResetCounters}
@@ -97,6 +130,9 @@ export const MachineStatusZone: React.FC<MachineStatusZoneProps> = ({
           </div>
           {resetError ? (
             <p role="alert" className="mt-1 text-[11px] font-mono text-rose-500">{resetError}</p>
+          ) : null}
+          {exportError ? (
+            <p role="alert" className="mt-1 text-[11px] font-mono text-rose-500">{exportError}</p>
           ) : null}
 
           <div className={`${innerClass} flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3`}>

@@ -3,6 +3,7 @@
 
 import type React from 'react';
 import type { QrBatchStep, BatchDraft, QrOperatorPreset, QrSchedulePreset } from '../../../../domain/entities/BatchQr';
+import type { OperatorRecord, ProductRecord } from '../../../../domain/entities/backend/Device';
 import type { MachineConfig } from '../../../../domain/index';
 
 export interface BatchQrModalContext {
@@ -42,6 +43,8 @@ export interface BatchQrModalContext {
   // Data
   machine: MachineConfig;
   allMachines: MachineConfig[];
+  /** B4: backend master catalog; null/empty = static QR fallback. */
+  catalog?: { products: ProductRecord[]; operators: OperatorRecord[] } | null;
 
   // Actions
   setStep: (id: QrBatchStep) => void;

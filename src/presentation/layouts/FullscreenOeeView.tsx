@@ -35,6 +35,9 @@ export const FullscreenOeeView: React.FC<FullscreenOeeViewProps> = ({
   onDispatchMqttCommand = async () => {},
   onApplyJobConfig = async () => {},
   useBackend,
+  backendHealth = null,
+  catalog = null,
+  onRefreshCatalog,
   shiftSegments = null,
   livePoints = null,
   workOrderPreview = null,
@@ -43,6 +46,12 @@ export const FullscreenOeeView: React.FC<FullscreenOeeViewProps> = ({
 }) => {
   const { theme, toggleTheme } = useTheme();
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
+
+  useEffect(() => {
+    if (isQrModalOpen && useBackend && onRefreshCatalog) {
+      void onRefreshCatalog().catch(() => undefined);
+    }
+  }, [isQrModalOpen, useBackend, onRefreshCatalog]);
 
   // Live wall-clock untuk timestamp header — refresh tiap detik
   const [headerNow, setHeaderNow] = useState(() => new Date());
@@ -87,6 +96,7 @@ export const FullscreenOeeView: React.FC<FullscreenOeeViewProps> = ({
           onClose={() => setIsQrModalOpen(false)}
           machine={machine}
           allMachines={allMachines}
+          catalog={catalog}
           onSwitchMachine={onSwitchMachine}
           onApplyJobConfig={onApplyJobConfig}
           backendMode={useBackend}
@@ -243,6 +253,7 @@ export const FullscreenOeeView: React.FC<FullscreenOeeViewProps> = ({
           isStale={vm.staleAgeSec !== null && vm.staleAgeSec > 60}
           staleAgeSec={vm.staleAgeSec}
           useBackend={useBackend}
+          backendHealth={backendHealth}
           onOpenMqttModal={onOpenMqttModal}
           isDark={vm.isDark}
           formatStaffed={vm.formatStaffed}

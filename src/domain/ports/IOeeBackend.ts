@@ -95,6 +95,23 @@ export interface ITelemetryRepository {
   getAllOperationalEvents(query?: OperationalEventsQuery, signal?: AbortSignal): Promise<{ data: OperationalEvent[]; meta: PageMeta }>;
   /** G4: ack alarm — idempoten; operatorId wajib (fail-closed 401/403 di backend). */
   acknowledgeOperationalEvent(id: number, operatorId: string, note?: string): Promise<OperationalEvent>;
+  /**
+   * B6: unduh bukti audit (§K export, DoD §8). Backend mengembalikan
+   * text/csv atau application/x-ndjson; adapter meneruskan Blob mentah.
+   */
+  getExport(deviceId: string, format: string, from?: string, to?: string, signal?: AbortSignal): Promise<Blob>;
+}
+
+export interface BackendHealth {
+  status: string;
+  wsClients: number | null;
+  bufferPending: number | null;
+  uptimeSec: number | null;
+}
+
+export interface IHealthRepository {
+  /** B7: GET /health; null bila endpoint belum ada (404). */
+  getHealth(signal?: AbortSignal): Promise<BackendHealth | null>;
 }
 
 export interface HourlyTrendPoint {

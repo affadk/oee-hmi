@@ -8,6 +8,7 @@ import { IAlarmRepository } from '../../domain/ports/IAlarmRepository';
 import { IMqttGateway } from '../../domain/ports/IMqttGateway';
 import { IThemeStoragePort } from '../../domain/ports/IThemeStorage';
 import type { IAuthTokenStorage } from '../../domain/ports/IAuthTokenStorage';
+import type { IErrorReporter } from '../../domain/ports/IErrorReporter';
 import type {
   IAuthGateway,
   IDeviceCommandGateway,
@@ -26,9 +27,11 @@ import { BackendMachineRepository } from '../adapters/BackendMachineRepository';
 import { BackendAlarmRepository } from '../adapters/BackendAlarmRepository';
 import { LocalStorageThemeAdapter } from '../storage/LocalStorageThemeAdapter';
 import { AuthTokenStorageAdapter } from '../storage/AuthTokenStorageAdapter';
+import { NoopErrorReporter } from '../monitoring/ErrorReporter';
 import {
   OeeHttpAuthGateway,
   OeeHttpDeviceCommandGateway,
+  OeeHttpHealthRepository,
   OeeHttpLiveStateRepository,
   OeeHttpMasterDataRepository,
   OeeHttpShiftSummaryRepository,
@@ -60,6 +63,8 @@ import { ListLabelableDowntimesUseCase } from '../../application/use-cases/ListL
 import { LabelDowntimeReasonUseCase } from '../../application/use-cases/LabelDowntimeReasonUseCase';
 import { GetRejectBreakdownUseCase } from '../../application/use-cases/GetRejectBreakdownUseCase';
 import { ConfigureDeviceUseCase } from '../../application/use-cases/ConfigureDeviceUseCase';
+import { ExportTelemetryUseCase } from '../../application/use-cases/ExportTelemetryUseCase';
+import { GetHealthUseCase } from '../../application/use-cases/GetHealthUseCase';
 
 export interface AppContainer {
   // Data source mode
@@ -71,6 +76,7 @@ export interface AppContainer {
   mqttGateway: IMqttGateway;
   themeStorage: IThemeStoragePort;
   authTokenStorage: IAuthTokenStorage;
+  errorReporter: IErrorReporter;
 
   // Ports / Backend lane (real IIoT OEE REST + WS, see API_DOCUMENTATION.md)
   liveStateRepository: ILiveStateRepository;
@@ -105,6 +111,8 @@ export interface AppContainer {
   listLabelableDowntimesUseCase: ListLabelableDowntimesUseCase;
   labelDowntimeReasonUseCase: LabelDowntimeReasonUseCase;
   configureDeviceUseCase: ConfigureDeviceUseCase;
+  exportTelemetryUseCase: ExportTelemetryUseCase;
+  getHealthUseCase: GetHealthUseCase;
 }
 
 /**
@@ -127,7 +135,9 @@ export function createContainer(): AppContainer {
   const masterDataRepository = new OeeHttpMasterDataRepository();
   const telemetryRepository = new OeeHttpTelemetryRepository();
   const authTokenStorage = new AuthTokenStorageAdapter();
+  const errorReporter = new NoopErrorReporter();
   const authGateway = new OeeHttpAuthGateway(authTokenStorage);
+  const healthRepository = new OeeHttpHealthRepository();
   const realtimeGateway = new TelemetryWsClient();
   const shiftSummaryRepository = new OeeHttpShiftSummaryRepository();
   const shiftTimelineRepository = new OeeHttpShiftTimelineRepository();
@@ -174,6 +184,8 @@ export function createContainer(): AppContainer {
   const listLabelableDowntimesUseCase = new ListLabelableDowntimesUseCase(telemetryRepository);
   const labelDowntimeReasonUseCase = new LabelDowntimeReasonUseCase(telemetryRepository);
   const configureDeviceUseCase = new ConfigureDeviceUseCase(masterDataRepository);
+  const exportTelemetryUseCase = new ExportTelemetryUseCase(telemetryRepository);
+  const getHealthUseCase = new GetHealthUseCase(healthRepository);
 
   return {
     useBackend,
@@ -182,6 +194,7 @@ export function createContainer(): AppContainer {
     mqttGateway,
     themeStorage,
     authTokenStorage,
+    errorReporter,
     liveStateRepository,
     workOrderRepository,
     deviceCommandGateway,
@@ -210,6 +223,8 @@ export function createContainer(): AppContainer {
     listLabelableDowntimesUseCase,
     labelDowntimeReasonUseCase,
     configureDeviceUseCase,
+    exportTelemetryUseCase,
+    getHealthUseCase,
   };
 }
 

@@ -7,8 +7,10 @@
 
 import type {
   AuthSession,
+  BackendHealth,
   IAuthGateway,
   IDeviceCommandGateway,
+  IHealthRepository,
   ILiveStateRepository,
   IMasterDataRepository,
   ITelemetryRepository,
@@ -44,7 +46,7 @@ import {
 import { mapShiftSummaryDto, mapShiftTimelineListDto } from '../../application/dto/shift.dto';
 import { assertDeviceCommandReason } from '../../domain/entities/backend/Device';
 import { endpoints } from './endpoints';
-import { BackendHttpError, httpRequest } from './httpClient';
+import { BackendHttpError, httpDownload, httpRequest } from './httpClient';
 
 function withQuery(path: string, params: Record<string, string | number | boolean | undefined | null>): string {
   const qs = Object.entries(params)
@@ -265,6 +267,37 @@ export class OeeHttpTelemetryRepository implements ITelemetryRepository {
       acknowledgedBy: (ack.acknowledgedBy ?? ack.acknowledged_by ?? operatorId) as string,
       ackNote: (ack.ackNote ?? ack.ack_note ?? note ?? null) as string | null,
     };
+  }
+  async getExport(deviceId: string, format: string, from?: string, to?: string, signal?: AbortSignal): Promise<Blob> {
+    const path = withQuery(endpoints.telemetryExport(deviceId), { format, from, to });
+    return httpDownload(path, { signal });
+  }
+}
+
+export class OeeHttpHealthRepository implements IHealthRepository {
+  async getHealth(signal?: AbortSignal): Promise<BackendHealth | null> {
+    try {
+      const raw = await httpRequest<unknown>(endpoints.health(), { signal });
+      const body = raw as {
+        status?: string;
+        ws_clients?: number;
+        wsClients?: number;
+        buffer_pending?: number;
+        bufferPending?: number;
+        uptime_sec?: number;
+        uptimeSec?: number;
+        uptime?: number;
+      };
+      const toFinite = (v: unknown): number | null => (typeof v === 'number' && Number.isFinite(v) ? v : null);
+      return {
+        status: typeof body.status === 'string' ? body.status : 'ok',
+        wsClients: toFinite(body.ws_clients ?? body.wsClients),
+        bufferPending: toFinite(body.buffer_pending ?? body.bufferPending),
+        uptimeSec: toFinite(body.uptime_sec ?? body.uptimeSec ?? body.uptime),
+      };
+    } catch (err) {
+      return nullOnMissingEndpoint(err);
+    }
   }
 }
 

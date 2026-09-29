@@ -15,6 +15,7 @@ import type { ManageAlarmsUseCase } from '../use-cases/ManageAlarmsUseCase';
 import type { MqttEdgeCommandUseCase } from '../use-cases/MqttEdgeCommandUseCase';
 import { buildJobConfigPayload, deriveActualRate } from '../use-cases/MqttEdgeCommandUseCase';
 import type { LabelDowntimeReasonUseCase } from '../use-cases/LabelDowntimeReasonUseCase';
+import type { ExportTelemetryUseCase, TelemetryExportFormat } from '../use-cases/ExportTelemetryUseCase';
 
 export type BackendDowntimeLabelInput = Omit<DowntimeReasonItem, 'id' | 'equivalentLossPcs'> & {
   backendEventId?: number;
@@ -31,6 +32,7 @@ export interface MachineActionsDeps {
   manageAlarmsUseCase: ManageAlarmsUseCase;
   mqttEdgeCommandUseCase: MqttEdgeCommandUseCase;
   labelDowntimeReasonUseCase: LabelDowntimeReasonUseCase;
+  exportTelemetryUseCase: ExportTelemetryUseCase;
   runProtected: (action: () => Promise<void>) => Promise<void>;
   /** Operator id untuk atribusi ack server (G4); null = ack lokal saja. */
   getOperatorId?: () => string | null;
@@ -49,6 +51,8 @@ export interface MachineActionsApi {
   /** Counter reset via edge command (RESET_COUNTER). Caller owns the confirm guard. */
   resetCounters: () => Promise<void>;
   dispatchMqttCommand: (command: 'RESET_COUNTER' | 'PAUSE' | 'RESUME') => Promise<void>;
+  /** B6: returns raw export Blob; presentation owns the object-URL download. */
+  exportTelemetry: (format?: TelemetryExportFormat) => Promise<Blob | null>;
   dispatchMqttJobConfig: (
     wo: string,
     product: string,
@@ -70,6 +74,7 @@ export function useMachineActions(deps: MachineActionsDeps): MachineActionsApi {
     manageAlarmsUseCase,
     mqttEdgeCommandUseCase,
     labelDowntimeReasonUseCase,
+    exportTelemetryUseCase,
     runProtected,
     getOperatorId,
     setMachines,
@@ -173,6 +178,13 @@ export function useMachineActions(deps: MachineActionsDeps): MachineActionsApi {
     await dispatchMqttCommand('RESET_COUNTER');
   }, [dispatchMqttCommand]);
 
+  const exportTelemetry = useCallback(async (format: TelemetryExportFormat = 'csv'): Promise<Blob | null> => {
+    if (!useBackend) return null;
+    const deviceId = currentMachine?.deviceId ?? currentMachineId;
+    if (!deviceId) return null;
+    return exportTelemetryUseCase.execute(deviceId, format);
+  }, [useBackend, currentMachine, currentMachineId, exportTelemetryUseCase]);
+
   const dispatchMqttJobConfig = useCallback(async (
     wo: string,
     product: string,
@@ -219,6 +231,7 @@ export function useMachineActions(deps: MachineActionsDeps): MachineActionsApi {
     resolveAlarm,
     resetCounters,
     dispatchMqttCommand,
+    exportTelemetry,
     dispatchMqttJobConfig,
   };
 }

@@ -10,7 +10,8 @@
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit && pnpm lint:arch",
     "lint:arch": "echo '[arch] domain zero-IO' && ! grep -rnE 'fetch\\(|new WebSocket|localStorage|import\\.meta' src/domain/ && echo '[arch] application inward-only' && ! grep -rnE \"from ['\\\"].*(infrastructure/|presentation/)\" src/application/ && echo '[arch] presentation no-direct-IO' && ! grep -rnE \"from ['\\\"].*infrastructure/(api|adapters|realtime|seeds|storage)/\" src/presentation/ && echo '[arch] no-explicit-any' && ! grep -rnE '\\bany\\b' src/ tests/ && echo '[arch] OK'",
-    "test": "vitest run"
+    "test": "vitest run",
+    "coverage": "vitest run --coverage"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.3.3",
@@ -27,6 +28,7 @@
     "@types/node": "^22.14.0",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
+    "@vitest/coverage-v8": "^5.0.2",
     "autoprefixer": "^10.4.21",
     "esbuild": "^0.25.0",
     "tailwindcss": "^4.3.3",

@@ -3,6 +3,8 @@
 
 import React from 'react';
 import { Radio } from 'lucide-react';
+import type { BackendHealth } from '../../../domain/ports/IOeeBackend';
+import { HealthFooter } from '../../components/footer/HealthFooter';
 
 export interface FullscreenFooterProps {
   machineName: string;
@@ -13,6 +15,7 @@ export interface FullscreenFooterProps {
   isStale: boolean;
   staleAgeSec: number | null;
   useBackend?: boolean;
+  backendHealth?: BackendHealth | null;
   onOpenMqttModal: () => void;
   isDark: boolean;
   formatStaffed: (totalMin: number) => string;
@@ -27,6 +30,7 @@ export const FullscreenFooter: React.FC<FullscreenFooterProps> = ({
   isStale,
   staleAgeSec,
   useBackend,
+  backendHealth = null,
   onOpenMqttModal,
   isDark,
   formatStaffed,
@@ -56,6 +60,7 @@ export const FullscreenFooter: React.FC<FullscreenFooterProps> = ({
 
         {/* Right: planned time + edge I/O link */}
         <div className="flex items-center gap-3">
+          <HealthFooter health={backendHealth} useBackend={useBackend} isDark={isDark} />
           <span>Planned Time: <strong>{plannedProductionTimeMin}m</strong></span>
           <span>Staffed: <strong>{formatStaffed(plannedProductionTimeMin + (plannedDowntimeMinutes || 0))}</strong></span>
           {!useBackend && (

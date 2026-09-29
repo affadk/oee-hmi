@@ -4,7 +4,7 @@
 
 import { useCallback, useState } from 'react';
 import type { MachineConfig } from '../../domain/entities/Machine';
-import type { DeviceRecord, MachineRecord } from '../../domain/entities/backend/Device';
+import type { DeviceRecord, MachineRecord, OperatorRecord, ProductRecord } from '../../domain/entities/backend/Device';
 import type { MachineMetadataPatch } from '../../domain/ports/IOeeBackend';
 import type { GetMachinesUseCase } from '../use-cases/GetMachinesUseCase';
 import type { ConfigureDeviceUseCase } from '../use-cases/ConfigureDeviceUseCase';
@@ -23,7 +23,9 @@ export interface DeviceRegistryApi {
   closeDeviceConfigModal: () => void;
   deviceRegistry: { devices: DeviceRecord[]; machines: MachineRecord[] } | null;
   deviceRegistryError: string;
+  catalog: { products: ProductRecord[]; operators: OperatorRecord[] } | null;
   refreshDeviceRegistry: () => Promise<void>;
+  refreshCatalog: () => Promise<void>;
   saveDeviceMetadata: (deviceId: string, patch: { ipAddress?: string; firmwareVersion?: string }) => Promise<void>;
   saveMachineMetadata: (machineId: string, patch: MachineMetadataPatch) => Promise<void>;
   bindDeviceToMachine: (machineId: string, deviceId: string) => Promise<void>;
@@ -36,6 +38,7 @@ export function useDeviceRegistry(deps: DeviceRegistryDeps): DeviceRegistryApi {
   const [isDeviceConfigModalOpen, setIsDeviceConfigModalOpen] = useState<boolean>(false);
   const [deviceRegistry, setDeviceRegistry] = useState<{ devices: DeviceRecord[]; machines: MachineRecord[] } | null>(null);
   const [deviceRegistryError, setDeviceRegistryError] = useState<string>('');
+  const [catalog, setCatalog] = useState<{ products: ProductRecord[]; operators: OperatorRecord[] } | null>(null);
 
   // ===== Device configuration (§E PUT /devices/:id, §F bind/unbind) =====
   const refreshDeviceRegistry = useCallback(async () => {
@@ -55,6 +58,16 @@ export function useDeviceRegistry(deps: DeviceRegistryDeps): DeviceRegistryApi {
     setIsDeviceConfigModalOpen(true);
     void refreshDeviceRegistry().catch(() => undefined);
   }, [refreshDeviceRegistry]);
+
+  const refreshCatalog = useCallback(async () => {
+    if (!useBackend) return;
+    try {
+      const next = await configureDeviceUseCase.loadCatalog();
+      setCatalog(next);
+    } catch {
+      setCatalog(null);
+    }
+  }, [configureDeviceUseCase, useBackend]);
 
   const closeDeviceConfigModal = useCallback(() => setIsDeviceConfigModalOpen(false), []);
 
@@ -108,7 +121,9 @@ export function useDeviceRegistry(deps: DeviceRegistryDeps): DeviceRegistryApi {
     closeDeviceConfigModal,
     deviceRegistry,
     deviceRegistryError,
+    catalog,
     refreshDeviceRegistry,
+    refreshCatalog,
     saveDeviceMetadata,
     saveMachineMetadata,
     bindDeviceToMachine,

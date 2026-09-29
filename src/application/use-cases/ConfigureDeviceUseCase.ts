@@ -3,7 +3,7 @@ import type {
   IMasterDataRepository,
   MachineMetadataPatch,
 } from '../../domain/ports/IOeeBackend';
-import type { DeviceRecord, MachineRecord } from '../../domain/entities/backend/Device';
+import type { DeviceRecord, MachineRecord, OperatorRecord, ProductRecord } from '../../domain/entities/backend/Device';
 
 /**
  * Device/machine configuration mutations against the backend master-data
@@ -20,6 +20,15 @@ export class ConfigureDeviceUseCase {
       this.masterData.listMachines(signal),
     ]);
     return { devices, machines };
+  }
+
+  /** B4: produk/operator backend untuk katalog QR; [] bila backend kosong. */
+  async loadCatalog(signal?: AbortSignal): Promise<{ products: ProductRecord[]; operators: OperatorRecord[] }> {
+    const [products, operators] = await Promise.all([
+      this.masterData.listProducts(signal).catch(() => []),
+      this.masterData.listOperators(signal).catch(() => []),
+    ]);
+    return { products, operators };
   }
 
   updateDeviceMetadata(deviceId: string, patch: DeviceMetadataPatch): Promise<DeviceRecord> {

@@ -22,8 +22,8 @@ import { useMemo } from 'react';
 import type { MachineConfig, MachineStatus } from '../../domain/entities/Machine';
 import type { CalculatedOeeMetrics } from '../../domain/entities/OeeMetrics';
 import type { MachineAlarmEvent } from '../../domain/entities/Alarm';
-import type { AuthSession, IAuthGateway } from '../../domain/ports/IOeeBackend';
-import type { DeviceRecord, MachineRecord } from '../../domain/entities/backend/Device';
+import type { AuthSession, BackendHealth, IAuthGateway } from '../../domain/ports/IOeeBackend';
+import type { DeviceRecord, MachineRecord, OperatorRecord, ProductRecord } from '../../domain/entities/backend/Device';
 import type { WorkOrderListItem, WorkOrderResolveResult } from '../../domain/entities/backend/WorkOrder';
 import type { DowntimeEvent } from '../../domain/entities/backend/Telemetry';
 import type { TimelineSegment } from '../../domain/services/ShiftTimeline';
@@ -48,6 +48,9 @@ import type { ListLabelableDowntimesUseCase } from '../use-cases/ListLabelableDo
 import type { LabelDowntimeReasonUseCase } from '../use-cases/LabelDowntimeReasonUseCase';
 import type { ConfigureDeviceUseCase } from '../use-cases/ConfigureDeviceUseCase';
 import type { ListWorkOrdersUseCase } from '../use-cases/ListWorkOrdersUseCase';
+import type { ExportTelemetryUseCase, TelemetryExportFormat } from '../use-cases/ExportTelemetryUseCase';
+import type { GetHealthUseCase } from '../use-cases/GetHealthUseCase';
+import type { IErrorReporter } from '../../domain/ports/IErrorReporter';
 import type { GetShiftSummaryUseCase } from '../use-cases/GetShiftSummaryUseCase';
 import type { GetShiftTimelineUseCase } from '../use-cases/GetShiftTimelineUseCase';
 import { useAuthSession } from './useAuthSession';
@@ -59,6 +62,7 @@ import { useMachineActions } from './useMachineActions';
 import type { BackendDowntimeLabelInput } from './useMachineActions';
 import { useDeviceRegistry } from './useDeviceRegistry';
 import { useWorkOrders } from './useWorkOrders';
+import { useBackendHealth } from './useBackendHealth';
 import { useDashboardUi } from './useDashboardUi';
 import { useShiftServerData, mergeShiftSummary } from './useShiftServerData';
 import { resolveShiftWindowIso } from '../../domain/services/ShiftTimeline';
@@ -85,6 +89,9 @@ export interface OeeDashboardDeps {
   labelDowntimeReasonUseCase: LabelDowntimeReasonUseCase;
   configureDeviceUseCase: ConfigureDeviceUseCase;
   listWorkOrdersUseCase: ListWorkOrdersUseCase;
+  exportTelemetryUseCase: ExportTelemetryUseCase;
+  getHealthUseCase: GetHealthUseCase;
+  errorReporter: IErrorReporter;
   getShiftSummaryUseCase: GetShiftSummaryUseCase;
   getShiftTimelineUseCase: GetShiftTimelineUseCase;
   authGateway: IAuthGateway;
@@ -123,9 +130,13 @@ export interface UseOeeDashboardReturn {
   shiftSegments: TimelineSegment[] | null;
   deviceRegistry: { devices: DeviceRecord[]; machines: MachineRecord[] } | null;
   deviceRegistryError: string;
+  catalog: { products: ProductRecord[]; operators: OperatorRecord[] } | null;
+  backendHealth: BackendHealth | null;
   pendingWorkOrders: WorkOrderListItem[];
   workOrderError: string;
   workOrderPreview: { woId: string; result: WorkOrderResolveResult } | null;
+  workOrderDetail: WorkOrderListItem | null;
+  isWorkOrderDetailOpen: boolean;
   productionSetupError: string;
   productionSetupBusy: boolean;
   formulaMetricHighlight: string;
@@ -141,6 +152,7 @@ export interface UseOeeDashboardReturn {
   resolveAlarm: (alarmId: string) => Promise<void>;
   dispatchMqttCommand: (command: 'RESET_COUNTER' | 'PAUSE' | 'RESUME') => Promise<void>;
   resetCounters: () => Promise<void>;
+  exportTelemetry: (format?: TelemetryExportFormat) => Promise<Blob | null>;
   dispatchMqttJobConfig: (
     wo: string,
     product: string,
@@ -160,6 +172,7 @@ export interface UseOeeDashboardReturn {
   openDeviceConfigModal: () => void;
   closeDeviceConfigModal: () => void;
   refreshDeviceRegistry: () => Promise<void>;
+  refreshCatalog: () => Promise<void>;
   saveDeviceMetadata: (deviceId: string, patch: { ipAddress?: string; firmwareVersion?: string }) => Promise<void>;
   saveMachineMetadata: (machineId: string, patch: { machineName?: string; modbusSlaveId?: number }) => Promise<void>;
   bindDeviceToMachine: (machineId: string, deviceId: string) => Promise<void>;
@@ -169,6 +182,8 @@ export interface UseOeeDashboardReturn {
   loadPendingWorkOrders: () => Promise<void>;
   previewWorkOrder: (woId: string) => Promise<void>;
   clearWorkOrderPreview: () => void;
+  openWorkOrderDetail: (woId: string) => Promise<void>;
+  closeWorkOrderDetail: () => void;
   dispatchWorkOrder: (woId: string, deviceId: string) => Promise<void>;
   completeWorkOrder: (woId: string, finalRejectCount: number) => Promise<void>;
   cancelWorkOrder: (woId: string, reason?: string) => Promise<void>;
@@ -199,6 +214,9 @@ export function useOeeDashboard(deps: OeeDashboardDeps): UseOeeDashboardReturn {
     labelDowntimeReasonUseCase,
     configureDeviceUseCase,
     listWorkOrdersUseCase,
+    exportTelemetryUseCase,
+    getHealthUseCase,
+    errorReporter,
     getShiftSummaryUseCase,
     getShiftTimelineUseCase,
     authGateway,
@@ -218,6 +236,7 @@ export function useOeeDashboard(deps: OeeDashboardDeps): UseOeeDashboardReturn {
     getMachinesUseCase,
     manageAlarmsUseCase,
     useBackend,
+    errorReporter,
     onUnauthorized: () => auth.notifyUnauthorized(),
   });
 
@@ -241,6 +260,7 @@ export function useOeeDashboard(deps: OeeDashboardDeps): UseOeeDashboardReturn {
     getHourlyTrendsUseCase,
     getRejectBreakdownUseCase,
     listLabelableDowntimesUseCase,
+    errorReporter,
     setMachines: machines.setMachines,
   });
 
@@ -278,6 +298,7 @@ export function useOeeDashboard(deps: OeeDashboardDeps): UseOeeDashboardReturn {
     manageAlarmsUseCase,
     mqttEdgeCommandUseCase,
     labelDowntimeReasonUseCase,
+    exportTelemetryUseCase,
     runProtected: auth.runProtected,
     getOperatorId: () => auth.authSession?.operator.id ?? null,
     setMachines: machines.setMachines,
@@ -302,6 +323,8 @@ export function useOeeDashboard(deps: OeeDashboardDeps): UseOeeDashboardReturn {
     runProtected: auth.runProtected,
     setMachines: machines.setMachines,
   });
+
+  const backendHealth = useBackendHealth({ useBackend, getHealthUseCase });
 
   // Fase 1 server aggregates (§3.1/§3.2); null until the backend implements them.
   const shiftServer = useShiftServerData({
@@ -356,9 +379,13 @@ export function useOeeDashboard(deps: OeeDashboardDeps): UseOeeDashboardReturn {
     shiftSegments: shiftServer.shiftSegments,
     deviceRegistry: registry.deviceRegistry,
     deviceRegistryError: registry.deviceRegistryError,
+    catalog: registry.catalog,
+    backendHealth: backendHealth.health,
     pendingWorkOrders: orders.pendingWorkOrders,
     workOrderError: orders.workOrderError,
     workOrderPreview: orders.workOrderPreview,
+    workOrderDetail: orders.workOrderDetail,
+    isWorkOrderDetailOpen: orders.isWorkOrderDetailOpen,
     productionSetupError: orders.productionSetupError,
     productionSetupBusy: orders.productionSetupBusy,
     formulaMetricHighlight: ui.formulaMetricHighlight,
@@ -374,6 +401,7 @@ export function useOeeDashboard(deps: OeeDashboardDeps): UseOeeDashboardReturn {
     resolveAlarm: actions.resolveAlarm,
     dispatchMqttCommand: actions.dispatchMqttCommand,
     resetCounters: actions.resetCounters,
+    exportTelemetry: actions.exportTelemetry,
     dispatchMqttJobConfig: actions.dispatchMqttJobConfig,
     openFormulaModal: ui.openFormulaModal,
     closeFormulaModal: ui.closeFormulaModal,
@@ -386,6 +414,7 @@ export function useOeeDashboard(deps: OeeDashboardDeps): UseOeeDashboardReturn {
     openDeviceConfigModal: registry.openDeviceConfigModal,
     closeDeviceConfigModal: registry.closeDeviceConfigModal,
     refreshDeviceRegistry: registry.refreshDeviceRegistry,
+    refreshCatalog: registry.refreshCatalog,
     saveDeviceMetadata: registry.saveDeviceMetadata,
     saveMachineMetadata: registry.saveMachineMetadata,
     bindDeviceToMachine: registry.bindDeviceToMachine,
@@ -395,6 +424,8 @@ export function useOeeDashboard(deps: OeeDashboardDeps): UseOeeDashboardReturn {
     loadPendingWorkOrders: orders.loadPendingWorkOrders,
     previewWorkOrder: orders.previewWorkOrder,
     clearWorkOrderPreview: orders.clearWorkOrderPreview,
+    openWorkOrderDetail: orders.openWorkOrderDetail,
+    closeWorkOrderDetail: orders.closeWorkOrderDetail,
     dispatchWorkOrder: orders.dispatchWorkOrder,
     completeWorkOrder: orders.completeWorkOrder,
     cancelWorkOrder: orders.cancelWorkOrder,

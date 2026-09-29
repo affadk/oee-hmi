@@ -21,6 +21,7 @@ import { MqttEdgeInspectorModal } from '../components/modals/MqttEdgeInspectorMo
 import { AuthPinModal } from '../components/modals/AuthPinModal';
 import { DeviceConfigModal } from '../components/modals/DeviceConfigModal/DeviceConfigModal';
 import { ProductionSetupModal } from '../components/modals/ProductionSetupModal';
+import { WorkOrderDetailModal } from '../components/modals/WorkOrderDetailModal';
 import { LayoutDashboard, Tv, Sun, Moon } from 'lucide-react';
 
 /** Shape handed to child pages through the router outlet context. */
@@ -60,6 +61,9 @@ export const DashboardPage: React.FC = () => {
     labelDowntimeReasonUseCase: container.labelDowntimeReasonUseCase,
     configureDeviceUseCase: container.configureDeviceUseCase,
     listWorkOrdersUseCase: container.listWorkOrdersUseCase,
+    exportTelemetryUseCase: container.exportTelemetryUseCase,
+    getHealthUseCase: container.getHealthUseCase,
+    errorReporter: container.errorReporter,
     getShiftSummaryUseCase: container.getShiftSummaryUseCase,
     getShiftTimelineUseCase: container.getShiftTimelineUseCase,
     authGateway: container.authGateway,
@@ -236,6 +240,13 @@ export const DashboardPage: React.FC = () => {
         onDispatch={dashboard.dispatchWorkOrder}
         onComplete={dashboard.completeWorkOrder}
         onCancel={dashboard.cancelWorkOrder}
+        onOpenDetail={dashboard.openWorkOrderDetail}
+      />
+
+      <WorkOrderDetailModal
+        isOpen={dashboard.isWorkOrderDetailOpen}
+        detail={dashboard.workOrderDetail}
+        onClose={dashboard.closeWorkOrderDetail}
       />
 
       <AuthPinModal

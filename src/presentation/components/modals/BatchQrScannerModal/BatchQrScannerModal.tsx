@@ -25,6 +25,7 @@ import {
 import { useTheme } from '../../../providers/ThemeProvider';
 import { tx, cx, themeTokens } from '../../../styles/themeTokens';
 import type { MachineConfig } from '../../../../domain/index';
+import type { OperatorRecord, ProductRecord } from '../../../../domain/entities/backend/Device';
 import type { WorkOrderResolveResult } from '../../../../domain/entities/backend/WorkOrder';
 import { QrCameraScanner } from '../../../layouts/QrCameraScanner';
 import {
@@ -80,6 +81,8 @@ interface BatchQrScannerModalProps {
   onPreviewWorkOrder?: (woId: string) => Promise<void>;
   /** Lanjut ke Setup Produksi dengan preview yang sudah dimuat. */
   onProceedToSetup?: () => void;
+  /** B4: backend product/operator master; null/empty = static catalog fallback. */
+  catalog?: { products: ProductRecord[]; operators: OperatorRecord[] } | null;
 }
 
 interface Toast {
@@ -117,6 +120,7 @@ export const BatchQrScannerModal: React.FC<BatchQrScannerModalProps> = ({
   workOrderPreview = null,
   onPreviewWorkOrder,
   onProceedToSetup,
+  catalog = null,
 }) => {
   const { isDark, theme, setTheme } = useTheme();
 
@@ -368,6 +372,7 @@ export const BatchQrScannerModal: React.FC<BatchQrScannerModalProps> = ({
     changed,
     machine,
     allMachines,
+    catalog,
     setStep: goStep,
     setManualQr,
     setDraft,

@@ -25,11 +25,15 @@ export interface WorkOrdersApi {
   pendingWorkOrders: WorkOrderListItem[];
   workOrderError: string;
   workOrderPreview: { woId: string; result: WorkOrderResolveResult } | null;
+  workOrderDetail: WorkOrderListItem | null;
+  isWorkOrderDetailOpen: boolean;
   productionSetupError: string;
   productionSetupBusy: boolean;
   loadPendingWorkOrders: () => Promise<void>;
   previewWorkOrder: (woId: string) => Promise<void>;
   clearWorkOrderPreview: () => void;
+  openWorkOrderDetail: (woId: string) => Promise<void>;
+  closeWorkOrderDetail: () => void;
   dispatchWorkOrder: (woId: string, deviceId: string) => Promise<void>;
   completeWorkOrder: (woId: string, finalRejectCount: number) => Promise<void>;
   cancelWorkOrder: (woId: string, reason?: string) => Promise<void>;
@@ -42,6 +46,8 @@ export function useWorkOrders(deps: WorkOrdersDeps): WorkOrdersApi {
   const [pendingWorkOrders, setPendingWorkOrders] = useState<WorkOrderListItem[]>([]);
   const [workOrderError, setWorkOrderError] = useState<string>('');
   const [workOrderPreview, setWorkOrderPreview] = useState<{ woId: string; result: WorkOrderResolveResult } | null>(null);
+  const [workOrderDetail, setWorkOrderDetail] = useState<WorkOrderListItem | null>(null);
+  const [isWorkOrderDetailOpen, setIsWorkOrderDetailOpen] = useState<boolean>(false);
   const [productionSetupError, setProductionSetupError] = useState<string>('');
   const [productionSetupBusy, setProductionSetupBusy] = useState<boolean>(false);
 
@@ -80,6 +86,25 @@ export function useWorkOrders(deps: WorkOrdersDeps): WorkOrdersApi {
   }, [currentDeviceId, listWorkOrdersUseCase, useBackend]);
 
   const clearWorkOrderPreview = useCallback(() => setWorkOrderPreview(null), []);
+
+  const openWorkOrderDetail = useCallback(async (woId: string) => {
+    if (!useBackend) throw new Error('Detail work order hanya tersedia pada mode backend.');
+    setWorkOrderError('');
+    try {
+      const detail = await listWorkOrdersUseCase.detail(woId);
+      setWorkOrderDetail(detail);
+      setIsWorkOrderDetailOpen(true);
+    } catch (err) {
+      setWorkOrderDetail(null);
+      setIsWorkOrderDetailOpen(false);
+      throw err;
+    }
+  }, [listWorkOrdersUseCase, useBackend]);
+
+  const closeWorkOrderDetail = useCallback(() => {
+    setIsWorkOrderDetailOpen(false);
+    setWorkOrderDetail(null);
+  }, []);
 
   const dispatchWorkOrder = useCallback(async (woId: string, deviceId: string) => {
     if (!useBackend) throw new Error('Dispatch work order hanya tersedia pada mode backend.');
@@ -142,11 +167,15 @@ export function useWorkOrders(deps: WorkOrdersDeps): WorkOrdersApi {
     pendingWorkOrders,
     workOrderError,
     workOrderPreview,
+    workOrderDetail,
+    isWorkOrderDetailOpen,
     productionSetupError,
     productionSetupBusy,
     loadPendingWorkOrders,
     previewWorkOrder,
     clearWorkOrderPreview,
+    openWorkOrderDetail,
+    closeWorkOrderDetail,
     dispatchWorkOrder,
     completeWorkOrder,
     cancelWorkOrder,
