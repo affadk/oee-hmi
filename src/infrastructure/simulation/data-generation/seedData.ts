@@ -3,8 +3,8 @@
 // Owned by infrastructure: only repositories/adapters may import this.
 // Application/presentation must go through IMachineRepository/IAlarmRepository.
 
-import type { MachineConfig } from '../../domain/entities/Machine';
-import type { MachineAlarmEvent } from '../../domain/entities/Alarm';
+import type { MachineConfig } from '../../../domain/entities/Machine';
+import type { MachineAlarmEvent } from '../../../domain/entities/Alarm';
 
 export const INITIAL_MACHINES: MachineConfig[] = [
   {

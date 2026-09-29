@@ -15,7 +15,7 @@ import type {
   IMasterDataRepository,
   ITelemetryRepository,
   IWorkOrderRepository,
-} from '../../domain/ports/IOeeBackend';
+} from '../../../domain/ports/IOeeBackend';
 import type {
   IShiftSummaryRepository,
   IShiftTimelineRepository,
@@ -23,17 +23,17 @@ import type {
   ShiftSummaryQuery,
   ShiftTimelineQuery,
   ShiftTimelineSegment,
-} from '../../domain/ports/IShiftSummary';
-import type { LiveStateSnapshot } from '../../domain/entities/backend/LiveState';
-import type { DeviceCommandInput, DeviceRecord, MachineRecord, OperatorRecord, ProductRecord } from '../../domain/entities/backend/Device';
-import type { DeviceMetadataPatch, MachineMetadataPatch } from '../../domain/ports/IOeeBackend';
-import type { IAuthTokenStorage } from '../../domain/ports/IAuthTokenStorage';
-import { AuthTokenStorageAdapter } from '../storage/AuthTokenStorageAdapter';
-import type { DowntimeCategory, DeviceHealth, DowntimeEvent, OperationalEvent, RejectBreakdownItem, TelemetryHistoryPoint } from '../../domain/entities/backend/Telemetry';
-import type { HourlyTrendPoint, OperationalEventsQuery, PageMeta } from '../../domain/ports/IOeeBackend';
-import type { WorkOrderListItem, WorkOrderQuery, WorkOrderResolveResult } from '../../domain/entities/backend/WorkOrder';
-import { mapLiveStateDto, mapLiveStateListDto } from '../../application/dto/live-state.dto';
-import { mapWorkOrderDto, mapWorkOrderListDto, mapWorkOrderResolveDto } from '../../application/dto/work-order.dto';
+} from '../../../domain/ports/IShiftSummary';
+import type { LiveStateSnapshot } from '../../../domain/entities/backend/LiveState';
+import type { DeviceCommandInput, DeviceRecord, MachineRecord, OperatorRecord, ProductRecord } from '../../../domain/entities/backend/Device';
+import type { DeviceMetadataPatch, MachineMetadataPatch } from '../../../domain/ports/IOeeBackend';
+import type { IAuthTokenStorage } from '../../../domain/ports/IAuthTokenStorage';
+import { AuthTokenStorageAdapter } from '../../storage/AuthTokenStorageAdapter';
+import type { DowntimeCategory, DeviceHealth, DowntimeEvent, OperationalEvent, RejectBreakdownItem, TelemetryHistoryPoint } from '../../../domain/entities/backend/Telemetry';
+import type { HourlyTrendPoint, OperationalEventsQuery, PageMeta } from '../../../domain/ports/IOeeBackend';
+import type { WorkOrderListItem, WorkOrderQuery, WorkOrderResolveResult } from '../../../domain/entities/backend/WorkOrder';
+import { mapLiveStateDto, mapLiveStateListDto } from '../dto/live-state.dto';
+import { mapWorkOrderDto, mapWorkOrderListDto, mapWorkOrderResolveDto } from '../dto/work-order.dto';
 import {
   mapDeviceHealthDto,
   mapDowntimeEventDto,
@@ -42,9 +42,9 @@ import {
   mapOperationalEventResultDto,
   mapRejectBreakdownDto,
   mapTelemetryHistoryListDto,
-} from '../../application/dto/telemetry.dto';
-import { mapShiftSummaryDto, mapShiftTimelineListDto } from '../../application/dto/shift.dto';
-import { assertDeviceCommandReason } from '../../domain/entities/backend/Device';
+} from '../dto/telemetry.dto';
+import { mapShiftSummaryDto, mapShiftTimelineListDto } from '../dto/shift.dto';
+import { assertDeviceCommandReason } from '../../../domain/entities/backend/Device';
 import { endpoints } from './endpoints';
 import { BackendHttpError, httpDownload, httpRequest } from './httpClient';
 

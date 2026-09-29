@@ -1,8 +1,8 @@
 // /src/application/dto/work-order.dto.ts
 // Boundary DTO: raw REST JSON → domain WorkOrderListItem.
 
-import type { WorkOrderListItem, WorkOrderResolveResult, WorkOrderStatus } from '../../domain/entities/backend/WorkOrder';
-import { toFiniteNumber } from '../../domain/entities/backend/LiveState';
+import type { WorkOrderListItem, WorkOrderResolveResult, WorkOrderStatus } from '../../../domain/entities/backend/WorkOrder';
+import { toFiniteNumber } from '../../../domain/entities/backend/LiveState';
 
 interface RawWorkOrder {
   wo_id?: string; woId?: string;

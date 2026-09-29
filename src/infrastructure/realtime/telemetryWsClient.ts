@@ -6,7 +6,7 @@
 
 import type { IRealtimeGateway, RealtimeListener } from '../../domain/ports/IOeeBackend';
 import { isLiveTelemetryFrame } from '../../domain/entities/backend/Telemetry';
-import { mapTelemetryFrameDto, mapWsLifecycleEventDto } from '../../application/dto/telemetry.dto';
+import { mapTelemetryFrameDto, mapWsLifecycleEventDto } from '../backend/dto/telemetry.dto';
 import { env } from '../config/env';
 
 const HEARTBEAT_MS = 25_000;

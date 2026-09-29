@@ -11,16 +11,16 @@ import type {
   IWorkOrderRepository,
   IDeviceCommandGateway,
   ITelemetryRepository,
-} from '../../domain/ports/IOeeBackend';
-import type { IMachineRepository } from '../../domain/ports/IMachineRepository';
-import type { MachineConfig, MachineStatus, DowntimeReasonItem } from '../../domain/entities/Machine';
-import type { MqttTelemetryPayload, MqttJobConfigPayload } from '../../domain/entities/MqttContracts';
-import type { LiveStateSnapshot, LiveMachineState } from '../../domain/entities/backend/LiveState';
-import type { MachineRecord } from '../../domain/entities/backend/Device';
-import type { WorkOrderResolveResult } from '../../domain/entities/backend/WorkOrder';
-import type { DowntimeEvent } from '../../domain/entities/backend/Telemetry';
-import { isPlannedDowntimeCategory } from '../../domain/entities/backend/Telemetry';
-import { resolveShiftWindowIso } from '../../domain/services/ShiftTimeline';
+} from '../../../domain/ports/IOeeBackend';
+import type { IMachineRepository } from '../../../domain/ports/IMachineRepository';
+import type { MachineConfig, MachineStatus, DowntimeReasonItem } from '../../../domain/entities/Machine';
+import type { MqttTelemetryPayload, MqttJobConfigPayload } from '../../../domain/entities/MqttContracts';
+import type { LiveStateSnapshot, LiveMachineState } from '../../../domain/entities/backend/LiveState';
+import type { MachineRecord } from '../../../domain/entities/backend/Device';
+import type { WorkOrderResolveResult } from '../../../domain/entities/backend/WorkOrder';
+import type { DowntimeEvent } from '../../../domain/entities/backend/Telemetry';
+import { isPlannedDowntimeCategory } from '../../../domain/entities/backend/Telemetry';
+import { resolveShiftWindowIso } from '../../../domain/services/ShiftTimeline';
 
 function mapLiveStateToMachineStatus(state: LiveMachineState): MachineStatus {
   switch (state) {

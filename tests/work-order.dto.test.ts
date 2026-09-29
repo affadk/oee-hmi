@@ -3,7 +3,7 @@ import {
   mapWorkOrderDto,
   mapWorkOrderListDto,
   mapWorkOrderResolveDto,
-} from '../src/application/dto/work-order.dto';
+} from '../src/infrastructure/backend/dto/work-order.dto';
 
 describe('mapWorkOrderDto', () => {
   it('maps snake_case with status normalization', () => {

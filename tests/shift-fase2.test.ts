@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { mapShiftSummaryDto, mapShiftTimelineListDto, toTimelineSegments } from '../src/application/dto/shift.dto';
+import { mapShiftSummaryDto, mapShiftTimelineListDto } from '../src/infrastructure/backend/dto/shift.dto';
+import { toTimelineSegments } from '../src/domain/services/ShiftTimeline';
 import { GetShiftSummaryUseCase } from '../src/application/use-cases/GetShiftSummaryUseCase';
 import { GetShiftTimelineUseCase } from '../src/application/use-cases/GetShiftTimelineUseCase';
 import { mergeShiftSummary } from '../src/application/hooks/useShiftServerData';

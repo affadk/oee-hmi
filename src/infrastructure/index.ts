@@ -1,17 +1,17 @@
 // /src/infrastructure/index.ts
 // Canonical infrastructure barrel — adapters, backend clients, DI, config.
 
-export * from './adapters/InMemoryMachineRepository';
-export * from './adapters/InMemoryAlarmRepository';
-export * from './adapters/MqttEdgeSimulatorAdapter';
-// NOTE: LocalStorageThemeAdapter canonical path is ./storage — the file in
-// ./adapters is a deprecated re-export shim, intentionally NOT re-exported
+export * from './backend/services/InMemoryMachineRepository';
+export * from './backend/services/InMemoryAlarmRepository';
+export * from './simulation/MqttEdgeSimulatorAdapter';
+// NOTE: LocalStorageThemeAdapter canonical path is ./storage — the old
+// adapters/ shim was removed; only the storage canonical file is exported
 // here to avoid duplicate-symbol barrels.
 export * from './storage/LocalStorageThemeAdapter';
-export * from './seeds/seedData';
-export * from './api/endpoints';
-export * from './api/httpClient';
-export * from './api/oeeApiClient';
+export * from './simulation/data-generation/seedData';
+export * from './backend/api-clients/endpoints';
+export * from './backend/api-clients/httpClient';
+export * from './backend/api-clients/oeeApiClient';
 export * from './realtime/telemetryWsClient';
 export * from './config/env';
 export * from './di/Container';

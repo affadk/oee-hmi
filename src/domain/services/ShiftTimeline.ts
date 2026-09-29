@@ -5,6 +5,7 @@
 // firmware only sends st 0..5 (UNCONFIGURED..BATCH_FINISHED).
 
 import type { MachineConfig } from '../entities/Machine';
+import type { ShiftTimelineSegment } from '../ports/IShiftSummary';
 import { isPlannedDowntimeCategory } from '../entities/backend/Telemetry';
 
 export type TimelineKind = 'Active' | 'Breakdown' | 'Changeover' | 'Waiting' | 'Planned' | 'Undefined';
@@ -238,5 +239,48 @@ export function injectPlannedBreak(
 export function summarizeTimeline(segments: TimelineSegment[]): Record<TimelineKind, number> {
   const out: Record<TimelineKind, number> = { Active: 0, Breakdown: 0, Changeover: 0, Waiting: 0, Planned: 0, Undefined: 0 };
   for (const s of segments) out[s.kind] += s.durationMinutes;
+  return out;
+}
+
+function serverSegmentToKind(state: string, category: string | null, planned: boolean): TimelineKind {
+  if (category === 'SETUP_AND_ADJUSTMENT') return 'Changeover';
+  if (planned || isPlannedDowntimeCategory(category)) return 'Planned';
+  switch (state) {
+    case 'RUNNING':
+    case 'READY':
+      return 'Active';
+    case 'SETUP':
+      return 'Changeover';
+    case 'DOWN':
+    case 'UNPLANNED_DT':
+    case 'UNCONFIGURED':
+    case 'BATCH_FINISHED':
+    default:
+      return state === 'PLANNED_DT' || state === 'PLANNED_STOP' ? 'Planned' : 'Breakdown';
+  }
+}
+
+/**
+ * Server segments → domain TimelineSegment for PasXProgressStrip.
+ * Offsets are measured from `windowFromIso`; unparseable bounds are skipped.
+ */
+export function toTimelineSegments(segments: ShiftTimelineSegment[], windowFromIso: string): TimelineSegment[] {
+  const windowStart = new Date(windowFromIso).getTime();
+  if (!Number.isFinite(windowStart)) return [];
+  const out: TimelineSegment[] = [];
+  segments.forEach((seg, idx) => {
+    const from = new Date(seg.from).getTime();
+    const to = new Date(seg.to).getTime();
+    if (!Number.isFinite(from) || !Number.isFinite(to) || to <= from) return;
+    const durationMinutes = Math.max(1, Math.round((to - from) / 60000));
+    out.push({
+      key: seg.downtimeId !== null ? `srv-dt-${seg.downtimeId}` : `srv-${idx}`,
+      kind: serverSegmentToKind(seg.state, seg.category, seg.planned),
+      label: seg.reason ?? seg.category ?? seg.state,
+      durationMinutes,
+      startOffsetMin: Math.max(0, Math.round((from - windowStart) / 60000)),
+      planned: seg.planned || isPlannedDowntimeCategory(seg.category),
+    });
+  });
   return out;
 }

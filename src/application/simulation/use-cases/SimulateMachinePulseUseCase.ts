@@ -1,7 +1,7 @@
 // /src/application/use-cases/SimulateMachinePulseUseCase.ts
 
-import { IMachineRepository } from '../../domain/ports/IMachineRepository';
-import { MachineConfig } from '../../domain/entities/Machine';
+import { IMachineRepository } from '../../../domain/ports/IMachineRepository';
+import { MachineConfig } from '../../../domain/entities/Machine';
 
 export class SimulateMachinePulseUseCase {
   constructor(private readonly machineRepo: IMachineRepository) {}

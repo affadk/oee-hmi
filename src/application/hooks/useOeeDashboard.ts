@@ -18,7 +18,7 @@
 // - useDeviceRegistry: device registry + bind/unbind (backend lane)
 // - useWorkOrders: work-order lifecycle + production-setup modal (backend lane)
 
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { MachineConfig, MachineStatus } from '../../domain/entities/Machine';
 import type { CalculatedOeeMetrics } from '../../domain/entities/OeeMetrics';
 import type { MachineAlarmEvent } from '../../domain/entities/Alarm';
@@ -32,7 +32,7 @@ import type { GetMachinesUseCase } from '../use-cases/GetMachinesUseCase';
 import type { UpdateMachineStatusUseCase } from '../use-cases/UpdateMachineStatusUseCase';
 import type { LogDowntimeUseCase } from '../use-cases/LogDowntimeUseCase';
 import type { LogRejectUseCase } from '../use-cases/LogRejectUseCase';
-import type { SimulateMachinePulseUseCase } from '../use-cases/SimulateMachinePulseUseCase';
+import type { SimulateMachinePulseUseCase } from '../simulation/use-cases/SimulateMachinePulseUseCase';
 import type { ManageAlarmsUseCase } from '../use-cases/ManageAlarmsUseCase';
 import type { MqttEdgeCommandUseCase } from '../use-cases/MqttEdgeCommandUseCase';
 import type { GetDowntimeReasonsUseCase } from '../use-cases/GetDowntimeReasonsUseCase';
@@ -237,17 +237,28 @@ export function useOeeDashboard(deps: OeeDashboardDeps): UseOeeDashboardReturn {
     manageAlarmsUseCase,
     useBackend,
     errorReporter,
-    onUnauthorized: () => auth.notifyUnauthorized(),
+    // Stabil: auth.notifyUnauthorized adalah useCallback — jangan bungkus
+    // closure inline (identitas baru tiap render me-refire efek boot-load
+    // useMachinesQuery menjadi fetch-loop ~28 req/s).
+    onUnauthorized: auth.notifyUnauthorized,
   });
 
-  // G11: windowed hourly scoped to the shift; memoized per machine so the
-  // supplemental effect refires only on machine change (null = unwindowed fallback).
+  // G11: windowed hourly scoped to the shift; memoized on primitive shift
+  // strings + minute clock so identity is stable within a minute. Previously
+  // memoized on machines.currentMachine (new object identity on every
+  // setMachines incl. WS ticks) with an embedded render-time `now`, which
+  // refired useSupplementalSync/useLiveTrend/useShiftServerData effects in
+  // a self-sustaining refetch loop. Live edge (`to`) still advances per minute.
+  const shiftStart = machines.currentMachine?.jobConfig?.shiftStart;
+  const shiftEnd = machines.currentMachine?.jobConfig?.shiftEnd;
+  const [nowMinute, setNowMinute] = useState(() => Math.floor(Date.now() / 60000));
+  useEffect(() => {
+    const t = setInterval(() => setNowMinute(Math.floor(Date.now() / 60000)), 15000);
+    return () => clearInterval(t);
+  }, []);
   const shiftWindow = useMemo(
-    () => resolveShiftWindowIso(
-      machines.currentMachine?.jobConfig?.shiftStart,
-      machines.currentMachine?.jobConfig?.shiftEnd,
-    ),
-    [machines.currentMachine],
+    () => resolveShiftWindowIso(shiftStart, shiftEnd, new Date(nowMinute * 60000)),
+    [shiftStart, shiftEnd, nowMinute],
   );
 
   const supplemental = useSupplementalSync({

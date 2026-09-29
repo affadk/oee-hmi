@@ -1,6 +1,6 @@
 // /src/domain/ports/IOeeBackend.ts
 // Ports (interfaces) for the real IIoT OEE backend — REST + WebSocket.
-// Implementations live in infrastructure/api + infrastructure/realtime.
+// Implementations live in infrastructure/backend/api-clients + infrastructure/realtime.
 // Application use-cases depend ONLY on these ports (dependency points inward).
 
 import type { LiveStateSnapshot } from '../entities/backend/LiveState';

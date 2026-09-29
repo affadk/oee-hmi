@@ -3,8 +3,8 @@
 // In backend mode the real edge controller is managed by the backend
 // via HTTP/WebSocket, so the frontend does not simulate MQTT.
 
-import { IMqttGateway } from '../../domain/ports/IMqttGateway';
-import { MqttTelemetryPayload, MqttJobConfigPayload, MqttHealthPayload } from '../../domain/entities/MqttContracts';
+import { IMqttGateway } from '../../../domain/ports/IMqttGateway';
+import { MqttTelemetryPayload, MqttJobConfigPayload, MqttHealthPayload } from '../../../domain/entities/MqttContracts';
 
 export class NoOpMqttGateway implements IMqttGateway {
   async sendCommand(_machineId: string, _command: 'RESET_COUNTER' | 'PAUSE' | 'RESUME'): Promise<{ success: boolean; message: string }> {

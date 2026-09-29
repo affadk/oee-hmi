@@ -3,7 +3,7 @@ import {
   mapTelemetryFrameDto,
   mapTelemetryHistoryDto,
   parseCategoryFromReason,
-} from '../src/application/dto/telemetry.dto';
+} from '../src/infrastructure/backend/dto/telemetry.dto';
 import { isLiveTelemetryFrame } from '../src/domain/entities/backend/Telemetry';
 
 describe('mapTelemetryFrameDto', () => {

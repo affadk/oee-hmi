@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { endpoints } from '../src/infrastructure/api/endpoints';
+import { endpoints } from '../src/infrastructure/backend/api-clients/endpoints';
 
 describe('endpoints (pure path builders, no network)', () => {
   it('builds static collection paths', () => {

@@ -2,7 +2,7 @@
 // Boundary DTO: raw REST JSON (snake_case strings) → domain LiveStateSnapshot.
 // Keeps API shape quirks out of domain entities.
 
-import { LiveStateSnapshot, toFiniteNumber, LiveMachineState } from '../../domain/entities/backend/LiveState';
+import { LiveStateSnapshot, toFiniteNumber, LiveMachineState } from '../../../domain/entities/backend/LiveState';
 
 interface RawLiveState {
   deviceId?: string; device_id?: string;

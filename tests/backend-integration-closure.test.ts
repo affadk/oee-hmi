@@ -1,13 +1,13 @@
 // G1–G16 frontend closure: pure DTO/endpoint/auth-expiry tests (no IO).
 import { describe, expect, it } from 'vitest';
-import { endpoints } from '../src/infrastructure/api/endpoints';
+import { endpoints } from '../src/infrastructure/backend/api-clients/endpoints';
 import {
   mapDeviceHealthDto,
   mapHourlyTrendDto,
   mapOperationalEventDto,
   mapRejectBreakdownDto,
-} from '../src/application/dto/telemetry.dto';
-import { mapWorkOrderResolveDto } from '../src/application/dto/work-order.dto';
+} from '../src/infrastructure/backend/dto/telemetry.dto';
+import { mapWorkOrderResolveDto } from '../src/infrastructure/backend/dto/work-order.dto';
 import { decodeJwtExpMs, isTokenExpiringSoon } from '../src/application/authToken';
 import { EDGE_HEALTH_STALE_AFTER_SEC, isEdgeHealthOk } from '../src/domain/entities/MqttContracts';
 

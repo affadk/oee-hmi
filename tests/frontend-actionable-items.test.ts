@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { endpoints } from '../src/infrastructure/api/endpoints';
+import { endpoints } from '../src/infrastructure/backend/api-clients/endpoints';
 import { ExportTelemetryUseCase } from '../src/application/use-cases/ExportTelemetryUseCase';
 import { GetHealthUseCase } from '../src/application/use-cases/GetHealthUseCase';
 import { ConfigureDeviceUseCase } from '../src/application/use-cases/ConfigureDeviceUseCase';

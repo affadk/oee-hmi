@@ -3,8 +3,8 @@
 // Error objects carrying backend {error, message} codes — application layers
 // catch these without ever touching fetch/Response.
 
-import { env } from '../config/env';
-import { AuthTokenStorageAdapter } from '../storage/AuthTokenStorageAdapter';
+import { env } from '../../config/env';
+import { AuthTokenStorageAdapter } from '../../storage/AuthTokenStorageAdapter';
 
 export interface HttpOptions {
   method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';

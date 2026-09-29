@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { mapLiveStateDto, mapLiveStateListDto } from '../src/application/dto/live-state.dto';
+import { mapLiveStateDto, mapLiveStateListDto } from '../src/infrastructure/backend/dto/live-state.dto';
 
 describe('mapLiveStateDto', () => {
   it('normalizes backend FSM PLANNED_DOWNTIME/UNPLANNED_DOWNTIME to domain states', () => {

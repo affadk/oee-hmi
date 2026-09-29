@@ -1,9 +1,9 @@
 // /src/infrastructure/adapters/InMemoryMachineRepository.ts
 
-import { IMachineRepository } from '../../domain/ports/IMachineRepository';
-import { MachineConfig, MachineStatus } from '../../domain/entities/Machine';
-import { MqttJobConfigPayload, MqttTelemetryPayload } from '../../domain/entities/MqttContracts';
-import { INITIAL_MACHINES } from '../seeds/seedData';
+import { IMachineRepository } from '../../../domain/ports/IMachineRepository';
+import { MachineConfig, MachineStatus } from '../../../domain/entities/Machine';
+import { MqttJobConfigPayload, MqttTelemetryPayload } from '../../../domain/entities/MqttContracts';
+import { INITIAL_MACHINES } from '../../simulation/data-generation/seedData';
 
 export class InMemoryMachineRepository implements IMachineRepository {
   private machines: MachineConfig[];

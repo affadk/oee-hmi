@@ -5,7 +5,7 @@
 
 import { useEffect } from 'react';
 import type { MachineConfig } from '../../domain/entities/Machine';
-import type { SimulateMachinePulseUseCase } from '../use-cases/SimulateMachinePulseUseCase';
+import type { SimulateMachinePulseUseCase } from '../simulation/use-cases/SimulateMachinePulseUseCase';
 
 export interface SimulationTickerDeps {
   isSimulating: boolean;

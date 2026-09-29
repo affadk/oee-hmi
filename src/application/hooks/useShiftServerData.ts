@@ -4,14 +4,19 @@
 // implement the endpoint (or no window) — callers use §2 client composition.
 // LAYER RULES: domain ports + React only — no infrastructure/*, no seeds, no DOM.
 
-import { useEffect, useMemo, useState } from 'react';
-import type { CalculatedOeeMetrics } from '../../domain/entities/OeeMetrics';
-import type { ShiftSummary, ShiftTimelineSegment } from '../../domain/ports/IShiftSummary';
-import type { TimelineSegment } from '../../domain/services/ShiftTimeline';
-import { toTimelineSegments } from '../dto/shift.dto';
-import type { GetShiftSummaryUseCase } from '../use-cases/GetShiftSummaryUseCase';
-import type { GetShiftTimelineUseCase } from '../use-cases/GetShiftTimelineUseCase';
-import type { ShiftWindowIso } from '../../domain/services/ShiftTimeline';
+import { useEffect, useMemo, useState } from "react";
+import type { CalculatedOeeMetrics } from "../../domain/entities/OeeMetrics";
+import type {
+  ShiftSummary,
+  ShiftTimelineSegment,
+} from "../../domain/ports/IShiftSummary";
+import type {
+  TimelineSegment,
+  ShiftWindowIso,
+} from "../../domain/services/ShiftTimeline";
+import { toTimelineSegments } from "../../domain/services/ShiftTimeline";
+import type { GetShiftSummaryUseCase } from "../use-cases/GetShiftSummaryUseCase";
+import type { GetShiftTimelineUseCase } from "../use-cases/GetShiftTimelineUseCase";
 
 export interface ShiftServerDataDeps {
   useBackend: boolean;
@@ -35,7 +40,12 @@ export interface ShiftServerDataApi {
 export function mergeShiftSummary(
   summary: ShiftSummary,
   fallback: CalculatedOeeMetrics,
-  targets: { targetOee: number; targetAvailability: number; targetPerformance: number; targetQuality: number },
+  targets: {
+    targetOee: number;
+    targetAvailability: number;
+    targetPerformance: number;
+    targetQuality: number;
+  },
 ): CalculatedOeeMetrics {
   const availabilityPct = summary.oee.availability;
   const performancePct = summary.oee.performance;
@@ -44,7 +54,10 @@ export function mergeShiftSummary(
   return {
     ...fallback,
     // Backend mengirim 0 => tampilkan 0, bukan floor 1 menit.
-    plannedProductionTimeMin: Math.max(0, Math.round(summary.timeSec.planned / 60)),
+    plannedProductionTimeMin: Math.max(
+      0,
+      Math.round(summary.timeSec.planned / 60),
+    ),
     runTimeMin: Math.max(0, Math.round(summary.timeSec.run / 60)),
     downtimeMin: Math.max(0, Math.round(summary.timeSec.downtime / 60)),
     availabilityPct,
@@ -52,13 +65,19 @@ export function mergeShiftSummary(
     qualityPct,
     oeePct,
     oeeGap: Number((oeePct - targets.targetOee).toFixed(1)),
-    availabilityGap: Number((availabilityPct - targets.targetAvailability).toFixed(1)),
-    performanceGap: Number((performancePct - targets.targetPerformance).toFixed(1)),
+    availabilityGap: Number(
+      (availabilityPct - targets.targetAvailability).toFixed(1),
+    ),
+    performanceGap: Number(
+      (performancePct - targets.targetPerformance).toFixed(1),
+    ),
     qualityGap: Number((qualityPct - targets.targetQuality).toFixed(1)),
   };
 }
 
-export function useShiftServerData(deps: ShiftServerDataDeps): ShiftServerDataApi {
+export function useShiftServerData(
+  deps: ShiftServerDataDeps,
+): ShiftServerDataApi {
   const {
     useBackend,
     currentMachineId,
@@ -69,7 +88,9 @@ export function useShiftServerData(deps: ShiftServerDataDeps): ShiftServerDataAp
   } = deps;
 
   const [shiftSummary, setShiftSummary] = useState<ShiftSummary | null>(null);
-  const [serverSegments, setServerSegments] = useState<ShiftTimelineSegment[] | null>(null);
+  const [serverSegments, setServerSegments] = useState<
+    ShiftTimelineSegment[] | null
+  >(null);
 
   const windowFrom = shiftWindow?.from ?? null;
   const windowTo = shiftWindow?.to ?? null;
@@ -88,7 +109,9 @@ export function useShiftServerData(deps: ShiftServerDataDeps): ShiftServerDataAp
           getShiftSummaryUseCase.execute({
             machineId: currentMachineId || undefined,
             deviceId: currentDeviceId,
-            ...(windowFrom && windowTo ? { from: windowFrom, to: windowTo } : {}),
+            ...(windowFrom && windowTo
+              ? { from: windowFrom, to: windowTo }
+              : {}),
           }),
           windowFrom && windowTo
             ? getShiftTimelineUseCase.execute({
@@ -96,7 +119,7 @@ export function useShiftServerData(deps: ShiftServerDataDeps): ShiftServerDataAp
                 deviceId: currentDeviceId,
                 from: windowFrom,
                 to: windowTo,
-                bucket: '5m',
+                bucket: "5m",
               })
             : Promise.resolve(null),
         ]);
@@ -117,7 +140,15 @@ export function useShiftServerData(deps: ShiftServerDataDeps): ShiftServerDataAp
     return () => {
       isMounted = false;
     };
-  }, [useBackend, currentMachineId, currentDeviceId, windowFrom, windowTo, getShiftSummaryUseCase, getShiftTimelineUseCase]);
+  }, [
+    useBackend,
+    currentMachineId,
+    currentDeviceId,
+    windowFrom,
+    windowTo,
+    getShiftSummaryUseCase,
+    getShiftTimelineUseCase,
+  ]);
 
   const shiftSegments = useMemo<TimelineSegment[] | null>(() => {
     if (!serverSegments || !windowFrom) return null;

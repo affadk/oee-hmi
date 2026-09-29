@@ -19,12 +19,12 @@ import type {
   IWorkOrderRepository,
 } from '../../domain/ports/IOeeBackend';
 
-import { InMemoryMachineRepository } from '../adapters/InMemoryMachineRepository';
-import { InMemoryAlarmRepository } from '../adapters/InMemoryAlarmRepository';
-import { MqttEdgeSimulatorAdapter } from '../adapters/MqttEdgeSimulatorAdapter';
-import { NoOpMqttGateway } from '../adapters/NoOpMqttGateway';
-import { BackendMachineRepository } from '../adapters/BackendMachineRepository';
-import { BackendAlarmRepository } from '../adapters/BackendAlarmRepository';
+import { InMemoryMachineRepository } from '../backend/services/InMemoryMachineRepository';
+import { InMemoryAlarmRepository } from '../backend/services/InMemoryAlarmRepository';
+import { MqttEdgeSimulatorAdapter } from '../simulation/MqttEdgeSimulatorAdapter';
+import { NoOpMqttGateway } from '../backend/services/NoOpMqttGateway';
+import { BackendMachineRepository } from '../backend/services/BackendMachineRepository';
+import { BackendAlarmRepository } from '../backend/services/BackendAlarmRepository';
 import { LocalStorageThemeAdapter } from '../storage/LocalStorageThemeAdapter';
 import { AuthTokenStorageAdapter } from '../storage/AuthTokenStorageAdapter';
 import { NoopErrorReporter } from '../monitoring/ErrorReporter';
@@ -38,7 +38,7 @@ import {
   OeeHttpShiftTimelineRepository,
   OeeHttpTelemetryRepository,
   OeeHttpWorkOrderRepository,
-} from '../api/oeeApiClient';
+} from '../backend/api-clients/oeeApiClient';
 import { TelemetryWsClient } from '../realtime/telemetryWsClient';
 import { env } from '../config/env';
 
@@ -47,7 +47,7 @@ import { GetMachinesUseCase } from '../../application/use-cases/GetMachinesUseCa
 import { UpdateMachineStatusUseCase } from '../../application/use-cases/UpdateMachineStatusUseCase';
 import { LogDowntimeUseCase } from '../../application/use-cases/LogDowntimeUseCase';
 import { LogRejectUseCase } from '../../application/use-cases/LogRejectUseCase';
-import { SimulateMachinePulseUseCase } from '../../application/use-cases/SimulateMachinePulseUseCase';
+import { SimulateMachinePulseUseCase } from '../../application/simulation/use-cases/SimulateMachinePulseUseCase';
 import { ManageAlarmsUseCase } from '../../application/use-cases/ManageAlarmsUseCase';
 import { MqttEdgeCommandUseCase } from '../../application/use-cases/MqttEdgeCommandUseCase';
 import { ListWorkOrdersUseCase } from '../../application/use-cases/ListWorkOrdersUseCase';

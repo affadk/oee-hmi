@@ -3,10 +3,10 @@
 // Maps operational events to MachineAlarmEvent[] for the AlarmsZone.
 // In backend mode, alarms are read from operational-events endpoint.
 
-import type { IAlarmRepository } from '../../domain/ports/IAlarmRepository';
-import type { MachineAlarmEvent, AlarmType, AlarmStatus } from '../../domain/entities/Alarm';
-import type { OperationalEvent } from '../../domain/entities/backend/Telemetry';
-import type { IMasterDataRepository, ITelemetryRepository } from '../../domain/ports/IOeeBackend';
+import type { IAlarmRepository } from '../../../domain/ports/IAlarmRepository';
+import type { MachineAlarmEvent, AlarmType, AlarmStatus } from '../../../domain/entities/Alarm';
+import type { OperationalEvent } from '../../../domain/entities/backend/Telemetry';
+import type { IMasterDataRepository, ITelemetryRepository } from '../../../domain/ports/IOeeBackend';
 
 const TYPE_MAP: Record<string, AlarmType> = {
   'PLC_ALARM': 'Breakdown',
