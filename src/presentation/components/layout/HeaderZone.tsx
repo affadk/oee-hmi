@@ -135,6 +135,18 @@ export const HeaderZone: React.FC<HeaderZoneProps> = ({
 
   const isRunning = currentMachine.status === "RUNNING";
 
+  // Opsi dropdown dari data nyata (bukan mock): line unik dari fleet,
+  // shift dari job mesin aktif. Kosong → satu opsi "—".
+  const lineOptions = React.useMemo(() => {
+    const lines = [...new Set(allMachines.map((m) => m.line).filter((l): l is string => !!l))];
+    return lines.length > 0 ? lines : ["—"];
+  }, [allMachines]);
+  const shiftOptions = React.useMemo(() => {
+    const s = currentMachine.jobConfig;
+    const label = s?.shiftStart && s?.shiftEnd ? `${s.shiftStart} - ${s.shiftEnd}` : null;
+    return label ? [label] : ["—"];
+  }, [currentMachine]);
+
   return (
     <div className="w-full max-w-full overflow-x-clip shrink-0 select-none">
       {/* 1. TOP HEADER — solid navy ala Shift Overview */}
@@ -178,26 +190,16 @@ export const HeaderZone: React.FC<HeaderZoneProps> = ({
           {/* Line selector */}
           <div className="relative hidden md:inline-block text-slate-900">
             <select
-              value={selectedLine}
+              value={lineOptions.includes(selectedLine) ? selectedLine : "—"}
               onChange={(e) => onSelectLine(e.target.value)}
               className="bg-white/10 hover:bg-white/20 text-white font-semibold py-1.5 pl-3 pr-7 rounded text-sm appearance-none cursor-pointer focus:outline-none border border-white/20"
               aria-label="Select Production Line"
             >
-              <option value="Line 1" className="bg-white text-slate-900">
-                Line 1
-              </option>
-              <option
-                value="Line Mediseal 01"
-                className="bg-white text-slate-900"
-              >
-                Line Mediseal 01
-              </option>
-              <option value="LINE-01" className="bg-white text-slate-900">
-                LINE-01
-              </option>
-              <option value="LINE-02" className="bg-white text-slate-900">
-                LINE-02
-              </option>
+              {lineOptions.map((line) => (
+                <option key={line} value={line} className="bg-white text-slate-900">
+                  {line}
+                </option>
+              ))}
             </select>
             <ChevronDown className="w-3.5 h-3.5 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-white/70" />
           </div>
@@ -205,20 +207,16 @@ export const HeaderZone: React.FC<HeaderZoneProps> = ({
           {/* Shift selector */}
           <div className="relative hidden md:inline-block text-slate-900">
             <select
-              value={selectedShift}
+              value={shiftOptions.includes(selectedShift) ? selectedShift : "—"}
               onChange={(e) => onSelectShift(e.target.value)}
               className="bg-white/10 hover:bg-white/20 text-white font-semibold py-1.5 pl-3 pr-7 rounded text-sm appearance-none cursor-pointer focus:outline-none border border-white/20"
               aria-label="Select Shift"
             >
-              <option value="Shift 1" className="bg-white text-slate-900">
-                Shift 1
-              </option>
-              <option value="Shift 2" className="bg-white text-slate-900">
-                Shift 2
-              </option>
-              <option value="Shift 3" className="bg-white text-slate-900">
-                Shift 3
-              </option>
+              {shiftOptions.map((shift) => (
+                <option key={shift} value={shift} className="bg-white text-slate-900">
+                  {shift}
+                </option>
+              ))}
             </select>
             <ChevronDown className="w-3.5 h-3.5 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-white/70" />
           </div>

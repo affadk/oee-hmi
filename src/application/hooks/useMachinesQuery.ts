@@ -45,10 +45,12 @@ export function useMachinesQuery(deps: MachinesQueryDeps): MachinesQueryApi {
 
   const [machines, setMachines] = useState<MachineConfig[]>([]);
   const [currentMachineId, setCurrentMachineId] = useState<string>('');
-  const [selectedPlant] = useState<string>('Plant 1');
-  const [selectedLine, setSelectedLine] = useState<string>('Line 1');
-  const [selectedShift, setSelectedShift] = useState<string>('Shift 1');
-  const [selectedDate] = useState<string>('18 Sep 2026');
+  // Tanpa data = string kosong (UI menampilkan "—"/0). Jangan hardcode
+  // "Plant 1"/"Line 1"/tanggal — itu mock yang menyesatkan di lane backend.
+  const [selectedPlant] = useState<string>('');
+  const [selectedLine, setSelectedLine] = useState<string>('');
+  const [selectedShift, setSelectedShift] = useState<string>('');
+  const [selectedDate] = useState<string>('');
   const [alarms, setAlarms] = useState<MachineAlarmEvent[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [loadError, setLoadError] = useState<string>('');
