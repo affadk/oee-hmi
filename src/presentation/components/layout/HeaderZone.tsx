@@ -1,7 +1,7 @@
 // /src/components/HeaderZone.tsx — Detailed Audit header mengikuti style OEE Shift Overview
 // Top navy bar #1a3464 + Sub-header #0d1728 / #e8edf4, kartu timestamp + status Active/Down
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   ChevronDown,
   PlusCircle,
@@ -12,11 +12,18 @@ import {
   Moon,
   ClipboardList,
   Cpu,
-} from 'lucide-react';
-import { MachineConfig, CalculatedOeeMetrics, MachineStatus } from '../../../domain/index';
-import type { EdgeHealthPayload } from '../../../domain/entities/EdgeContracts';
-import { EDGE_HEALTH_STALE_AFTER_SEC, isEdgeHealthOk } from '../../../domain/entities/EdgeContracts';
-import { useTheme } from '../../providers/ThemeProvider';
+} from "lucide-react";
+import {
+  MachineConfig,
+  CalculatedOeeMetrics,
+  MachineStatus,
+} from "../../../domain/index";
+import type { EdgeHealthPayload } from "../../../domain/entities/EdgeContracts";
+import {
+  EDGE_HEALTH_STALE_AFTER_SEC,
+  isEdgeHealthOk,
+} from "../../../domain/entities/EdgeContracts";
+import { useTheme } from "../../providers/ThemeProvider";
 
 interface HeaderZoneProps {
   currentMachine: MachineConfig;
@@ -63,7 +70,7 @@ export const HeaderZone: React.FC<HeaderZoneProps> = ({
   onToggleTeep,
 }) => {
   const { theme, toggleTheme } = useTheme();
-  const isDark = theme === 'dark';
+  const isDark = theme === "dark";
 
   // Live wall-clock untuk timestamp sub-header
   const [headerNow, setHeaderNow] = useState(() => new Date());
@@ -71,23 +78,44 @@ export const HeaderZone: React.FC<HeaderZoneProps> = ({
     const t = setInterval(() => setHeaderNow(new Date()), 1000);
     return () => clearInterval(t);
   }, []);
-  const headerDate = headerNow.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-  const headerTime = [headerNow.getHours(), headerNow.getMinutes(), headerNow.getSeconds()]
-    .map((n) => String(n).padStart(2, '0'))
-    .join(':');
+  const headerDate = headerNow.toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+  const headerTime = [
+    headerNow.getHours(),
+    headerNow.getMinutes(),
+    headerNow.getSeconds(),
+  ]
+    .map((n) => String(n).padStart(2, "0"))
+    .join(":");
 
-  const machineName = currentMachine.name || '—';
-  const machineLine = currentMachine.line || '—';
-  const productName = currentMachine.currentProduct || currentMachine.jobConfig?.productName || '—';
-  const targetCycleTimeSec = currentMachine.idealCycleTimeSec || currentMachine.jobConfig?.standardCycleTimeSec || 0;
-  const operatorName = currentMachine.jobConfig?.operatorName || '—';
-  const operatorId = currentMachine.jobConfig?.operatorId || '—';
-  const shiftStart = currentMachine.jobConfig?.shiftStart || '—';
-  const shiftEnd = currentMachine.jobConfig?.shiftEnd || '—';
-  const breakTimeWindow = currentMachine.jobConfig?.breakTimeWindow || '—';
+  const machineName = currentMachine.name || "—";
+  const productName =
+    currentMachine.currentProduct ||
+    currentMachine.jobConfig?.productName ||
+    "—";
+  const targetCycleTimeSec =
+    currentMachine.idealCycleTimeSec ||
+    currentMachine.jobConfig?.standardCycleTimeSec ||
+    0;
+  const operatorName = currentMachine.jobConfig?.operatorName || "—";
+  const operatorId = currentMachine.jobConfig?.operatorId || "—";
+  const shiftStart = currentMachine.jobConfig?.shiftStart || "—";
+  const shiftEnd = currentMachine.jobConfig?.shiftEnd || "—";
+  const breakTimeWindow = currentMachine.jobConfig?.breakTimeWindow || "—";
   const plannedBreakMin = currentMachine.jobConfig?.plannedBreakMin ?? 0;
-  const shiftNumber = shiftStart === '22:00' || shiftStart === '23:00' ? 'Shift 3' : shiftStart === '15:00' ? 'Shift 2' : shiftStart === '—' ? '—' : 'Shift 1';
-  const theoreticalHourlyOutput = targetCycleTimeSec > 0 ? Math.round(3600 / targetCycleTimeSec) : 0;
+  const shiftNumber =
+    shiftStart === "22:00" || shiftStart === "23:00"
+      ? "Shift 3"
+      : shiftStart === "15:00"
+        ? "Shift 2"
+        : shiftStart === "—"
+          ? "—"
+          : "Shift 1";
+  const theoreticalHourlyOutput =
+    targetCycleTimeSec > 0 ? Math.round(3600 / targetCycleTimeSec) : 0;
 
   const health: EdgeHealthPayload = currentMachine.health ?? {
     timestamp: 0,
@@ -100,17 +128,21 @@ export const HeaderZone: React.FC<HeaderZoneProps> = ({
   };
   const isHealthy = isEdgeHealthOk(health);
   const healthAgeSec = health.age_sec ?? null;
-  const healthStale = healthAgeSec != null && healthAgeSec > EDGE_HEALTH_STALE_AFTER_SEC;
-  const heapFreeKb = health.heap_free != null ? Math.round(health.heap_free / 1024) : 0;
+  const healthStale =
+    healthAgeSec != null && healthAgeSec > EDGE_HEALTH_STALE_AFTER_SEC;
+  const heapFreeKb =
+    health.heap_free != null ? Math.round(health.heap_free / 1024) : 0;
 
-  const isRunning = currentMachine.status === 'RUNNING';
+  const isRunning = currentMachine.status === "RUNNING";
 
   return (
     <div className="w-full max-w-full overflow-x-clip shrink-0 select-none">
       {/* 1. TOP HEADER — solid navy ala Shift Overview */}
       <header className="bg-[#1a3464] text-white px-[1.2vw] py-[0.8vh] flex flex-wrap items-center justify-between gap-x-3 gap-y-2 text-[clamp(12px,0.85vw,14px)] font-semibold shadow-md w-full max-w-full overflow-x-clip">
         <div className="flex items-center gap-3 min-w-0">
-          <span className="font-bold tracking-wide text-sm sm:text-base truncate">OEE Machine Dashboard</span>
+          <span className="font-bold tracking-wide text-sm sm:text-base truncate">
+            OEE Machine Dashboard
+          </span>
           <span className="hidden md:inline-flex items-center px-2 py-0.5 rounded font-mono text-xs bg-white/10 border border-white/20 text-white/80">
             Detailed Audit
           </span>
@@ -151,10 +183,21 @@ export const HeaderZone: React.FC<HeaderZoneProps> = ({
               className="bg-white/10 hover:bg-white/20 text-white font-semibold py-1.5 pl-3 pr-7 rounded text-sm appearance-none cursor-pointer focus:outline-none border border-white/20"
               aria-label="Select Production Line"
             >
-              <option value="Line 1" className="bg-white text-slate-900">Line 1</option>
-              <option value="Line Mediseal 01" className="bg-white text-slate-900">Line Mediseal 01</option>
-              <option value="LINE-01" className="bg-white text-slate-900">LINE-01</option>
-              <option value="LINE-02" className="bg-white text-slate-900">LINE-02</option>
+              <option value="Line 1" className="bg-white text-slate-900">
+                Line 1
+              </option>
+              <option
+                value="Line Mediseal 01"
+                className="bg-white text-slate-900"
+              >
+                Line Mediseal 01
+              </option>
+              <option value="LINE-01" className="bg-white text-slate-900">
+                LINE-01
+              </option>
+              <option value="LINE-02" className="bg-white text-slate-900">
+                LINE-02
+              </option>
             </select>
             <ChevronDown className="w-3.5 h-3.5 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-white/70" />
           </div>
@@ -167,9 +210,15 @@ export const HeaderZone: React.FC<HeaderZoneProps> = ({
               className="bg-white/10 hover:bg-white/20 text-white font-semibold py-1.5 pl-3 pr-7 rounded text-sm appearance-none cursor-pointer focus:outline-none border border-white/20"
               aria-label="Select Shift"
             >
-              <option value="Shift 1" className="bg-white text-slate-900">Shift 1</option>
-              <option value="Shift 2" className="bg-white text-slate-900">Shift 2</option>
-              <option value="Shift 3" className="bg-white text-slate-900">Shift 3</option>
+              <option value="Shift 1" className="bg-white text-slate-900">
+                Shift 1
+              </option>
+              <option value="Shift 2" className="bg-white text-slate-900">
+                Shift 2
+              </option>
+              <option value="Shift 3" className="bg-white text-slate-900">
+                Shift 3
+              </option>
             </select>
             <ChevronDown className="w-3.5 h-3.5 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-white/70" />
           </div>
@@ -241,12 +290,12 @@ export const HeaderZone: React.FC<HeaderZoneProps> = ({
             onClick={onToggleTeep}
             className={`px-2.5 py-1.5 rounded font-mono text-sm font-semibold border transition-all cursor-pointer shrink-0 whitespace-nowrap ${
               teepEnabled
-                ? 'bg-purple-500/30 border-purple-400/50 text-purple-100'
-                : 'bg-white/10 border-white/10 text-white/70 hover:bg-white/20'
+                ? "bg-purple-500/30 border-purple-400/50 text-purple-100"
+                : "bg-white/10 border-white/10 text-white/70 hover:bg-white/20"
             }`}
             title="Toggle TEEP"
           >
-            TEEP:{teepEnabled ? 'ON' : 'OFF'}
+            TEEP:{teepEnabled ? "ON" : "OFF"}
           </button>
 
           {/* Sim toggle */}
@@ -255,11 +304,15 @@ export const HeaderZone: React.FC<HeaderZoneProps> = ({
               type="button"
               onClick={onToggleSimulate}
               className={`p-1.5 rounded transition-colors cursor-pointer ${
-                isSimulating ? 'bg-emerald-600 text-white shadow-sm' : 'bg-white/10 text-white/70 hover:bg-white/20'
+                isSimulating
+                  ? "bg-emerald-600 text-white shadow-sm"
+                  : "bg-white/10 text-white/70 hover:bg-white/20"
               }`}
-              title={isSimulating ? 'Pause simulation' : 'Resume simulation'}
+              title={isSimulating ? "Pause simulation" : "Resume simulation"}
             >
-              <RefreshCw className={`w-3.5 h-3.5 ${isSimulating ? 'animate-spin' : ''}`} />
+              <RefreshCw
+                className={`w-3.5 h-3.5 ${isSimulating ? "animate-spin" : ""}`}
+              />
             </button>
           )}
 
@@ -270,31 +323,42 @@ export const HeaderZone: React.FC<HeaderZoneProps> = ({
             className="p-1.5 rounded bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer"
             title="Toggle Light/Dark Theme"
           >
-            {isDark ? <Sun className="w-3.5 h-3.5 text-amber-300" /> : <Moon className="w-3.5 h-3.5 text-white" />}
+            {isDark ? (
+              <Sun className="w-3.5 h-3.5 text-amber-300" />
+            ) : (
+              <Moon className="w-3.5 h-3.5 text-white" />
+            )}
           </button>
 
           {/* Edge health — tampil bila ada data nyata (sim lane atau G3 backend). */}
           {(!useBackend || (health.tasks_total ?? 0) > 0) && (
-          <button
-            type="button"
-            onClick={onOpenMqttModal}
-            className={`hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded font-mono text-sm transition-all cursor-pointer select-none ml-1 border shrink-0 whitespace-nowrap ${
-              isHealthy
-                ? 'bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-200 border-emerald-400/40'
-                : 'bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border-amber-400/40'
-            }`}
-            title={`Edge Health: ${health.tasks_healthy}/${health.tasks_total} Tasks • Heap ${heapFreeKb} KB${healthAgeSec != null ? ` • Age ${healthAgeSec}s` : ''}`}
-          >
-            <span className="relative flex h-2.5 w-2.5 shrink-0">
-              <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${isHealthy ? 'bg-emerald-400' : 'bg-amber-400'}`} />
-              <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${isHealthy ? 'bg-emerald-400' : 'bg-amber-400'}`} />
-            </span>
-            <span className="font-bold text-sm tracking-tight">Edge: {isHealthy ? 'OK' : healthStale ? 'STALE' : 'WARN'}</span>
-            {/* D3 audit-lengkap: detail health terlihat (overview hanya badge). */}
-            <span className="hidden lg:inline text-[10px] font-mono opacity-75">
-              {heapFreeKb}KB • {health.tasks_healthy}/{health.tasks_total}{healthAgeSec != null ? ` • ${healthAgeSec}s` : ''}
-            </span>
-          </button>
+            <button
+              type="button"
+              onClick={onOpenMqttModal}
+              className={`hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded font-mono text-sm transition-all cursor-pointer select-none ml-1 border shrink-0 whitespace-nowrap ${
+                isHealthy
+                  ? "bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-200 border-emerald-400/40"
+                  : "bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border-amber-400/40"
+              }`}
+              title={`Edge Health: ${health.tasks_healthy}/${health.tasks_total} Tasks • Heap ${heapFreeKb} KB${healthAgeSec != null ? ` • Age ${healthAgeSec}s` : ""}`}
+            >
+              <span className="relative flex h-2.5 w-2.5 shrink-0">
+                <span
+                  className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${isHealthy ? "bg-emerald-400" : "bg-amber-400"}`}
+                />
+                <span
+                  className={`relative inline-flex rounded-full h-2.5 w-2.5 ${isHealthy ? "bg-emerald-400" : "bg-amber-400"}`}
+                />
+              </span>
+              <span className="font-bold text-sm tracking-tight">
+                Edge: {isHealthy ? "OK" : healthStale ? "STALE" : "WARN"}
+              </span>
+              {/* D3 audit-lengkap: detail health terlihat (overview hanya badge). */}
+              <span className="hidden lg:inline text-[10px] font-mono opacity-75">
+                {heapFreeKb}KB • {health.tasks_healthy}/{health.tasks_total}
+                {healthAgeSec != null ? ` • ${healthAgeSec}s` : ""}
+              </span>
+            </button>
           )}
         </div>
       </header>
@@ -302,77 +366,175 @@ export const HeaderZone: React.FC<HeaderZoneProps> = ({
       {/* 2. SUB-HEADER — ala Shift Overview */}
       <section
         className={`w-full max-w-full overflow-x-clip px-[1.2vw] py-[1vh] border-b transition-colors ${
-          isDark ? 'bg-[#0d1728] border-slate-800' : 'bg-[#e8edf4] border-[#c4cbd5]'
+          isDark
+            ? "bg-[#0d1728] border-slate-800"
+            : "bg-[#e8edf4] border-[#c4cbd5]"
         }`}
       >
         <div className="w-full flex flex-col xl:flex-row items-start xl:items-center justify-between gap-4 xl:gap-6">
           <div className="flex items-center gap-2.5 shrink-0 min-w-[180px]">
             <div className="flex flex-col">
-              <h1 className={`audit-name font-black tracking-tight leading-none ${isDark ? 'text-white' : 'text-slate-900'}`}>
+              <h1
+                className={`audit-name font-black tracking-tight leading-none ${isDark ? "text-white" : "text-slate-900"}`}
+              >
                 {machineName}
               </h1>
-              <span className={`text-sm sm:text-base font-bold mt-0.5 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-                {machineLine}
-              </span>
-              <span className={`font-mono text-xs mt-0.5 ${isDark ? 'text-slate-500' : 'text-slate-500'}`} title="Device ID edge controller">
-                {currentMachine.deviceId || '—'}
-              </span>
+              {currentMachine.line ? (
+                <span
+                  className={`text-sm sm:text-base font-bold mt-0.5 ${isDark ? "text-slate-400" : "text-slate-600"}`}
+                >
+                  {currentMachine.line}
+                </span>
+              ) : null}
+              {currentMachine.deviceId ? (
+                <span
+                  className={`font-mono text-sm sm:text-base font-bold mt-0.5 ${isDark ? "text-slate-400" : "text-slate-600"}`}
+                  title="Device ID edge controller"
+                >
+                  {currentMachine.deviceId}
+                </span>
+              ) : null}
             </div>
           </div>
 
           <div className="w-full xl:w-fit grid grid-cols-2 sm:grid-cols-4 gap-x-4 sm:gap-x-6 gap-y-2 text-sm">
             <div className="flex flex-col min-w-0">
-              <span className={`text-sm leading-none font-semibold tracking-wide ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Product</span>
-              <strong className={`audit-value font-extrabold truncate mt-1 ${isDark ? 'text-slate-100' : 'text-slate-900'}`} title={productName}>{productName}</strong>
-            </div>
-            <div className="flex flex-col min-w-0">
-              <span className={`text-sm leading-none font-semibold tracking-wide ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Cycle Time</span>
-              <strong className={`font-mono audit-value font-extrabold mt-1 ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>{targetCycleTimeSec}s</strong>
-            </div>
-            <div className="flex flex-col min-w-0">
-              <span className={`text-sm leading-none font-semibold tracking-wide ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Operator</span>
-              <strong className={`audit-value font-extrabold truncate mt-1 ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>{operatorName}</strong>
-            </div>
-            <div className="flex flex-col min-w-0">
-              <span className={`text-sm leading-none font-semibold tracking-wide ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Shift</span>
-              <strong className={`font-mono audit-value font-extrabold mt-1 ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>{operatorId} · {shiftNumber}</strong>
-            </div>
-            <div className="flex flex-col min-w-0">
-              <span className={`text-sm leading-none font-semibold tracking-wide ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Mulai</span>
-              <strong className={`font-mono audit-value font-extrabold mt-1 ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>{shiftStart}</strong>
-            </div>
-            <div className="flex flex-col min-w-0">
-              <span className={`text-sm leading-none font-semibold tracking-wide ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Selesai</span>
-              <strong className={`font-mono audit-value font-extrabold mt-1 ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>{shiftEnd}</strong>
-            </div>
-            <div className="flex flex-col min-w-0">
-              <span className={`text-sm leading-none font-semibold tracking-wide ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Istirahat</span>
-              <strong className="font-mono audit-value font-extrabold mt-1 text-amber-600 dark:text-amber-400" title={`Jam Istirahat: ${breakTimeWindow} (${plannedBreakMin} menit)`}>
-                {breakTimeWindow ? `${breakTimeWindow} (${plannedBreakMin}m)` : `${plannedBreakMin}m`}
+              <span
+                className={`text-sm leading-none font-semibold tracking-wide ${isDark ? "text-slate-400" : "text-slate-500"}`}
+              >
+                Product
+              </span>
+              <strong
+                className={`audit-value font-extrabold truncate mt-1 ${isDark ? "text-slate-100" : "text-slate-900"}`}
+                title={productName}
+              >
+                {productName}
               </strong>
             </div>
             <div className="flex flex-col min-w-0">
-              <span className={`text-sm leading-none font-semibold tracking-wide ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Target Rate</span>
-              <strong className={`font-mono audit-value font-extrabold mt-1 ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>{theoreticalHourlyOutput} pcs/h</strong>
+              <span
+                className={`text-sm leading-none font-semibold tracking-wide ${isDark ? "text-slate-400" : "text-slate-500"}`}
+              >
+                Cycle Time
+              </span>
+              <strong
+                className={`font-mono audit-value font-extrabold mt-1 ${isDark ? "text-slate-100" : "text-slate-900"}`}
+              >
+                {targetCycleTimeSec}s
+              </strong>
+            </div>
+            <div className="flex flex-col min-w-0">
+              <span
+                className={`text-sm leading-none font-semibold tracking-wide ${isDark ? "text-slate-400" : "text-slate-500"}`}
+              >
+                Operator
+              </span>
+              <strong
+                className={`audit-value font-extrabold truncate mt-1 ${isDark ? "text-slate-100" : "text-slate-900"}`}
+              >
+                {operatorName}
+              </strong>
+            </div>
+            <div className="flex flex-col min-w-0">
+              <span
+                className={`text-sm leading-none font-semibold tracking-wide ${isDark ? "text-slate-400" : "text-slate-500"}`}
+              >
+                Shift
+              </span>
+              <strong
+                className={`font-mono audit-value font-extrabold mt-1 ${isDark ? "text-slate-100" : "text-slate-900"}`}
+              >
+                {operatorId} · {shiftNumber}
+              </strong>
+            </div>
+            <div className="flex flex-col min-w-0">
+              <span
+                className={`text-sm leading-none font-semibold tracking-wide ${isDark ? "text-slate-400" : "text-slate-500"}`}
+              >
+                Mulai
+              </span>
+              <strong
+                className={`font-mono audit-value font-extrabold mt-1 ${isDark ? "text-slate-100" : "text-slate-900"}`}
+              >
+                {shiftStart}
+              </strong>
+            </div>
+            <div className="flex flex-col min-w-0">
+              <span
+                className={`text-sm leading-none font-semibold tracking-wide ${isDark ? "text-slate-400" : "text-slate-500"}`}
+              >
+                Selesai
+              </span>
+              <strong
+                className={`font-mono audit-value font-extrabold mt-1 ${isDark ? "text-slate-100" : "text-slate-900"}`}
+              >
+                {shiftEnd}
+              </strong>
+            </div>
+            <div className="flex flex-col min-w-0">
+              <span
+                className={`text-sm leading-none font-semibold tracking-wide ${isDark ? "text-slate-400" : "text-slate-500"}`}
+              >
+                Istirahat
+              </span>
+              <strong
+                className="font-mono audit-value font-extrabold mt-1 text-amber-600 dark:text-amber-400"
+                title={`Jam Istirahat: ${breakTimeWindow} (${plannedBreakMin} menit)`}
+              >
+                {breakTimeWindow
+                  ? `${breakTimeWindow} (${plannedBreakMin}m)`
+                  : `${plannedBreakMin}m`}
+              </strong>
+            </div>
+            <div className="flex flex-col min-w-0">
+              <span
+                className={`text-sm leading-none font-semibold tracking-wide ${isDark ? "text-slate-400" : "text-slate-500"}`}
+              >
+                Target Rate
+              </span>
+              <strong
+                className={`font-mono audit-value font-extrabold mt-1 ${isDark ? "text-slate-100" : "text-slate-900"}`}
+              >
+                {theoreticalHourlyOutput} pcs/h
+              </strong>
             </div>
           </div>
 
           <div className="flex flex-wrap items-stretch gap-2.5 shrink-0 max-w-full">
-            <div className={`flex flex-col items-center justify-center leading-none shrink-0 px-4 py-2 rounded-md border shadow-sm select-none ${
-              isDark ? 'bg-[#0f1b2e] border-slate-700' : 'bg-white border-slate-300'
-            }`} title={`${headerDate} ${headerTime}`}>
-              <span className={`audit-clock font-mono font-black tabular-nums tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>{headerTime}</span>
-              <span className={`font-mono text-xs font-semibold mt-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{headerDate}</span>
+            <div
+              className={`flex flex-col items-center justify-center leading-none shrink-0 px-4 py-2 rounded-md border shadow-sm select-none ${
+                isDark
+                  ? "bg-[#0f1b2e] border-slate-700"
+                  : "bg-white border-slate-300"
+              }`}
+              title={`${headerDate} ${headerTime}`}
+            >
+              <span
+                className={`audit-clock font-mono font-black tabular-nums tracking-tight ${isDark ? "text-white" : "text-slate-900"}`}
+              >
+                {headerTime}
+              </span>
+              <span
+                className={`font-mono text-xs font-semibold mt-1 ${isDark ? "text-slate-400" : "text-slate-500"}`}
+              >
+                {headerDate}
+              </span>
             </div>
             <div
-              onClick={() => onUpdateMachineStatus?.(isRunning ? 'DOWN' : 'RUNNING')}
+              onClick={() =>
+                onUpdateMachineStatus?.(isRunning ? "DOWN" : "RUNNING")
+              }
               className={`w-[112px] px-4 py-2 rounded-md shadow-sm flex flex-col items-center justify-center cursor-pointer transition-transform hover:scale-102 shrink-0 select-none ${
-                isRunning ? 'bg-[#48a43f] text-white' : 'bg-rose-600 text-white'
+                isRunning ? "bg-[#48a43f] text-white" : "bg-rose-600 text-white"
               }`}
-              title={`Status: ${isRunning ? 'Active / Running' : 'Down / Stopped'}. Klik untuk mengubah status.`}
+              title={`Status: ${isRunning ? "Active / Running" : "Down / Stopped"}. Klik untuk mengubah status.`}
             >
-              <span className="audit-status font-black leading-tight tracking-wide">{isRunning ? 'Active' : 'Down'}</span>
-              <span className="text-sm font-semibold leading-none opacity-90">{isRunning ? 'Running' : 'Stopped'}</span>
+              <span className="audit-status font-black leading-tight tracking-wide">
+                {isRunning ? "Active" : "Down"}
+              </span>
+              <span className="text-sm font-semibold leading-none opacity-90">
+                {isRunning ? "Running" : "Stopped"}
+              </span>
             </div>
           </div>
         </div>

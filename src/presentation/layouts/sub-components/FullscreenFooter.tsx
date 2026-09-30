@@ -46,7 +46,9 @@ export const FullscreenFooter: React.FC<FullscreenFooterProps> = ({
         {/* Left: machine metadata */}
         <div className="flex items-center gap-3">
           <span>Machine: <strong className={isDark ? 'text-slate-200' : 'text-slate-800'}>{machineName}</strong></span>
-          <span>Line: <strong className={isDark ? 'text-slate-200' : 'text-slate-800'}>{machineLine}</strong></span>
+          {machineLine && machineLine !== '—' ? (
+            <span>Line: <strong className={isDark ? 'text-slate-200' : 'text-slate-800'}>{machineLine}</strong></span>
+          ) : null}
           <span>Status: <strong className={connectionStatus === 'ONLINE' ? 'text-emerald-500' : 'text-rose-500'}>{connectionWord(connectionStatus)}</strong></span>
           {!useBackend && isStale && staleAgeSec !== null && staleAgeSec > 60 ? (
             <span
