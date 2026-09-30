@@ -11,6 +11,7 @@ import { TrendZone } from '../components/zones/TrendZone';
 import { AlarmsZone } from '../components/zones/AlarmsZone';
 import type { DashboardOutletContext } from './DashboardPage';
 import { HealthFooter } from '../components/footer/HealthFooter';
+import { connectionWord } from '../utils/statusWords';
 
 export const AuditPage: React.FC = () => {
   const { dashboard } = useOutletContext<DashboardOutletContext>();
@@ -110,7 +111,7 @@ export const AuditPage: React.FC = () => {
           <div className="flex items-center gap-3">
             <span>Machine: <strong className={isDark ? 'text-slate-200' : 'text-slate-800'}>{machine.name}</strong></span>
             <span>Line: <strong className={isDark ? 'text-slate-200' : 'text-slate-800'}>{machine.line}</strong></span>
-            <span>Status: <strong className={machine.connectionStatus === 'ONLINE' ? 'text-emerald-500' : 'text-rose-500'}>{machine.connectionStatus || '—'}</strong></span>
+            <span>Status: <strong className={machine.connectionStatus === 'ONLINE' ? 'text-emerald-500' : 'text-rose-500'}>{connectionWord(machine.connectionStatus)}</strong></span>
             {staleAgeSec !== null && staleAgeSec > 60 ? (
               <span
                 role="status"

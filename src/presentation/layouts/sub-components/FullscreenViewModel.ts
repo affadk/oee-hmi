@@ -60,6 +60,7 @@ export interface FullscreenViewModel {
   // Machine metadata
   machineName: string;
   machineLine: string;
+  deviceId: string;
   productName: string;
   targetCycleTimeSec: number;
   operatorName: string;
@@ -123,6 +124,7 @@ export function buildFullscreenViewModel(
 
   const machineName = machine.name || '—';
   const machineLine = machine.line || '—';
+  const deviceId = machine.deviceId || '—';
   const productName = machine.currentProduct || machine.jobConfig?.productName || '—';
   const targetCycleTimeSec = machine.idealCycleTimeSec || machine.jobConfig?.standardCycleTimeSec || 0;
   const operatorName = machine.jobConfig?.operatorName || '—';
@@ -197,6 +199,7 @@ export function buildFullscreenViewModel(
     qualGaugeColor: getGaugeColor(qualValue, machine.targetQuality ?? 98),
     machineName,
     machineLine,
+    deviceId,
     productName,
     targetCycleTimeSec,
     operatorName,

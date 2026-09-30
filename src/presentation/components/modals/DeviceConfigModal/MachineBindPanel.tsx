@@ -4,6 +4,7 @@
 import React from 'react';
 import { Factory, Link2, Link2Off, Loader2 } from 'lucide-react';
 import type { DeviceRecord, MachineRecord } from '../../../../domain/entities/backend/Device';
+import { connectionWord } from '../../../utils/statusWords';
 
 export interface MachineBindPanelProps {
   registry: { devices: DeviceRecord[]; machines: MachineRecord[] } | null;
@@ -96,7 +97,7 @@ export const MachineBindPanel: React.FC<MachineBindPanelProps> = ({
             </div>
             {machine.boundDevice && (
               <p className={`text-[11px] font-mono mt-1 ${label}`}>
-                MAC {machine.boundDevice.macAddress ?? '—'} · {machine.boundDevice.isOnline ? 'online' : 'offline'} · modbus slave {machine.modbusSlaveId}
+                MAC {machine.boundDevice.macAddress ?? '—'} · {connectionWord(machine.boundDevice.isOnline ? 'ONLINE' : 'OFFLINE').toLowerCase()} · modbus slave {machine.modbusSlaveId}
               </p>
             )}
           </div>

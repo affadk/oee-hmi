@@ -314,6 +314,9 @@ export const HeaderZone: React.FC<HeaderZoneProps> = ({
               <span className={`text-sm sm:text-base font-bold mt-0.5 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
                 {machineLine}
               </span>
+              <span className={`font-mono text-xs mt-0.5 ${isDark ? 'text-slate-500' : 'text-slate-500'}`} title="Device ID edge controller">
+                {currentMachine.deviceId || '—'}
+              </span>
             </div>
           </div>
 

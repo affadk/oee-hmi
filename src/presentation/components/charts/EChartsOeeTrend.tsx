@@ -10,6 +10,7 @@ import { HourlyDataPoint } from '../../../domain/index';
 import { useTheme } from '../../providers/ThemeProvider';
 import { Radio } from 'lucide-react';
 import { fluid, containerScale, scaledFont } from '../../utils/fluidType';
+import { streamWord } from '../../utils/statusWords';
 
 echarts.use([LineChart, GridComponent, TooltipComponent, MarkAreaComponent, CanvasRenderer]);
 
@@ -190,7 +191,7 @@ export const EChartsOeeTrend: React.FC<EChartsOeeTrendProps> = ({
           // G9: status FSM backend per bucket bila ada; fallback komplemen-istirahat.
           const trendIdx = hours.indexOf(String(axisValue ?? ''));
           const backendState = trendIdx >= 0 ? visibleTrends[trendIdx]?.backendState ?? null : null;
-          const stateLabel = backendState ?? (inBreak ? 'Istirahat' : 'Running');
+          const stateLabel = backendState ?? (inBreak ? 'Istirahat' : 'Berjalan');
           let tip = `<div class="font-bold mb-1 font-mono ${isDark ? 'text-slate-200' : 'text-slate-800'}">Time: ${String(axisValue ?? '')} · ${stateLabel}</div>`;
           params.forEach((p) => {
             tip += `
@@ -374,7 +375,7 @@ export const EChartsOeeTrend: React.FC<EChartsOeeTrendProps> = ({
               : isDark ? 'bg-emerald-950/60 text-emerald-400 border-emerald-800/60' : 'bg-emerald-50 text-emerald-700 border-emerald-300'
           }`} style={{ fontSize: fluid(10, 1.4, 13) }}>
             <Radio className="w-2.5 h-2.5" />
-            {isBuffered ? 'BUFFERED' : 'LIVE'}
+            {streamWord(isBuffered)}
           </span>
           {showBenchmark && (
             <span className="font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-semibold" style={{ fontSize: fluid(10, 1.4, 13) }}>

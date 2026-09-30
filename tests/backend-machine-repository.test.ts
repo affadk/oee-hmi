@@ -124,4 +124,35 @@ describe('BackendMachineRepository WO metadata fallback', () => {
     expect(machines[0]?.jobConfig.productName).toBe('');
     expect(machines[0]?.jobConfig.targetQuantity).toBe(0);
   });
+
+  it('recovers via the machine active WO when snapshot woId is stale (CONFLICT)', async () => {
+    // Skenario nyata: snapshot masih menunjuk WO lama, mesin sudah pindah ke WO
+    // ACTIVE baru → resolve(woId basi) 409 CONFLICT; resolve(WO aktif) 200.
+    const activeWo = { ...woDetail, woId: 'WO-SIM-20260906-02', productName: 'Precision Shaft Pin 8mm', targetQty: 600, status: 'ACTIVE' as const };
+    const repo = makeRepo(Object.assign(new Error('conflict'), { code: 'CONFLICT' }));
+    const internal = repo as unknown as {
+      workOrderRepo: {
+        list: () => Promise<WorkOrderListItem[]>;
+        resolve: (woId: string, deviceId: string) => Promise<unknown>;
+      };
+    };
+    internal.workOrderRepo.list = async () => [activeWo];
+    internal.workOrderRepo.resolve = async (woId: string) => {
+      if (woId !== 'WO-SIM-20260906-02') throw Object.assign(new Error('conflict'), { code: 'CONFLICT' });
+      return {
+        woId, machineId: 'CNC-MILLING-01', productId: 'PRD-SHAFT-PIN-08',
+        productName: 'Precision Shaft Pin 8mm', stdCycleTimeSec: 8.5,
+        operatorId: 'OPR-1002', operatorName: 'Ahmad Pratama', targetQty: 600,
+        shiftPlan: { shiftStart: '16:00', shiftEnd: '00:00', plannedBreakMin: 45, plannedOperatingSec: 26100 },
+        targetPerHour: 83, break: { start: '23:15', end: '00:00', minutes: 45 }, status: 'ACTIVE',
+      };
+    };
+
+    const machines = await repo.getAllMachines();
+    expect(machines[0]?.jobConfig.workOrder).toBe('WO-SIM-20260906-02');
+    expect(machines[0]?.jobConfig.productName).toBe('Precision Shaft Pin 8mm');
+    expect(machines[0]?.jobConfig.targetQuantity).toBe(600);
+    expect(machines[0]?.jobConfig.shiftStart).toBe('16:00');
+    expect(machines[0]?.jobConfig.plannedBreakMin).toBe(45);
+  });
 });

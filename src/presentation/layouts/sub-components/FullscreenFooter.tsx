@@ -4,6 +4,7 @@
 import React from 'react';
 import { Radio } from 'lucide-react';
 import type { BackendHealth } from '../../../domain/ports/IOeeBackend';
+import { connectionWord } from '../../utils/statusWords';
 import { HealthFooter } from '../../components/footer/HealthFooter';
 
 export interface FullscreenFooterProps {
@@ -46,7 +47,7 @@ export const FullscreenFooter: React.FC<FullscreenFooterProps> = ({
         <div className="flex items-center gap-3">
           <span>Machine: <strong className={isDark ? 'text-slate-200' : 'text-slate-800'}>{machineName}</strong></span>
           <span>Line: <strong className={isDark ? 'text-slate-200' : 'text-slate-800'}>{machineLine}</strong></span>
-          <span>Status: <strong className={connectionStatus === 'ONLINE' ? 'text-emerald-500' : 'text-rose-500'}>{connectionStatus || '—'}</strong></span>
+          <span>Status: <strong className={connectionStatus === 'ONLINE' ? 'text-emerald-500' : 'text-rose-500'}>{connectionWord(connectionStatus)}</strong></span>
           {!useBackend && isStale && staleAgeSec !== null && staleAgeSec > 60 ? (
             <span
               role="status"

@@ -17,7 +17,7 @@ import type { MachineConfig, MachineStatus, DowntimeReasonItem } from '../../../
 import type { EdgeTelemetryPayload, EdgeJobConfigPayload } from '../../../domain/entities/EdgeContracts';
 import type { LiveStateSnapshot, LiveMachineState } from '../../../domain/entities/backend/LiveState';
 import type { MachineRecord } from '../../../domain/entities/backend/Device';
-import type { WorkOrderResolveResult } from '../../../domain/entities/backend/WorkOrder';
+import type { WorkOrderListItem, WorkOrderResolveResult } from '../../../domain/entities/backend/WorkOrder';
 import type { DowntimeEvent } from '../../../domain/entities/backend/Telemetry';
 import { isPlannedDowntimeCategory } from '../../../domain/entities/backend/Telemetry';
 import { resolveShiftWindowIso } from '../../../domain/services/ShiftTimeline';
@@ -103,6 +103,28 @@ function buildJobConfigFromResolve(wo: WorkOrderResolveResult): EdgeJobConfigPay
       planned_operating_sec: wo.shiftPlan.plannedOperatingSec,
       target_qty: wo.targetQty,
     },
+  };
+}
+
+/**
+ * Turunkan WorkOrderResolveResult dari detail WO (tanpa shift plan / std cycle
+ * time — endpoint detail tidak menyediakannya). Dipakai hanya sebagai fallback
+ * terakhir agar metadata produk/operator/target tetap tampil.
+ */
+function buildResolveResultFromDetail(detail: WorkOrderListItem): WorkOrderResolveResult {
+  return {
+    woId: detail.woId,
+    machineId: detail.machineId,
+    productId: detail.productId ?? '',
+    productName: detail.productName ?? '',
+    stdCycleTimeSec: 0,
+    operatorId: detail.operatorId ?? '',
+    operatorName: detail.operatorName ?? '',
+    targetQty: detail.targetQty,
+    shiftPlan: { shiftStart: '', shiftEnd: '', plannedBreakMin: 0, plannedOperatingSec: 0 },
+    targetPerHour: null,
+    break: null,
+    status: detail.status,
   };
 }
 
@@ -308,29 +330,41 @@ export class BackendMachineRepository implements IMachineRepository {
     try {
       return await this.workOrderRepo.resolve(snapshot.woId, snapshot.deviceId);
     } catch {
-      // Resolve bisa gagal sementara (DEVICE_OFFLINE saat registry isOnline
-      // basi, CONFLICT saat woId snapshot basi) — fallback ke detail WO agar
-      // metadata produk/operator/target tetap tampil. Shift plan tak tersedia
-      // di detail → tetap nol (jendela shift jatuh ke fallback 72 jam).
+      // woId snapshot bisa basi: mesin sudah pindah ke WO aktif yang lebih baru
+      // (backend menolak dengan CONFLICT). Cari WO ACTIVE untuk device ini dan
+      // resolve itu — sumber kebenaran adalah WO yang benar-benar berjalan.
+      const active = await this.tryResolveActiveWorkOrder(snapshot.deviceId, snapshot.machineId);
+      if (active) return active;
+
+      // Fallback terakhir: detail WO basi agar metadata produk/operator/target
+      // tetap tampil. Shift plan tak tersedia di detail → tetap nol.
       try {
         const detail = await this.workOrderRepo.getDetail(snapshot.woId);
-        return {
-          woId: detail.woId,
-          machineId: detail.machineId,
-          productId: detail.productId ?? '',
-          productName: detail.productName ?? '',
-          stdCycleTimeSec: 0,
-          operatorId: detail.operatorId ?? '',
-          operatorName: detail.operatorName ?? '',
-          targetQty: detail.targetQty,
-          shiftPlan: { shiftStart: '', shiftEnd: '', plannedBreakMin: 0, plannedOperatingSec: 0 },
-          targetPerHour: null,
-          break: null,
-          status: detail.status,
-        };
+        return buildResolveResultFromDetail(detail);
       } catch {
         return null;
       }
+    }
+  }
+
+  /**
+   * Cari WO ACTIVE milik mesin device ini lalu resolve. Backend `resolve` butuh
+   * device online; bila tak ada match/gagal, kembalikan null (caller lanjut ke
+   * fallback detail).
+   */
+  private async tryResolveActiveWorkOrder(deviceId: string, machineId: string | null): Promise<WorkOrderResolveResult | null> {
+    if (!deviceId || !machineId) return null;
+    try {
+      const active = await this.workOrderRepo.list({ status: 'ACTIVE', machineId, limit: 5 });
+      const match = active.find((wo) => wo.status === 'ACTIVE' && wo.machineId === machineId);
+      if (!match) return null;
+      try {
+        return await this.workOrderRepo.resolve(match.woId, deviceId);
+      } catch {
+        return null;
+      }
+    } catch {
+      return null;
     }
   }
 

@@ -158,6 +158,8 @@ export interface IAuthGateway {
 export type RealtimeListener = {
   onTelemetry?: (frame: WsTelemetryFrame) => void;
   onLifecycle?: (event: WsLifecycleEvent) => void;
+  /** Relay `HEALTH_UPDATE` (frame health langsung dari edge, tanpa cache G3). Opsional. */
+  onHealth?: (deviceId: string, health: import('../entities/EdgeContracts').EdgeHealthPayload) => void;
 };
 
 export interface IRealtimeGateway {

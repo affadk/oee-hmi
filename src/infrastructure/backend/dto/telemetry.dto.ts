@@ -12,9 +12,14 @@ import type {
 import { ALL_DOWNTIME_CATEGORIES } from '../../../domain/entities/backend/Telemetry';
 import type { HourlyTrendPoint, PageMeta } from '../../../domain/ports/IOeeBackend';
 import type { DeviceHealth, RejectBreakdownItem } from '../../../domain/entities/backend/Telemetry';
+import type { EdgeHealthPayload } from '../../../domain/entities/EdgeContracts';
 import { toFiniteNumber } from '../../../domain/entities/backend/LiveState';
 
 interface RawFrame {
+  /** Relay envelope discriminator/type (`TELEMETRY_UPDATE`/`HEALTH_UPDATE`). */
+  type?: string;
+  /** Relay envelope payload; field telemetri flat ada di sini bila dibungkus. */
+  data?: Record<string, unknown>;
   timestamp?: number; ts?: number;
   device_id?: string; deviceId?: string;
   machine_id?: string; machineId?: string;
@@ -56,6 +61,7 @@ interface RawHourlyTrend {
   goodCount?: number; good_count?: number;
   rejectCount?: number; reject_count?: number;
   estHourlyOutput?: number; est_hourly_output?: number;
+  estHourlyReject?: number; est_hourly_reject?: number;
   targetPerHour?: number | null; target_per_hour?: number | null;
   state?: string | null;
   planned?: boolean | null;
@@ -127,43 +133,51 @@ function unwrapList<T>(raw: unknown): { data: T[]; meta: PageMeta } {
 }
 
 export function mapTelemetryFrameDto(raw: RawFrame): WsTelemetryFrame {
-  const counters = raw.counters ?? {};
-  const timeMetrics = raw.time_metrics_sec ?? {};
-  const oee = raw.oee ?? {};
-  const plc = raw.plc_modbus ?? {};
-  const hw = raw.hw_diag ?? {};
-  const total = toFiniteNumber(counters.total ?? counters.tot ?? raw.tot);
-  const reject = toFiniteNumber(counters.reject ?? counters.rej ?? raw.rej);
+  // Relay backend membungkus frame telemetri dalam envelope
+  // `{ type: 'TELEMETRY_UPDATE', device_id, data: {…flat fields…} }`. Kontrak
+  // lama mengirim field flat di root. Unwrap bila ada `data` objek, agar kedua
+  // bentuk menghasilkan frame yang sama (kritis: tanpa ini semua counter 0).
+  const inner = raw.data && typeof raw.data === 'object' ? (raw.data as RawFrame) : null;
+  const src: RawFrame = inner
+    ? { ...inner, is_buffered: inner.is_buffered ?? raw.is_buffered, isBuffered: inner.isBuffered ?? raw.isBuffered }
+    : raw;
+  const counters = src.counters ?? {};
+  const timeMetrics = src.time_metrics_sec ?? {};
+  const oee = src.oee ?? {};
+  const plc = src.plc_modbus ?? {};
+  const hw = src.hw_diag ?? {};
+  const total = toFiniteNumber(counters.total ?? counters.tot ?? src.tot);
+  const reject = toFiniteNumber(counters.reject ?? counters.rej ?? src.rej);
   return {
-    timestamp: toFiniteNumber(raw.timestamp ?? raw.ts, Math.floor(Date.now() / 1000)),
-    deviceId: raw.device_id ?? raw.deviceId ?? '',
-    machineId: raw.machine_id ?? raw.machineId ?? '',
-    woId: raw.wo_id ?? raw.woId ?? null,
-    fsmState: raw.fsm_state ?? raw.currentState ?? 'UNKNOWN',
+    timestamp: toFiniteNumber(src.timestamp ?? src.ts, Math.floor(Date.now() / 1000)),
+    deviceId: src.device_id ?? src.deviceId ?? raw.device_id ?? raw.deviceId ?? '',
+    machineId: src.machine_id ?? src.machineId ?? raw.machine_id ?? raw.machineId ?? '',
+    woId: src.wo_id ?? src.woId ?? null,
+    fsmState: src.fsm_state ?? src.currentState ?? 'UNKNOWN',
     counters: {
       total,
       good: toFiniteNumber(counters.good, Math.max(0, total - reject)),
       reject,
-      lastCycleSec: toFiniteNumber(counters.last_cycle_sec ?? counters.lastCycleSec ?? (raw.cyc != null ? raw.cyc / 100 : 0)),
+      lastCycleSec: toFiniteNumber(counters.last_cycle_sec ?? counters.lastCycleSec ?? (src.cyc != null ? src.cyc / 100 : 0)),
     },
     timeMetricsSec: {
       operatingTime: toFiniteNumber(timeMetrics.operating_time ?? timeMetrics.operatingTime),
-      runTime: toFiniteNumber(timeMetrics.run_time ?? timeMetrics.runTime ?? raw.run),
-      downtime: toFiniteNumber(timeMetrics.downtime ?? raw.dt),
+      runTime: toFiniteNumber(timeMetrics.run_time ?? timeMetrics.runTime ?? src.run),
+      downtime: toFiniteNumber(timeMetrics.downtime ?? src.dt),
     },
     oee: {
-      availability: toFiniteNumber(oee.availability ?? (raw.a != null ? raw.a / 100 : 0)),
-      performance: toFiniteNumber(oee.performance ?? (raw.p != null ? raw.p / 100 : 0)),
-      quality: toFiniteNumber(oee.quality ?? (raw.q != null ? raw.q / 100 : 0)),
-      totalOee: toFiniteNumber(oee.total_oee ?? oee.totalOee ?? (raw.oee_x100 != null ? raw.oee_x100 / 100 : 0)),
+      availability: toFiniteNumber(oee.availability ?? (src.a != null ? src.a / 100 : 0)),
+      performance: toFiniteNumber(oee.performance ?? (src.p != null ? src.p / 100 : 0)),
+      quality: toFiniteNumber(oee.quality ?? (src.q != null ? src.q / 100 : 0)),
+      totalOee: toFiniteNumber(oee.total_oee ?? oee.totalOee ?? (src.oee_x100 != null ? src.oee_x100 / 100 : 0)),
     },
     plcModbus: {
-      spindleRpm: toFiniteNumber(plc.spindle_rpm ?? plc.spindleRpm ?? raw.rpm),
-      tempC: toFiniteNumber(plc.temp_c ?? plc.tempC ?? (raw.tmp != null ? raw.tmp / 10 : 0)),
-      alarmCode: toFiniteNumber(plc.alarm_code ?? plc.alarmCode ?? raw.alm),
+      spindleRpm: toFiniteNumber(plc.spindle_rpm ?? plc.spindleRpm ?? src.rpm),
+      tempC: toFiniteNumber(plc.temp_c ?? plc.tempC ?? (src.tmp != null ? src.tmp / 10 : 0)),
+      alarmCode: toFiniteNumber(plc.alarm_code ?? plc.alarmCode ?? src.alm),
     },
     hwDiag: { uptimeSec: toFiniteNumber(hw.uptime_sec ?? hw.uptimeSec), freeHeap: toFiniteNumber(hw.free_heap ?? hw.freeHeap) },
-    isBuffered: raw.is_buffered ?? raw.isBuffered ?? false,
+    isBuffered: src.is_buffered ?? src.isBuffered ?? false,
   };
 }
 
@@ -187,6 +201,15 @@ export function mapTelemetryHistoryListDto(raw: unknown): TelemetryHistoryPoint[
 }
 
 export function mapHourlyTrendDto(raw: RawHourlyTrend): HourlyTrendPoint {
+  // Backend v2 hourly mengirim `estHourlyOutput`/`estHourlyReject` (perkiraan
+  // output/reject per jam) alih-alih totalCount/goodCount/rejectCount. Good
+  // diturunkan = output - reject (aritmetika jujur, bukan fabrikasi).
+  const totalCount = toFiniteNumber(raw.totalCount ?? raw.total_count ?? raw.estHourlyOutput ?? raw.est_hourly_output);
+  const rejectCount = toFiniteNumber(raw.rejectCount ?? raw.reject_count ?? raw.estHourlyReject ?? raw.est_hourly_reject);
+  const explicitGood = raw.goodCount ?? raw.good_count;
+  const goodCount = explicitGood !== undefined && explicitGood !== null
+    ? toFiniteNumber(explicitGood)
+    : Math.max(0, totalCount - rejectCount);
   return {
     bucket: raw.bucket ?? raw.hour ?? '',
     deviceId: raw.deviceId ?? raw.device_id ?? '',
@@ -194,11 +217,9 @@ export function mapHourlyTrendDto(raw: RawHourlyTrend): HourlyTrendPoint {
     availability: toFiniteNumber(raw.availability ?? raw.avgAvailability ?? raw.avg_availability),
     performance: toFiniteNumber(raw.performance ?? raw.avgPerformance ?? raw.avg_performance),
     quality: toFiniteNumber(raw.quality ?? raw.avgQuality ?? raw.avg_quality),
-    // Backend v2 hourly mengirim `estHourlyOutput` (perkiraan output jam)
-    // alih-alih totalCount — pakai sebagai actual per jam bila total tak ada.
-    totalCount: toFiniteNumber(raw.totalCount ?? raw.total_count ?? raw.estHourlyOutput ?? raw.est_hourly_output),
-    goodCount: toFiniteNumber(raw.goodCount ?? raw.good_count),
-    rejectCount: toFiniteNumber(raw.rejectCount ?? raw.reject_count),
+    totalCount,
+    goodCount,
+    rejectCount,
     targetPerHour: raw.targetPerHour ?? raw.target_per_hour ?? null,
     state: raw.state ?? null,
     planned: raw.planned ?? false,
@@ -321,4 +342,56 @@ export function mapWsLifecycleEventDto(raw: RawLifecycleEvent): WsLifecycleEvent
     };
   }
   return null;
+}
+
+interface RawWsHealthItem { name?: string; age_ms?: number; alive?: number }
+
+interface RawWsHealth {
+  timestamp?: number;
+  heap_free?: number;
+  tasks_healthy?: number;
+  tasks_total?: number;
+  stale_count?: number;
+  stale_tasks?: RawWsHealthItem[];
+  event_flags?: number;
+}
+
+export interface WsHealthUpdate {
+  deviceId: string;
+  health: EdgeHealthPayload;
+}
+
+/**
+ * Relay `HEALTH_UPDATE` → payload domain health. `age_sec` dibiarkan
+ * undefined: frame realtime selalu segar saat diterima (`isEdgeHealthOk`
+ * menilai tanpa umur bila field ini absen).
+ * Kembalikan null bila payload tak berbentuk health (caller abaikan).
+ */
+export function mapWsHealthDto(raw: unknown): WsHealthUpdate | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const env = raw as { type?: unknown; device_id?: unknown; deviceId?: unknown; data?: unknown };
+  if (env.type !== 'HEALTH_UPDATE') return null;
+  const deviceId = typeof env.deviceId === 'string' ? env.deviceId
+    : typeof env.device_id === 'string' ? env.device_id : '';
+  if (deviceId === '') return null;
+  const d = env.data && typeof env.data === 'object' ? (env.data as RawWsHealth) : {};
+  const tasksTotal = toFiniteNumber(d.tasks_total);
+  return {
+    deviceId,
+    health: {
+      timestamp: toFiniteNumber(d.timestamp, Math.floor(Date.now() / 1000)),
+      heap_free: toFiniteNumber(d.heap_free),
+      tasks_healthy: toFiniteNumber(d.tasks_healthy),
+      tasks_total: tasksTotal,
+      stale_tasks: Array.isArray(d.stale_tasks)
+        ? d.stale_tasks.map((s) => ({
+            name: typeof s.name === 'string' ? s.name : '',
+            age_ms: toFiniteNumber(s.age_ms),
+            alive: s.alive === 0 ? 0 : 1,
+          }))
+        : [],
+      stale_count: toFiniteNumber(d.stale_count),
+      event_flags: toFiniteNumber(d.event_flags),
+    },
+  };
 }

@@ -3,6 +3,7 @@ import {
   mapHourlyTrendDto,
   mapTelemetryFrameDto,
   mapTelemetryHistoryDto,
+  mapWsHealthDto,
   parseCategoryFromReason,
 } from '../src/infrastructure/backend/dto/telemetry.dto';
 import { isLiveTelemetryFrame } from '../src/domain/entities/backend/Telemetry';
@@ -59,6 +60,58 @@ describe('mapTelemetryFrameDto', () => {
     expect(frame.counters.total).toBe(100);
     expect(frame.counters.good).toBe(95);
   });
+
+  it('unwraps relay TELEMETRY_UPDATE envelope (payload dari WS live)', () => {
+    const frame = mapTelemetryFrameDto({
+      type: 'TELEMETRY_UPDATE',
+      device_id: 'STM32-OEE-SIM',
+      machine_id: 'CNC-MILLING-SIM',
+      data: {
+        timestamp: 1790751450,
+        device_id: 'STM32-OEE-SIM',
+        machine_id: 'CNC-MILLING-SIM',
+        wo_id: 'WO-SIM-20260906-01',
+        fsm_state: 'UNCONFIGURED',
+        counters: { total: 120, good: 118, reject: 2, last_cycle_sec: 12 },
+        time_metrics_sec: { operating_time: 600, run_time: 540, downtime: 60 },
+        oee: { availability: 90, performance: 95, quality: 98, total_oee: 84 },
+        plc_modbus: { spindle_rpm: 1450, temp_c: 35, alarm_code: 0 },
+        hw_diag: { uptime_sec: 15715, free_heap: 48487 },
+        is_buffered: false,
+      },
+    } as never);
+    expect(frame.deviceId).toBe('STM32-OEE-SIM');
+    expect(frame.counters.total).toBe(120);
+    expect(frame.counters.good).toBe(118);
+    expect(frame.oee.totalOee).toBe(84);
+    expect(frame.plcModbus.spindleRpm).toBe(1450);
+    expect(frame.hwDiag.uptimeSec).toBe(15715);
+    expect(isLiveTelemetryFrame(frame)).toBe(true);
+  });
+
+  it('maps relay HEALTH_UPDATE to domain health (bukan counter 0)', () => {
+    const out = mapWsHealthDto({
+      type: 'HEALTH_UPDATE',
+      device_id: 'STM32-OEE-SIM',
+      data: {
+        timestamp: 1790751451, heap_free: 48526, tasks_healthy: 8, tasks_total: 9,
+        stale_tasks: [{ name: 'Watchdog', age_ms: 411, alive: 1 }],
+        stale_count: 0, event_flags: 7,
+      },
+      timestamp: '2026-09-30T06:57:31.470Z',
+    });
+    expect(out?.deviceId).toBe('STM32-OEE-SIM');
+    expect(out?.health.heap_free).toBe(48526);
+    expect(out?.health.tasks_healthy).toBe(8);
+    expect(out?.health.stale_tasks).toHaveLength(1);
+    expect(out?.health.age_sec).toBeUndefined();
+  });
+
+  it('rejects non-health relay types and garbage', () => {
+    expect(mapWsHealthDto({ type: 'TELEMETRY_UPDATE', data: {} })).toBeNull();
+    expect(mapWsHealthDto({ type: 'HEALTH_UPDATE', data: {} })).toBeNull();
+    expect(mapWsHealthDto(null)).toBeNull();
+  });
 });
 
 describe('mapTelemetryHistoryDto (incl. B5 aggregate buckets)', () => {
@@ -99,6 +152,7 @@ describe('mapHourlyTrendDto (backend v2 avg* + estHourlyOutput)', () => {
       avgPerformance: '94.31',
       avgQuality: '98.73',
       estHourlyOutput: 8579,
+      estHourlyReject: 0,
       targetPerHour: 63,
       state: 'RUNNING',
       planned: false,
@@ -108,13 +162,24 @@ describe('mapHourlyTrendDto (backend v2 avg* + estHourlyOutput)', () => {
     expect(out.performance).toBeCloseTo(94.31);
     expect(out.quality).toBeCloseTo(98.73);
     expect(out.totalCount).toBe(8579);
+    expect(out.rejectCount).toBe(0);
+    expect(out.goodCount).toBe(8579);
     expect(out.targetPerHour).toBe(63);
     expect(out.state).toBe('RUNNING');
   });
 
-  it('prefers explicit totalCount over estHourlyOutput', () => {
-    const out = mapHourlyTrendDto({ bucket: '10:00', totalCount: 100, estHourlyOutput: 8579 });
+  it('derives good = output - reject when goodCount absent', () => {
+    const out = mapHourlyTrendDto({ bucket: '10:00', estHourlyOutput: 1000, estHourlyReject: 25 });
+    expect(out.totalCount).toBe(1000);
+    expect(out.rejectCount).toBe(25);
+    expect(out.goodCount).toBe(975);
+  });
+
+  it('prefers explicit counts over estimates', () => {
+    const out = mapHourlyTrendDto({ bucket: '10:00', totalCount: 100, goodCount: 90, rejectCount: 10, estHourlyOutput: 8579, estHourlyReject: 999 });
     expect(out.totalCount).toBe(100);
+    expect(out.goodCount).toBe(90);
+    expect(out.rejectCount).toBe(10);
   });
 });
 

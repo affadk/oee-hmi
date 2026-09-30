@@ -137,6 +137,7 @@ export const FullscreenOeeView: React.FC<FullscreenOeeViewProps> = ({
         <FullscreenSubHeader
           machineName={vm.machineName}
           machineLine={vm.machineLine}
+          deviceId={vm.deviceId}
           productName={vm.productName}
           targetCycleTimeSec={vm.targetCycleTimeSec}
           operatorName={vm.operatorName}

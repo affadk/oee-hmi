@@ -4,6 +4,7 @@
 import React from 'react';
 import { Wifi, WifiOff, Loader2, Save } from 'lucide-react';
 import type { DeviceRecord, MachineRecord } from '../../../../domain/entities/backend/Device';
+import { connectionWord } from '../../../utils/statusWords';
 
 export type DraftMap = Record<string, { ipAddress: string; firmwareVersion: string }>;
 
@@ -51,8 +52,9 @@ export const DeviceListPanel: React.FC<DeviceListPanelProps> = ({
           <div key={device.deviceId} className={`p-3 rounded-xl border ${card}`}>
             <div className="flex items-center justify-between gap-2 flex-wrap">
               <div className="flex items-center gap-2 min-w-0">
-                {device.isOnline ? <Wifi className="w-4 h-4 text-emerald-500" /> : <WifiOff className="w-4 h-4 text-slate-500" />}
+                {device.isOnline ? <Wifi className="w-4 h-4 text-emerald-500" aria-label="Terhubung" /> : <WifiOff className="w-4 h-4 text-slate-500" aria-label="Terputus" />}
                 <strong className={`font-mono text-sm ${value}`}>{device.deviceId}</strong>
+                <span className={`text-[11px] font-bold ${device.isOnline ? 'text-emerald-500' : 'text-slate-500'}`}>{connectionWord(device.isOnline ? 'ONLINE' : 'OFFLINE')}</span>
                 <span className={`text-[11px] ${label}`}>{device.model ?? 'model ?'}</span>
               </div>
               {device.boundMachine ? (

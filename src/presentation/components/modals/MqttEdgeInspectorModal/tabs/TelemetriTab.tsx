@@ -4,6 +4,7 @@
 import React from 'react';
 import { Copy, Check } from 'lucide-react';
 import type { MqttEdgeTabContext } from '../tabShared';
+import { yesNoWord } from '../../../../utils/statusWords';
 import { fmtDur } from '../tabShared';
 
 interface TelemetriTabProps {
@@ -37,7 +38,7 @@ export const TelemetriTab: React.FC<TelemetriTabProps> = ({
     ['run / dt', `${t.run}s / ${t.dt}s`, 'detik', `${fmtDur(t.run)} / ${fmtDur(t.dt)}`],
     ['alm / rpm / tmp', `${t.alm} / ${t.rpm} / ${t.tmp}`, 'code/rpm/×0.1°C', t.alm === 0 ? 'normal' : `alarm ${t.alm}`],
     ['di', `0x${t.di.toString(16).toUpperCase()}`, 'bitmask PC0..5', 'input digital'],
-    ['is_buffered', String(t.is_buffered), 'bool', t.is_buffered ? 'drain FIFO' : 'live stream'],
+    ['is_buffered', yesNoWord(t.is_buffered), 'bool', t.is_buffered ? 'data tertunda (drain FIFO)' : 'aliran langsung (live stream)'],
   ];
 
   return (

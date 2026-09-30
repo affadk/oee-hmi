@@ -2,6 +2,7 @@
 
 > Tanggal: 23 Sep 2026 · Amandemen G12–G16: 24 Sep 2026 (verifikasi ulang pasca-refactor strict + hook split).
 > Amandemen G17–G20: 30 Sep 2026 (audit metadata respons API live terhadap backend `iiot-oee` — key hourly/aggregate `avg*`, `recordedAt` history, staleness `isOnline`, auth `/operators`).
+> Amandemen G21–G22: 30 Sep 2026 (audit payload lengkap 16 endpoint + frame WS live: relay envelope `TELEMETRY_UPDATE`/`HEALTH_UPDATE`, recovery WO basi via ACTIVE, kekurangan per-bucket hourly).
 > Disusun dari audit migrasi total frontend `oee-dashboard-aistudio` ke lane backend.
 > Acuan kontrak existing: `iiot-oee/apps/backend/docs/API_DOCUMENTATION.md`.
 > Prinsip: setiap gap di bawah ini **sudah ada workaround jujur di frontend** (tampilkan kosong/`—`/0, bukan data fabrikasi). Daftar ini agar backend bisa menutupnya bertahap.
@@ -128,7 +129,7 @@ Audit 24 Sep 2026 — diverifikasi melawan pemanggil aktual di `src/` (bukan kla
 | B6 | `GET /telemetry/:id/export` | Tidak ada tombol export di UI (DoD §8 menuntut csv\|ndjson) | Tambah tombol Export audit atau coret dari DoD |
 | B7 | `GET /health` | Tidak pernah dipanggil; footer rekonsiliasi (§2.2) belum ada | Sambungkan (ws_clients, buffer_pending) atau coret |
 
-**C. 🔴 Belum ada di backend — butuh backend (tetap G1–G20):** reject breakdown (G1), health edge (G3), ack alarm (G4), feed global (G5), refresh token (G13), target/state/break per bucket (G2/G9/G10), konfirmasi flag labelable (G14), doc heartbeat (G15), tabel 204 (G12), FSM docs (G6), kebijakan reject manual (G7), skema key hourly/aggregate `avg*` (G17), key `recordedAt` history (G18), staleness `isOnline` registry (G19), auth list `/operators` (G20).
+**C. 🔴 Belum ada di backend — butuh backend (tetap G1–G22):** reject breakdown (G1), health edge (G3), ack alarm (G4), feed global (G5), refresh token (G13), target/state/break per bucket (G2/G9/G10), konfirmasi flag labelable (G14), doc heartbeat (G15), tabel 204 (G12), FSM docs (G6), kebijakan reject manual (G7), skema key hourly/aggregate `avg*` (G17), key `recordedAt` history (G18), staleness `isOnline` registry (G19), auth list `/operators` (G20), dokumentasi envelope WS relay (G21), good eksplisit per bucket + `active_wo_id` di 409 (G22).
 
 ---
 
@@ -387,3 +388,47 @@ Audit dilakukan langsung ke stack hidup (`http://localhost` → nginx → `iiot-
   2. Pertahankan 401 dan dokumentasikan "master-data operator butuh Bearer (peran apa pun)" di §H, plus cantumkan di tabel auth per-endpoint.
 - **Kriteria selesai:** tabel auth per-endpoint di API docs mencakup `/operators`; klien (token operator dari `POST /auth/operator-pin`) memuat daftar operator tanpa `401` saat kontrak menyatakan read-only terbuka, atau menampilkan state "butuh login" eksplisit saat kontrak menyatakan wajib token.
 - **Catatan klien:** `OeeHttpMasterDataRepository.listOperators` sudah lewat `mapOperatorListDto` (toleran camelCase/snake_case), jadi begitu akses dibuka tidak ada kerja klien tambahan.
+
+---
+
+# Amandemen 30 Sep 2026 — audit payload lengkap + frame WS live (G21–G22)
+
+Audit: 16 endpoint REST diprobe langsung (`/live-state*`, `/work-orders*`, `/devices*`, `/machines*`, `/products`, `/downtime-events*`, `/operational-events*`, `/telemetry*`, `/quality/rejects*`, `/oee/*`) + 3 frame WS live via `ws://localhost/ws/telemetry`. Setiap key respons dibandingkan dengan field yang dibaca DTO klien. Hasil: **2 mismatch diperbaiki sisi klien, 2 kebutuhan dicatat untuk backend.**
+
+## G21 — Frame WS relay ber-envelope, `HEALTH_UPDATE` sempat masuk jalur telemetri (Prioritas: TINGGI — sudah ditutup klien)
+
+- **Kebutuhan UI:** update gauge realtime + badge health edge (`HeaderZone`) tanpa polling.
+- **Payload nyata 30 Sep 2026** (capture `node ws-probe`):
+  ```json
+  {"type":"TELEMETRY_UPDATE","topic":"oee/device/STM32-OEE-SIM/telemetry",
+   "device_id":"STM32-OEE-SIM","machine_id":"CNC-MILLING-SIM",
+   "data":{"timestamp":1790751450,"wo_id":"WO-SIM-20260906-01","fsm_state":"UNCONFIGURED",
+    "counters":{"total":0,"good":0,"reject":0,"last_cycle_sec":12},
+    "time_metrics_sec":{"operating_time":0,"run_time":0,"downtime":0},
+    "oee":{"availability":0,"performance":0,"quality":100,"total_oee":0},
+    "plc_modbus":{"spindle_rpm":0,"temp_c":35,"alarm_code":0},
+    "hw_diag":{"uptime_sec":15715,"free_heap":48487},"is_buffered":false},
+   "received_at":"2026-09-30T06:57:30.258Z"}
+  {"type":"HEALTH_UPDATE","device_id":"STM32-OEE-SIM",
+   "data":{"timestamp":1790751451,"heap_free":48526,"tasks_healthy":8,"tasks_total":9,
+    "stale_tasks":[{"name":"Watchdog","age_ms":411,"alive":1},…9 item],
+    "stale_count":0,"event_flags":7},"timestamp":"2026-09-30T06:57:31.470Z"}
+  ```
+- **Kondisi kontrak:** §4 API menyebut frame flat (kontrak lama) tanpa discriminator `type`; backend mengirim envelope `{type, device_id, data}`. Klien lama: (a) memetakan **envelope** sebagai frame → semua counter/oee nol; (b) `HEALTH_UPDATE` ikut masuk `onTelemetry` (karena punya `device_id`) → frame `fsmState: UNKNOWN` + counter 0 **~1 Hz**, menimpa telemetri asli.
+- **Status klien 30 Sep 2026:** `mapTelemetryFrameDto` unwrap `data` bila ada (flat tetap didukung); dispatch `TelemetryWsClient` route per `type` (`TELEMETRY_UPDATE → onTelemetry`, `HEALTH_UPDATE → onHealth` baru, lifecycle tetap); `useTelemetrySubscription` merge health relay ke `machine.health` (badge hidup tanpa cache REST G3). `mapWsHealthDto` + test envelope ditambahkan.
+- **Yang harus dilakukan backend (dokumentasi, tanpa ubah wire):**
+  1. Dokumentasikan envelope relay di §4: `{type: TELEMETRY_UPDATE|HEALTH_UPDATE|lifecycle…, device_id?, machine_id?, data, received_at/timestamp}` + tabel: field top-level vs isi `data`.
+  2. Nyatakan `timestamp` epoch di `data` dalam **detik** (bukan ms) — nilai nyata `1790751450` konsisten detik.
+  3. Bila envelope akan berubah (mis. `heartbeat`/`ping` teks dari server), beri tahu agar route klien ditambah — klien kini **mengabaikan** `type` tak dikenal (aman default).
+- **Kriteria selesai:** §4 API memuat contoh kedua frame di atas; dashboard connect → gauge bergerak dalam < 5 dtk dan badge Edge menunjukkan `8/9 tasks` (bukan `0/0`).
+
+## G22 — Recovery WO basi + kelengkapan per-bucket hourly (Prioritas: SEDANG — sebagian klien, sebagian backend)
+
+- **Kebutuhan UI:** metadata job (produk/operator/target/shift) tidak boleh hilang saat `snapshot.woId` ketinggalan dari WO yang benar-benar berjalan.
+- **Bukti nyata 30 Sep 2026:** snapshot `STM32-OEE-SIM` masih menunjuk `WO-SIM-20260906-01`, mesin sudah menjalankan `WO-SIM-20260906-02` (ACTIVE). `resolve(woId basi)` → `409 {"error":"CONFLICT",…}`. Klien lama jatuh ke detail WO basi (tanpa shift plan/target per jam).
+- **Status klien 30 Sep 2026:** `resolveWorkOrderForSnapshot` kini mencoba (1) resolve woId snapshot → (2) cari WO ACTIVE milik mesin yang sama lalu resolve → (3) fallback detail. E2E live terverifikasi: recovery menghasilkan `{woId, product, target 600, shiftStart 16:00, targetPerHour 83, ACTIVE}` + test `CONFLICT` di `backend-machine-repository.test.ts`.
+- **Yang harus dilakukan backend (peningkatan):**
+  1. **Good/reject per bucket hourly:** backend mengirim `estHourlyReject` tapi **tanpa** good per jam; klien kini menurunkan `good = output − reject`. Bila backend memberi `estHourlyGood` (atau `goodCount`) eksplisit, klien langsung memakainya (precedence sudah: eksplisit > turunan). Non-breaking, aditif.
+  2. **`resolve` informatif untuk WO basi:** pesan 409 saat ini sudah menyebut WO aktif pengganti dalam `message` — pertimbangkan field terstruktur (`{error:"CONFLICT", active_wo_id:"…"}`) agar klien tidak perlu list terpisah (hemat 1 round-trip per mesin per boot).
+  3. **Downtime/reject tetap kosong:** `downtime-events/*` dan `quality/rejects/*` me-return `data: []` di semua device (bukan salah map — sudah diverifikasi 4 device). Ini konsistensi data backend/edge, bukan gap kontrak; dicatat agar tidak diinvestigasi ulang.
+- **Kriteria selesai:** (1) item hourly memuat good eksplisit atau dokumen menyatakan turunan klien resmi; (2) 409 resolve memuat `active_wo_id` atau dokumen menyatakan klien wajib list sendiri; (3) downtime/reject terisi saat edge mengirim event (di luar audit ini).

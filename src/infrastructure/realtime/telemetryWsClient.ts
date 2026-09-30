@@ -6,7 +6,7 @@
 
 import type { IRealtimeGateway, RealtimeListener } from '../../domain/ports/IOeeBackend';
 import { isLiveTelemetryFrame } from '../../domain/entities/backend/Telemetry';
-import { mapTelemetryFrameDto, mapWsLifecycleEventDto } from '../backend/dto/telemetry.dto';
+import { mapTelemetryFrameDto, mapWsHealthDto, mapWsLifecycleEventDto } from '../backend/dto/telemetry.dto';
 import { env } from '../config/env';
 
 const HEARTBEAT_MS = 25_000;
@@ -44,12 +44,29 @@ export class TelemetryWsClient implements IRealtimeGateway {
       if (event.data === 'pong') return;
       try {
         const raw = JSON.parse(String(event.data)) as Record<string, unknown>;
-        if (raw && typeof raw === 'object' && ('device_id' in raw || 'deviceId' in raw || 'fsm_state' in raw)) {
+        if (!raw || typeof raw !== 'object') return;
+        // Relay WS memakai discriminator `type` (lihat payload TELEMETRY_UPDATE /
+        // HEALTH_UPDATE nyata): route dulu berdasar type agar HEALTH_UPDATE tidak
+        // salah masuk jalur telemetri sebagai counter 0.
+        if (raw.type === 'TELEMETRY_UPDATE') {
           const frame = mapTelemetryFrameDto(raw);
           // Buffered backlog frames must not drive 60fps gauges.
           if (!isLiveTelemetryFrame(frame)) return;
           this.listener.onTelemetry?.(frame);
-        } else if (raw && typeof raw.type === 'string') {
+          return;
+        }
+        if (raw.type === 'HEALTH_UPDATE') {
+          const update = mapWsHealthDto(raw);
+          if (update) this.listener.onHealth?.(update.deviceId, update.health);
+          return;
+        }
+        if (raw.type === 'ping') return;
+        if ('device_id' in raw || 'deviceId' in raw || 'fsm_state' in raw) {
+          // Kompatibel kontrak lama: frame telemetri flat tanpa envelope type.
+          const frame = mapTelemetryFrameDto(raw);
+          if (!isLiveTelemetryFrame(frame)) return;
+          this.listener.onTelemetry?.(frame);
+        } else if (typeof raw.type === 'string') {
           const lifecycleEvent = mapWsLifecycleEventDto(raw);
           if (lifecycleEvent) this.listener.onLifecycle?.(lifecycleEvent);
         }

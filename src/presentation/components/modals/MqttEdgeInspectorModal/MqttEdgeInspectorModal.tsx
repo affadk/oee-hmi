@@ -7,6 +7,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { X, Terminal, ChevronRight } from 'lucide-react';
 import { MachineConfig } from '../../../../domain/index';
 import { useTheme } from '../../../providers/ThemeProvider';
+import { connectionWord } from '../../../utils/statusWords';
 import {
   NAV,
   FSM_LABEL,
@@ -214,14 +215,14 @@ export const MqttEdgeInspectorModal: React.FC<MqttEdgeInspectorModalProps> = ({
             <div className="flex items-center gap-2 flex-wrap">
               <h2 className={`font-bold text-sm sm:text-base truncate ${value}`}>STM32H723 · Edge Controller Terminal</h2>
               <span className={`text-[10px] px-2 py-0.5 rounded-full font-mono border font-semibold ${machine.connectionStatus === 'ONLINE' ? (isDark ? 'bg-emerald-950 text-emerald-300 border-emerald-800' : 'bg-emerald-50 text-emerald-700 border-emerald-300') : 'bg-rose-100 text-rose-700 border-rose-300'}`}>
-                ● {machine.connectionStatus} · W5500
+                ● {connectionWord(machine.connectionStatus)} · W5500
               </span>
               <span className={`text-[10px] px-2 py-0.5 rounded-full font-mono border font-semibold ${isDark ? 'bg-slate-800 text-slate-200 border-slate-700' : 'bg-slate-100 text-slate-700 border-slate-300'}`}>
                 FSM: {fsmLabel}
               </span>
               {t.is_buffered && (
                 <span className="text-[10px] px-2 py-0.5 rounded-full font-mono border font-semibold bg-amber-100 text-amber-800 border-amber-300">
-                  FIFO DRAIN
+                  DATA TERTUNDA (FIFO)
                 </span>
               )}
             </div>

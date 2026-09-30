@@ -8,6 +8,7 @@ import React from 'react';
 export interface FullscreenSubHeaderProps {
   machineName: string;
   machineLine: string;
+  deviceId: string;
   productName: string;
   targetCycleTimeSec: number;
   operatorName: string;
@@ -28,6 +29,7 @@ export interface FullscreenSubHeaderProps {
 export const FullscreenSubHeader: React.FC<FullscreenSubHeaderProps> = ({
   machineName,
   machineLine,
+  deviceId,
   productName,
   targetCycleTimeSec,
   operatorName,
@@ -63,6 +65,11 @@ export const FullscreenSubHeader: React.FC<FullscreenSubHeaderProps> = ({
               isDark ? 'text-slate-400' : 'text-slate-600'
             }`}>
               {machineLine}
+            </span>
+            <span className={`font-mono text-xs mt-0.5 ${
+              isDark ? 'text-slate-500' : 'text-slate-500'
+            }`} title="Device ID edge controller">
+              {deviceId}
             </span>
           </div>
         </div>

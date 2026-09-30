@@ -28,7 +28,7 @@ export function useTelemetrySubscription(deps: TelemetrySubscriptionDeps): void 
     const unsubscribe = subscribeTelemetryUseCase.subscribe({
       onTelemetry: (frame) => {
         if (!isMounted) return;
-        // Buffered backlog must not drive gauges (defense-in-depth: gateway already drops these).
+        // Buffered backlog must not drive 60fps gauges (defense-in-depth: gateway already drops these).
         if (!isLiveTelemetryFrame(frame)) return;
         // Update the matching machine in state with live telemetry
         setMachines((prev) =>
@@ -66,6 +66,14 @@ export function useTelemetrySubscription(deps: TelemetrySubscriptionDeps): void 
               lastTelemetryTs: frame.timestamp,
             };
           })
+        );
+      },
+      onHealth: (deviceId, health) => {
+        if (!isMounted) return;
+        // Relay HEALTH_UPDATE langsung dari edge (tanpa cache REST G3):
+        // badge Edge hidup walau cache backend miss.
+        setMachines((prev) =>
+          prev.map((m) => (m.deviceId === deviceId ? { ...m, health } : m))
         );
       },
       onLifecycle: (event) => {
