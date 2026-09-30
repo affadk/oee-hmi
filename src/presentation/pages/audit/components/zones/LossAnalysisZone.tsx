@@ -1,9 +1,9 @@
 // /src/components/LossAnalysisZone.tsx — style OEE Shift Overview
 
 import React, { useState } from 'react';
-import { MachineConfig, CalculatedOeeMetrics } from '../../../domain/index';
-import { formatNumber } from '../../../domain/services/OeeCalculator';
-import { useTheme } from '../../providers/ThemeProvider';
+import { MachineConfig, CalculatedOeeMetrics } from '../../../../../domain/index';
+import { formatNumber } from '../../../../../domain/services/OeeCalculator';
+import { useTheme } from '../../../../providers/ThemeProvider';
 
 interface LossAnalysisZoneProps {
   machine: MachineConfig;

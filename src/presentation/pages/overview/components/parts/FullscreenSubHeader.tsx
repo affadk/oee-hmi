@@ -2,6 +2,7 @@
 // Sub-header bar — machine metadata (product, cycle time, operator, shift, break, target) + live clock + status toggle.
 
 import React from "react";
+import { MachineIdentity } from "../../../shared/MachineIdentity";
 
 export interface FullscreenSubHeaderProps {
   machineName: string;
@@ -57,34 +58,15 @@ export const FullscreenSubHeader: React.FC<FullscreenSubHeaderProps> = ({
       <div className="w-full flex flex-col xl:flex-row items-start xl:items-center justify-between gap-4 xl:gap-6">
         {/* Machine name + line */}
         <div className="flex items-center gap-2.5 shrink-0 min-w-[180px]">
-          <div className="flex flex-col">
-            <h1
-              className={`text-2xl sm:text-3xl font-black tracking-tight leading-none ${
-                isDark ? "text-white" : "text-slate-900"
-              }`}
-            >
-              {machineName}
-            </h1>
-            {machineLine && machineLine !== "—" ? (
-              <span
-                className={`text-sm sm:text-base font-bold mt-0.5 ${
-                  isDark ? "text-slate-400" : "text-slate-600"
-                }`}
-              >
-                {machineLine}
-              </span>
-            ) : null}
-            {deviceId && deviceId !== "—" ? (
-              <span
-                className={`font-mono text-sm sm:text-base font-bold mt-0.5 ${
-                  isDark ? "text-slate-400" : "text-slate-600"
-                }`}
-                title="Device ID edge controller"
-              >
-                {deviceId}
-              </span>
-            ) : null}
-          </div>
+          <MachineIdentity
+            machineName={machineName}
+            machineLine={machineLine !== "—" ? machineLine : null}
+            deviceId={deviceId !== "—" ? deviceId : null}
+            titleClassName={`text-2xl sm:text-3xl font-black tracking-tight leading-none ${
+              isDark ? "text-white" : "text-slate-900"
+            }`}
+            isDark={isDark}
+          />
         </div>
 
         {/* Metadata grid */}

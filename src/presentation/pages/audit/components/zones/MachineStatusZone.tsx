@@ -2,8 +2,8 @@
 
 import React, { useState } from 'react';
 import { Activity, Clock, AlertCircle, Wrench, Coffee } from 'lucide-react';
-import { MachineConfig, CalculatedOeeMetrics, MachineStatus } from '../../../domain/index';
-import { useTheme } from '../../providers/ThemeProvider';
+import { MachineConfig, CalculatedOeeMetrics, MachineStatus } from '../../../../../domain/index';
+import { useTheme } from '../../../../providers/ThemeProvider';
 
 interface MachineStatusZoneProps {
   machine: MachineConfig;

@@ -1,5 +1,5 @@
-// /src/presentation/components/zones/index.ts
-// Barrel: dashboard audit-view zones.
+// /src/presentation/pages/audit/components/zones/index.ts
+// Barrel: zone khusus halaman Detailed Audit Dashboard.
 
 export { HeroKpiZone } from './HeroKpiZone';
 export { ProductionZone } from './ProductionZone';

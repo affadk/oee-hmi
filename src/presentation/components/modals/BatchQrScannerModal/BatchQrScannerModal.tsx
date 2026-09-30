@@ -27,7 +27,7 @@ import { tx, cx, themeTokens } from '../../../styles/themeTokens';
 import type { MachineConfig } from '../../../../domain/index';
 import type { OperatorRecord, ProductRecord } from '../../../../domain/entities/backend/Device';
 import type { WorkOrderResolveResult } from '../../../../domain/entities/backend/WorkOrder';
-import { QrCameraScanner } from '../../../layouts/QrCameraScanner';
+import { QrCameraScanner } from '../../common/QrCameraScanner';
 import {
   QR_PRODUCT_CATALOG,
   QR_OPERATOR_CATALOG,

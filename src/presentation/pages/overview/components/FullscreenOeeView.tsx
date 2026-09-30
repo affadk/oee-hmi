@@ -3,18 +3,18 @@
 // Delegates rendering to focused sub-components under sub-components/.
 
 import React, { useState, useEffect } from "react";
-import { useTheme } from "../providers/ThemeProvider";
-import { BatchQrScannerModal } from "../components/modals/BatchQrScannerModal/BatchQrScannerModal";
+import { useTheme } from "../../../providers/ThemeProvider";
+import { BatchQrScannerModal } from "../../../components/modals/BatchQrScannerModal/BatchQrScannerModal";
 import { FloorPushButtonsPanel } from "./FloorPushButtonsPanel";
 import { TimeSummaryPanel } from "./panels/TimeSummaryPanel";
 import { PasXProgressStrip } from "./panels/PasXProgressStrip";
-import { FullscreenHeader } from "./sub-components/FullscreenHeader";
-import { FullscreenSubHeader } from "./sub-components/FullscreenSubHeader";
-import { KpiCard } from "./sub-components/KpiCard";
-import { ProductionRateCard } from "./sub-components/ProductionRateCard";
-import { FullscreenFooter } from "./sub-components/FullscreenFooter";
-import { buildFullscreenViewModel } from "./sub-components/FullscreenViewModel";
-import type { FullscreenOeeViewProps } from "./sub-components/FullscreenViewModel";
+import { FullscreenHeader } from "./parts/FullscreenHeader";
+import { FullscreenSubHeader } from "./parts/FullscreenSubHeader";
+import { KpiCard } from "./parts/KpiCard";
+import { ProductionRateCard } from "./parts/ProductionRateCard";
+import { FullscreenFooter } from "./parts/FullscreenFooter";
+import { buildFullscreenViewModel } from "./parts/FullscreenViewModel";
+import type { FullscreenOeeViewProps } from "./parts/FullscreenViewModel";
 
 export type { FullscreenOeeViewProps };
 

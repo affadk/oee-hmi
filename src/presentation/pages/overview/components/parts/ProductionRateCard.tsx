@@ -2,8 +2,8 @@
 // Production rate card — tachometer gauge + live/target rate numbers (right upper panel).
 
 import React from 'react';
-import { PasXTachometerGauge } from '../../components/charts/PasXTachometerGauge';
-import { fluid } from '../../utils/fluidType';
+import { PasXTachometerGauge } from '../../../../components/charts/PasXTachometerGauge';
+import { fluid } from '../../../../utils/fluidType';
 
 export interface ProductionRateCardProps {
   currentRate: number;

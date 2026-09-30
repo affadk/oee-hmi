@@ -2,14 +2,14 @@
 // Shared view-model: computed metrics consumed by FullscreenOeeView sub-components.
 // Kept as a plain object type so each sub-component receives only the data it needs.
 
-import type { MachineConfig, CalculatedOeeMetrics } from '../../../domain/index';
-import type { BackendHealth } from '../../../domain/ports/IOeeBackend';
-import type { OperatorRecord, ProductRecord } from '../../../domain/entities/backend/Device';
-import { telemetryAgeSec } from '../../../domain/index';
-import { isEdgeHealthOk } from '../../../domain/entities/EdgeContracts';
-import type { TimelineSegment } from '../../../domain/services/ShiftTimeline';
-import type { WorkOrderResolveResult } from '../../../domain/entities/backend/WorkOrder';
-import { fluid } from '../../utils/fluidType';
+import type { MachineConfig, CalculatedOeeMetrics } from '../../../../../domain/index';
+import type { BackendHealth } from '../../../../../domain/ports/IOeeBackend';
+import type { OperatorRecord, ProductRecord } from '../../../../../domain/entities/backend/Device';
+import { telemetryAgeSec } from '../../../../../domain/index';
+import { isEdgeHealthOk } from '../../../../../domain/entities/EdgeContracts';
+import type { TimelineSegment } from '../../../../../domain/services/ShiftTimeline';
+import type { WorkOrderResolveResult } from '../../../../../domain/entities/backend/WorkOrder';
+import { fluid } from '../../../../utils/fluidType';
 
 export interface FullscreenOeeViewProps {
   machine: MachineConfig;

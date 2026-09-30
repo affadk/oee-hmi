@@ -2,8 +2,8 @@
 // Canonical presentation barrel.
 
 export * from './pages/DashboardPage';
-export * from './pages/OverviewPage';
-export * from './pages/AuditPage';
+export * from './pages/overview/OverviewPage';
+export * from './pages/audit/AuditPage';
 export * from './providers/ThemeProvider';
 export * from './providers/DiProvider';
 export * from './hooks/useFullscreen';

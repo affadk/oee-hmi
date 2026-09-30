@@ -3,9 +3,9 @@
 
 import React, { Suspense } from "react";
 import { HelpCircle } from "lucide-react";
-import type { MachineConfig } from "../../../domain/index";
-import { PasXDonutGauge } from "../../components/charts/PasXDonutGauge";
-const EChartsOeeTrend = React.lazy(() => import("../../components/charts/EChartsOeeTrend"));
+import type { MachineConfig } from "../../../../../domain/index";
+import { PasXDonutGauge } from "../../../../components/charts/PasXDonutGauge";
+const EChartsOeeTrend = React.lazy(() => import("../../../../components/charts/EChartsOeeTrend"));
 
 export interface KpiCardProps {
   // Gauge data

@@ -7,10 +7,10 @@ import { ThemeProvider } from './presentation/providers/ThemeProvider';
 import { DashboardPage } from './presentation/pages/DashboardPage';
 
 const OverviewPage = React.lazy(() =>
-  import('./presentation/pages/OverviewPage').then((m) => ({ default: m.OverviewPage })),
+  import('./presentation/pages/overview/OverviewPage').then((m) => ({ default: m.OverviewPage })),
 );
 const AuditPage = React.lazy(() =>
-  import('./presentation/pages/AuditPage').then((m) => ({ default: m.AuditPage })),
+  import('./presentation/pages/audit/AuditPage').then((m) => ({ default: m.AuditPage })),
 );
 
 const RouteFallback: React.FC = () => (

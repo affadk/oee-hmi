@@ -2,8 +2,8 @@
 
 import React from "react";
 import { Clock } from "lucide-react";
-import { useTheme } from "../../providers/ThemeProvider";
-import { CalculatedOeeMetrics } from "../../../domain/index";
+import { useTheme } from "../../../../providers/ThemeProvider";
+import { CalculatedOeeMetrics } from "../../../../../domain/index";
 
 interface TimeSummaryPanelProps {
   metrics?: CalculatedOeeMetrics;

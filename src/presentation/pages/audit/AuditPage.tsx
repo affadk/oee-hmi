@@ -1,17 +1,17 @@
 import React from 'react';
 import { useOutletContext } from 'react-router-dom';
-import { telemetryAgeSec } from '../../domain/index';
-import { useTheme } from '../providers/ThemeProvider';
-import { HeaderZone } from '../components/layout/HeaderZone';
-import { HeroKpiZone } from '../components/zones/HeroKpiZone';
-import { ProductionZone } from '../components/zones/ProductionZone';
-import { MachineStatusZone } from '../components/zones/MachineStatusZone';
-import { LossAnalysisZone } from '../components/zones/LossAnalysisZone';
-import { TrendZone } from '../components/zones/TrendZone';
-import { AlarmsZone } from '../components/zones/AlarmsZone';
-import type { DashboardOutletContext } from './DashboardPage';
-import { HealthFooter } from '../components/footer/HealthFooter';
-import { connectionWord } from '../utils/statusWords';
+import { telemetryAgeSec } from '../../../domain/index';
+import { useTheme } from '../../providers/ThemeProvider';
+import { HeaderZone } from './components/HeaderZone';
+import { HeroKpiZone } from './components/zones/HeroKpiZone';
+import { ProductionZone } from './components/zones/ProductionZone';
+import { MachineStatusZone } from './components/zones/MachineStatusZone';
+import { LossAnalysisZone } from './components/zones/LossAnalysisZone';
+import { TrendZone } from './components/zones/TrendZone';
+import { AlarmsZone } from './components/zones/AlarmsZone';
+import type { DashboardOutletContext } from '../DashboardPage';
+import { HealthFooter } from '../../components/footer/HealthFooter';
+import { connectionWord } from '../../utils/statusWords';
 
 export const AuditPage: React.FC = () => {
   const { dashboard } = useOutletContext<DashboardOutletContext>();

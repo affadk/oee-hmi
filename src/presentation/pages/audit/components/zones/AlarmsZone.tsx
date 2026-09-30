@@ -2,8 +2,8 @@
 
 import React from 'react';
 import { CheckCircle2 } from 'lucide-react';
-import { MachineAlarmEvent } from '../../../domain/index';
-import { useTheme } from '../../providers/ThemeProvider';
+import { MachineAlarmEvent } from '../../../../../domain/index';
+import { useTheme } from '../../../../providers/ThemeProvider';
 
 interface AlarmsZoneProps {
   alarms: MachineAlarmEvent[];

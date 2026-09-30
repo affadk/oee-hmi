@@ -17,13 +17,14 @@ import {
   MachineConfig,
   CalculatedOeeMetrics,
   MachineStatus,
-} from "../../../domain/index";
-import type { EdgeHealthPayload } from "../../../domain/entities/EdgeContracts";
+} from "../../../../domain/index";
+import type { EdgeHealthPayload } from "../../../../domain/entities/EdgeContracts";
 import {
   EDGE_HEALTH_STALE_AFTER_SEC,
   isEdgeHealthOk,
-} from "../../../domain/entities/EdgeContracts";
-import { useTheme } from "../../providers/ThemeProvider";
+} from "../../../../domain/entities/EdgeContracts";
+import { useTheme } from "../../../providers/ThemeProvider";
+import { MachineIdentity } from "../../shared/MachineIdentity";
 
 interface HeaderZoneProps {
   currentMachine: MachineConfig;
@@ -371,28 +372,12 @@ export const HeaderZone: React.FC<HeaderZoneProps> = ({
       >
         <div className="w-full flex flex-col xl:flex-row items-start xl:items-center justify-between gap-4 xl:gap-6">
           <div className="flex items-center gap-2.5 shrink-0 min-w-[180px]">
-            <div className="flex flex-col">
-              <h1
-                className={`audit-name font-black tracking-tight leading-none ${isDark ? "text-white" : "text-slate-900"}`}
-              >
-                {machineName}
-              </h1>
-              {currentMachine.line ? (
-                <span
-                  className={`text-sm sm:text-base font-bold mt-0.5 ${isDark ? "text-slate-400" : "text-slate-600"}`}
-                >
-                  {currentMachine.line}
-                </span>
-              ) : null}
-              {currentMachine.deviceId ? (
-                <span
-                  className={`font-mono text-sm sm:text-base font-bold mt-0.5 ${isDark ? "text-slate-400" : "text-slate-600"}`}
-                  title="Device ID edge controller"
-                >
-                  {currentMachine.deviceId}
-                </span>
-              ) : null}
-            </div>
+            <MachineIdentity
+              machineName={machineName}
+              machineLine={currentMachine.line || null}
+              deviceId={currentMachine.deviceId || null}
+              isDark={isDark}
+            />
           </div>
 
           <div className="w-full xl:w-fit grid grid-cols-2 sm:grid-cols-4 gap-x-4 sm:gap-x-6 gap-y-2 text-sm">

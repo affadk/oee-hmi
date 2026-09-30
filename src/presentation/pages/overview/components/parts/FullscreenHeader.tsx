@@ -12,7 +12,7 @@ import {
   Moon,
   ChevronDown,
 } from 'lucide-react';
-import type { MachineConfig } from '../../../domain/index';
+import type { MachineConfig } from '../../../../../domain/index';
 
 export interface FullscreenHeaderProps {
   machine: MachineConfig;

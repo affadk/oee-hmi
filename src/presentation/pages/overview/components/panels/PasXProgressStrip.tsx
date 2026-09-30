@@ -1,15 +1,15 @@
 // /src/components/fullscreen/PasXProgressStrip.tsx
 
 import React, { useState, useEffect, useRef, useMemo } from "react";
-import { useTheme } from "../../providers/ThemeProvider";
-import { MachineConfig, CalculatedOeeMetrics } from "../../../domain/index";
+import { useTheme } from "../../../../providers/ThemeProvider";
+import { MachineConfig, CalculatedOeeMetrics } from "../../../../../domain/index";
 import {
   buildShiftTimeline,
   clockLabel,
   formatDuration,
   type TimelineKind,
   type TimelineSegment,
-} from "../../../domain/services/ShiftTimeline";
+} from "../../../../../domain/services/ShiftTimeline";
 
 interface PasXProgressStripProps {
   machine: MachineConfig;

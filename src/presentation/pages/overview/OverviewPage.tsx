@@ -6,8 +6,8 @@
 
 import React from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
-import { FullscreenOeeView } from '../layouts/FullscreenOeeView';
-import type { DashboardOutletContext } from './DashboardPage';
+import { FullscreenOeeView } from './components/FullscreenOeeView';
+import type { DashboardOutletContext } from '../DashboardPage';
 
 export const OverviewPage: React.FC = () => {
   const { dashboard, isFullscreen, toggleBrowserFullscreen } = useOutletContext<DashboardOutletContext>();

@@ -3,9 +3,9 @@
 
 import React from 'react';
 import { HelpCircle } from 'lucide-react';
-import { CalculatedOeeMetrics, MachineConfig } from '../../../domain/index';
-import { useTheme } from '../../providers/ThemeProvider';
-import { PasXDonutGauge } from '../charts/PasXDonutGauge';
+import { CalculatedOeeMetrics, MachineConfig } from '../../../../../domain/index';
+import { useTheme } from '../../../../providers/ThemeProvider';
+import { PasXDonutGauge } from '../../../../components/charts/PasXDonutGauge';
 
 interface HeroKpiZoneProps {
   metrics: CalculatedOeeMetrics;

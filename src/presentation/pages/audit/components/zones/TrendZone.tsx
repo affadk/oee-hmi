@@ -1,8 +1,8 @@
 // /src/components/TrendZone.tsx — style OEE Shift Overview
 
 import React, { useState } from 'react';
-import { HourlyDataPoint } from '../../../domain/index';
-import { useTheme } from '../../providers/ThemeProvider';
+import { HourlyDataPoint } from '../../../../../domain/index';
+import { useTheme } from '../../../../providers/ThemeProvider';
 
 interface TrendZoneProps {
   hourlyTrends: HourlyDataPoint[];

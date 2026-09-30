@@ -3,9 +3,9 @@
 
 import React from 'react';
 import { Radio } from 'lucide-react';
-import type { BackendHealth } from '../../../domain/ports/IOeeBackend';
-import { connectionWord } from '../../utils/statusWords';
-import { HealthFooter } from '../../components/footer/HealthFooter';
+import type { BackendHealth } from '../../../../../domain/ports/IOeeBackend';
+import { connectionWord } from '../../../../utils/statusWords';
+import { HealthFooter } from '../../../../components/footer/HealthFooter';
 
 export interface FullscreenFooterProps {
   machineName: string;

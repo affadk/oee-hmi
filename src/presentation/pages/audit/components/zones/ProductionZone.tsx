@@ -2,9 +2,9 @@
 
 import React from 'react';
 import { HelpCircle } from 'lucide-react';
-import { CalculatedOeeMetrics, MachineConfig } from '../../../domain/index';
-import { formatNumber } from '../../../domain/services/OeeCalculator';
-import { useTheme } from '../../providers/ThemeProvider';
+import { CalculatedOeeMetrics, MachineConfig } from '../../../../../domain/index';
+import { formatNumber } from '../../../../../domain/services/OeeCalculator';
+import { useTheme } from '../../../../providers/ThemeProvider';
 
 interface ProductionZoneProps {
   metrics: CalculatedOeeMetrics;

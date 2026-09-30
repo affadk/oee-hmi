@@ -2,8 +2,8 @@
 
 import React, { useEffect, useState } from 'react';
 import { Play, Square, PlusCircle, AlertOctagon, RotateCcw, Wrench, ShieldAlert, TriangleAlert, X } from 'lucide-react';
-import { useTheme } from '../providers/ThemeProvider';
-import { MachineConfig } from '../../domain/index';
+import { useTheme } from '../../../providers/ThemeProvider';
+import { MachineConfig } from '../../../../domain/index';
 
 interface FloorPushButtonsPanelProps {
   machine: MachineConfig;
