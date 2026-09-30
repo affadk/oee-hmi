@@ -33,28 +33,29 @@ interface RawFrame {
 }
 
 interface RawTelemetryHistory {
-  timestamp?: string; ts?: string; bucket?: string;
+  timestamp?: string; ts?: string; bucket?: string; recordedAt?: string; recorded_at?: string;
   deviceId?: string; device_id?: string;
   totalCount?: number; total_count?: number; total?: number;
   goodCount?: number; good_count?: number; good?: number;
   rejectCount?: number; reject_count?: number; reject?: number;
-  oee?: string | number; total_oee?: string | number;
-  availability?: string | number;
-  performance?: string | number;
-  quality?: string | number;
+  oee?: string | number; total_oee?: string | number; avgOee?: string | number; avg_oee?: string | number;
+  availability?: string | number; avgAvailability?: string | number; avg_availability?: string | number;
+  performance?: string | number; avgPerformance?: string | number; avg_performance?: string | number;
+  quality?: string | number; avgQuality?: string | number; avg_quality?: string | number;
   isBuffered?: boolean; is_buffered?: boolean;
 }
 
 interface RawHourlyTrend {
   bucket?: string; hour?: string;
   deviceId?: string; device_id?: string;
-  oee?: string | number; total_oee?: string | number;
-  availability?: string | number;
-  performance?: string | number;
-  quality?: string | number;
+  oee?: string | number; total_oee?: string | number; avgOee?: string | number; avg_oee?: string | number;
+  availability?: string | number; avgAvailability?: string | number; avg_availability?: string | number;
+  performance?: string | number; avgPerformance?: string | number; avg_performance?: string | number;
+  quality?: string | number; avgQuality?: string | number; avg_quality?: string | number;
   totalCount?: number; total_count?: number;
   goodCount?: number; good_count?: number;
   rejectCount?: number; reject_count?: number;
+  estHourlyOutput?: number; est_hourly_output?: number;
   targetPerHour?: number | null; target_per_hour?: number | null;
   state?: string | null;
   planned?: boolean | null;
@@ -168,15 +169,15 @@ export function mapTelemetryFrameDto(raw: RawFrame): WsTelemetryFrame {
 
 export function mapTelemetryHistoryDto(raw: RawTelemetryHistory): TelemetryHistoryPoint {
   return {
-    timestamp: raw.timestamp ?? raw.ts ?? raw.bucket ?? new Date(0).toISOString(),
+    timestamp: raw.timestamp ?? raw.ts ?? raw.recordedAt ?? raw.recorded_at ?? raw.bucket ?? new Date(0).toISOString(),
     deviceId: raw.deviceId ?? raw.device_id ?? '',
     totalCount: toFiniteNumber(raw.totalCount ?? raw.total_count ?? raw.total),
     goodCount: toFiniteNumber(raw.goodCount ?? raw.good_count ?? raw.good),
     rejectCount: toFiniteNumber(raw.rejectCount ?? raw.reject_count ?? raw.reject),
-    oee: toFiniteNumber(raw.oee ?? raw.total_oee),
-    availability: toFiniteNumber(raw.availability),
-    performance: toFiniteNumber(raw.performance),
-    quality: toFiniteNumber(raw.quality),
+    oee: toFiniteNumber(raw.oee ?? raw.total_oee ?? raw.avgOee ?? raw.avg_oee),
+    availability: toFiniteNumber(raw.availability ?? raw.avgAvailability ?? raw.avg_availability),
+    performance: toFiniteNumber(raw.performance ?? raw.avgPerformance ?? raw.avg_performance),
+    quality: toFiniteNumber(raw.quality ?? raw.avgQuality ?? raw.avg_quality),
     isBuffered: raw.isBuffered ?? raw.is_buffered ?? false,
   };
 }
@@ -189,11 +190,13 @@ export function mapHourlyTrendDto(raw: RawHourlyTrend): HourlyTrendPoint {
   return {
     bucket: raw.bucket ?? raw.hour ?? '',
     deviceId: raw.deviceId ?? raw.device_id ?? '',
-    oee: toFiniteNumber(raw.oee ?? raw.total_oee),
-    availability: toFiniteNumber(raw.availability),
-    performance: toFiniteNumber(raw.performance),
-    quality: toFiniteNumber(raw.quality),
-    totalCount: toFiniteNumber(raw.totalCount ?? raw.total_count),
+    oee: toFiniteNumber(raw.oee ?? raw.total_oee ?? raw.avgOee ?? raw.avg_oee),
+    availability: toFiniteNumber(raw.availability ?? raw.avgAvailability ?? raw.avg_availability),
+    performance: toFiniteNumber(raw.performance ?? raw.avgPerformance ?? raw.avg_performance),
+    quality: toFiniteNumber(raw.quality ?? raw.avgQuality ?? raw.avg_quality),
+    // Backend v2 hourly mengirim `estHourlyOutput` (perkiraan output jam)
+    // alih-alih totalCount — pakai sebagai actual per jam bila total tak ada.
+    totalCount: toFiniteNumber(raw.totalCount ?? raw.total_count ?? raw.estHourlyOutput ?? raw.est_hourly_output),
     goodCount: toFiniteNumber(raw.goodCount ?? raw.good_count),
     rejectCount: toFiniteNumber(raw.rejectCount ?? raw.reject_count),
     targetPerHour: raw.targetPerHour ?? raw.target_per_hour ?? null,

@@ -31,7 +31,9 @@ export default defineConfig(({mode}) => {
         '/api': {target: proxyTarget, changeOrigin: true},
         '/health': {target: proxyTarget, changeOrigin: true},
         '/docs': {target: proxyTarget, changeOrigin: true},
-        '/ws': {target: proxyTarget, changeOrigin: true, ws: true},
+        // Perimeter gateway menolak Origin http://localhost:3002 (SECURITY_REJECTION
+        // 403 di /ws/telemetry). Rewrite Origin ke target agar WS realtime hidup.
+        '/ws': {target: proxyTarget, changeOrigin: true, ws: true, headers: {Origin: proxyTarget}},
       },
     },
     preview: {

@@ -44,6 +44,14 @@ import {
   mapTelemetryHistoryListDto,
 } from '../dto/telemetry.dto';
 import { mapShiftSummaryDto, mapShiftTimelineListDto } from '../dto/shift.dto';
+import {
+  mapDeviceDto,
+  mapDeviceListDto,
+  mapMachineDto,
+  mapMachineListDto,
+  mapOperatorListDto,
+  mapProductListDto,
+} from '../dto/master-data.dto';
 import { assertDeviceCommandReason } from '../../../domain/entities/backend/Device';
 import { endpoints } from './endpoints';
 import { BackendHttpError, httpDownload, httpRequest } from './httpClient';
@@ -118,35 +126,44 @@ export class OeeHttpDeviceCommandGateway implements IDeviceCommandGateway {
 
 export class OeeHttpMasterDataRepository implements IMasterDataRepository {
   async listDevices(signal?: AbortSignal): Promise<DeviceRecord[]> {
-    return httpRequest<DeviceRecord[]>(endpoints.devices(), { signal });
+    const raw = await httpRequest<unknown>(endpoints.devices(), { signal });
+    return mapDeviceListDto(raw);
   }
   async listMachines(signal?: AbortSignal): Promise<MachineRecord[]> {
-    return httpRequest<MachineRecord[]>(endpoints.machines(), { signal });
+    const raw = await httpRequest<unknown>(endpoints.machines(), { signal });
+    return mapMachineListDto(raw);
   }
   async listProducts(signal?: AbortSignal): Promise<ProductRecord[]> {
-    return httpRequest<ProductRecord[]>(endpoints.products(), { signal });
+    const raw = await httpRequest<unknown>(endpoints.products(), { signal });
+    return mapProductListDto(raw);
   }
   async listOperators(signal?: AbortSignal): Promise<OperatorRecord[]> {
-    return httpRequest<OperatorRecord[]>(endpoints.operators(), { signal });
+    const raw = await httpRequest<unknown>(endpoints.operators(), { signal });
+    return mapOperatorListDto(raw);
   }
   async getDevice(deviceId: string, signal?: AbortSignal): Promise<DeviceRecord> {
-    return httpRequest<DeviceRecord>(endpoints.deviceDetail(deviceId), { signal });
+    const raw = await httpRequest<unknown>(endpoints.deviceDetail(deviceId), { signal });
+    return mapDeviceDto(raw);
   }
   async updateDevice(deviceId: string, patch: DeviceMetadataPatch): Promise<DeviceRecord> {
-    return httpRequest<DeviceRecord>(endpoints.deviceDetail(deviceId), { method: 'PUT', body: patch });
+    const raw = await httpRequest<unknown>(endpoints.deviceDetail(deviceId), { method: 'PUT', body: patch });
+    return mapDeviceDto(raw);
   }
   async getMachine(machineId: string, signal?: AbortSignal): Promise<MachineRecord> {
-    return httpRequest<MachineRecord>(endpoints.machineDetail(machineId), { signal });
+    const raw = await httpRequest<unknown>(endpoints.machineDetail(machineId), { signal });
+    return mapMachineDto(raw);
   }
   async updateMachine(machineId: string, patch: MachineMetadataPatch): Promise<MachineRecord> {
-    return httpRequest<MachineRecord>(endpoints.machineDetail(machineId), { method: 'PUT', body: patch });
+    const raw = await httpRequest<unknown>(endpoints.machineDetail(machineId), { method: 'PUT', body: patch });
+    return mapMachineDto(raw);
   }
   async bindDevice(machineId: string, deviceId: string): Promise<MachineRecord> {
     // Bind contract uses snake_case body per API_DOCUMENTATION.md §F.6.
-    return httpRequest<MachineRecord>(endpoints.machineBind(machineId), {
+    const raw = await httpRequest<unknown>(endpoints.machineBind(machineId), {
       method: 'POST',
       body: { device_id: deviceId },
     });
+    return mapMachineDto(raw);
   }
   async unbindMachine(machineId: string): Promise<void> {
     // G12: kontrak resmi 200 + body (bukan 204); return dibuang — pemanggil

@@ -36,6 +36,8 @@ function normalizeState(raw: unknown): LiveMachineState {
   const s = String(raw ?? 'UNCONFIGURED').toUpperCase();
   if (s === 'PLANNED_DOWNTIME') return 'PLANNED_DT';
   if (s === 'UNPLANNED_DOWNTIME') return 'UNPLANNED_DT';
+  // STANDBY = mesin siaga tanpa kerja aktif → domain IDLE (bukan UNCONFIGURED).
+  if (s === 'STANDBY') return 'IDLE';
   return (KNOWN_STATES as string[]).includes(s) ? (s as LiveMachineState) : 'UNCONFIGURED';
 }
 

@@ -308,7 +308,29 @@ export class BackendMachineRepository implements IMachineRepository {
     try {
       return await this.workOrderRepo.resolve(snapshot.woId, snapshot.deviceId);
     } catch {
-      return null;
+      // Resolve bisa gagal sementara (DEVICE_OFFLINE saat registry isOnline
+      // basi, CONFLICT saat woId snapshot basi) — fallback ke detail WO agar
+      // metadata produk/operator/target tetap tampil. Shift plan tak tersedia
+      // di detail → tetap nol (jendela shift jatuh ke fallback 72 jam).
+      try {
+        const detail = await this.workOrderRepo.getDetail(snapshot.woId);
+        return {
+          woId: detail.woId,
+          machineId: detail.machineId,
+          productId: detail.productId ?? '',
+          productName: detail.productName ?? '',
+          stdCycleTimeSec: 0,
+          operatorId: detail.operatorId ?? '',
+          operatorName: detail.operatorName ?? '',
+          targetQty: detail.targetQty,
+          shiftPlan: { shiftStart: '', shiftEnd: '', plannedBreakMin: 0, plannedOperatingSec: 0 },
+          targetPerHour: null,
+          break: null,
+          status: detail.status,
+        };
+      } catch {
+        return null;
+      }
     }
   }
 

@@ -25,6 +25,11 @@ describe('mapLiveStateDto', () => {
   it('maps unknown states to UNCONFIGURED instead of crashing', () => {
     expect(mapLiveStateDto({ fsm_state: 'WARP_DRIVE' }).currentState).toBe('UNCONFIGURED');
   });
+
+  it('maps backend STANDBY to domain IDLE', () => {
+    expect(mapLiveStateDto({ fsm_state: 'STANDBY' }).currentState).toBe('IDLE');
+    expect(mapLiveStateDto({ current_state: 'STANDBY' }).currentState).toBe('IDLE');
+  });
 });
 
 describe('mapLiveStateListDto', () => {

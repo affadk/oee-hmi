@@ -1,6 +1,7 @@
 # Laporan Kekurangan Endpoint Backend (untuk Peningkatan `iiot-oee/apps/backend`)
 
 > Tanggal: 23 Sep 2026 · Amandemen G12–G16: 24 Sep 2026 (verifikasi ulang pasca-refactor strict + hook split).
+> Amandemen G17–G20: 30 Sep 2026 (audit metadata respons API live terhadap backend `iiot-oee` — key hourly/aggregate `avg*`, `recordedAt` history, staleness `isOnline`, auth `/operators`).
 > Disusun dari audit migrasi total frontend `oee-dashboard-aistudio` ke lane backend.
 > Acuan kontrak existing: `iiot-oee/apps/backend/docs/API_DOCUMENTATION.md`.
 > Prinsip: setiap gap di bawah ini **sudah ada workaround jujur di frontend** (tampilkan kosong/`—`/0, bukan data fabrikasi). Daftar ini agar backend bisa menutupnya bertahap.
@@ -109,8 +110,8 @@ Audit 24 Sep 2026 — diverifikasi melawan pemanggil aktual di `src/` (bukan kla
 | Boot fleet, snapshot per device | `GET /live-state`, `GET /live-state/:device` | ✅ Cocok (G16: tetap array telanjang) |
 | WO list/resolve/dispatch/complete/cancel | `GET/POST /work-orders/*` | ✅ Cocok (G12: tabel 204-vs-body; detail lihat B1) |
 | START/STOP/RESET/RESUME | `POST /devices/:id/command` | ✅ Cocok |
-| Registry devices/machines, metadata, bind/unbind | `/devices`, `/machines`, `bind`, `unbind` | ✅ Cocok (produk/operator lihat B4) |
-| Trend per jam + downtime + label + event/device | `/telemetry/:id/hourly`, `/downtime-events/*`, `/operational-events/:id` | ✅ Cocok (G14: konfirmasi flag labelable) |
+| Registry devices/machines, metadata, bind/unbind | `/devices`, `/machines`, `bind`, `unbind` | ⚠️ Cocok, tapi `isOnline` basi (G19); produk/operator lihat B4/G20 |
+| Trend per jam + downtime + label + event/device | `/telemetry/:id/hourly`, `/downtime-events/*`, `/operational-events/:id` | ⚠️ Key `avg*` + `recordedAt` sempat tak ter-map (G17/G18, ditutup klien) |
 | Login PIN + Bearer + replay 401 | `POST /auth/operator-pin` | ✅ Cocok (G13: refresh/TTL) |
 | Tick realtime + lifecycle → alarm | `WS /ws/telemetry` | ✅ Cocok (G15: skema heartbeat) |
 | Agregat shift Fase 2 | `GET /oee/shift-summary`, `GET /oee/shift-timeline` | ✅ Frontend siap + fallback 404 (backend belum ada — by design) |
@@ -127,7 +128,7 @@ Audit 24 Sep 2026 — diverifikasi melawan pemanggil aktual di `src/` (bukan kla
 | B6 | `GET /telemetry/:id/export` | Tidak ada tombol export di UI (DoD §8 menuntut csv\|ndjson) | Tambah tombol Export audit atau coret dari DoD |
 | B7 | `GET /health` | Tidak pernah dipanggil; footer rekonsiliasi (§2.2) belum ada | Sambungkan (ws_clients, buffer_pending) atau coret |
 
-**C. 🔴 Belum ada di backend — butuh backend (tetap G1–G16):** reject breakdown (G1), health edge (G3), ack alarm (G4), feed global (G5), refresh token (G13), target/state/break per bucket (G2/G9/G10), konfirmasi flag labelable (G14), doc heartbeat (G15), tabel 204 (G12), FSM docs (G6), kebijakan reject manual (G7).
+**C. 🔴 Belum ada di backend — butuh backend (tetap G1–G20):** reject breakdown (G1), health edge (G3), ack alarm (G4), feed global (G5), refresh token (G13), target/state/break per bucket (G2/G9/G10), konfirmasi flag labelable (G14), doc heartbeat (G15), tabel 204 (G12), FSM docs (G6), kebijakan reject manual (G7), skema key hourly/aggregate `avg*` (G17), key `recordedAt` history (G18), staleness `isOnline` registry (G19), auth list `/operators` (G20).
 
 ---
 
@@ -193,6 +194,10 @@ Audit 24 Sep 2026 — diverifikasi melawan pemanggil aktual di `src/` (bukan kla
 
 - **Kondisi:** backend mengirim `PLANNED_DOWNTIME`/`UNPLANNED_DOWNTIME`; kontrak lama frontend memakai `PLANNED_DT`/`UNPLANNED_DT`.
 - **Status:** sudah dinormalkan sisi klien (`live-state.dto.ts:normalizeState`). Tidak perlu perubahan backend; dicatat agar dokumentasi backend (§B/§4) dan skema `LiveStateResponseSchema` (`routes/live-state.ts`) menyebut himpunan FSM kanonis secara eksplisit.
+- **Temuan 30 Sep 2026:** live-state `STM32-OEE-02` mengirim `currentState: "STANDBY"`, nilai yang **tidak ada** di `LiveStateResponseSchema` maupun kontrak frontend. Sebelumnya jatuh ke `UNCONFIGURED` (= tampil IDLE) lewat default `normalizeState`.
+- **Yang harus dilakukan backend:** tambahkan `STANDBY` (dan `READY`/`BATCH_FINISHED` bila memang dipakai) ke `FsmStateEnum`/`LiveStateResponseSchema` + tabel FSM di API docs, ATAU nyatakan `STANDBY` bukan state sah dan ganti emitter-nya. Frontend tetap toleran (lihat kriteria).
+- **Kriteria selesai:** tabel FSM di API docs memuat seluruh nilai yang mungkin dikirim `live-state`; `GET /live-state` tidak pernah mengembalikan state di luar tabel.
+- **Status klien 30 Sep 2026:** `normalizeState` memetakan `STANDBY → IDLE` (test `live-state.dto.test.ts`), state tak dikenal lain tetap `UNCONFIGURED`. Tidak ada blocking.
 
 ## G7 — Pencatatan reject manual & pulsa counting (Prioritas: RENDAH — keputusan produk)
 
@@ -315,3 +320,70 @@ Audit 24 Sep 2026 — diverifikasi melawan pemanggil aktual di `src/` (bukan kla
 - **Status 24 Sep 2026:** toleransi envelope sisi klien **sudah diimplementasikan** (`mapLiveStateListDto` + test G16) — backend bebas memilih bentuk tanpa merusak klien.
 - **Yang harus dilakukan backend:** satu baris di API docs § live-state: "`GET /live-state` selalu array telanjang" (lalu tidak ada kerja klien), atau beri tahu perubahan bila akan di-envelope-kan.
 - **Kriteria selesai:** boot dashboard dengan 1+ mesin online menampilkan kartu mesin (bukan layar kosong tanpa error) untuk bentuk respons yang didokumentasikan.
+
+---
+
+# Amandemen 30 Sep 2026 — audit metadata respons API (G17–G20)
+
+Audit dilakukan langsung ke stack hidup (`http://localhost` → nginx → `iiot-oee`) membandingkan payload nyata tiap endpoint dengan DTO mapper klien. Empat temuan berikut menyebabkan data tampil kosong/0 di dashboard meski backend mengirim nilai benar. G17/G18 **sudah ditutup sisi klien** (toleransi key), G19/G20 **butuh backend**.
+
+## G17 — Skema key `hourly`/`aggregate` memakai prefiks `avg*` (Prioritas: TINGGI — sudah ditutup klien)
+
+- **Kebutuhan UI:** `TrendZone` (ECharts hourly trend) + overlay "Live 5m" (`EChartsOeeTrend`).
+- **Payload nyata 30 Sep 2026** `GET /telemetry/STM32-OEE-01/hourly?limit=1`:
+  ```json
+  { "bucket":"2026-09-29T06:00:00.000Z", "deviceId":"STM32-OEE-01",
+    "avgAvailability":"90.0000000000000000", "avgPerformance":"94.3100000000000000",
+    "avgQuality":"98.7300000000000000", "avgOee":"83.8000000000000000",
+    "estHourlyOutput":8579, "estHourlyReject":0, "hourlyOperatingSec":0,
+    "hourlyRunSec":0, "hourlyDowntimeSec":0, "sampleCount":22,
+    "targetPerHour":63, "state":"RUNNING", "planned":false }
+  ```
+  `GET /telemetry/:id/aggregate` memakai prefiks sama + `outputDelta` (tanpa `estHourlyOutput`).
+- **Kondisi kontrak:** spec lama (G9, `specs/shift-overview-api.md`) menyebut key `oee/availability/performance/quality` + `totalCount/goodCount/rejectCount`. Backend memakai `avg*` + `estHourlyOutput` — DTO klien membaca nama lama → **semua bucket ter-map 0** (grafik menggambar garis nol, bukan kosong).
+- **Dampak:** tren OEE/AVAIL/PERF/QUAL nol; actual per jam nol; target tetap terbaca (`targetPerHour` cocok).
+- **Status klien 30 Sep 2026:** `mapHourlyTrendDto`/`mapTelemetryHistoryDto` menerima **kedua** skema (`avgOee ?? oee`, `estHourlyOutput` sebagai actual per jam); `totalCount` eksplisit tetap menang bila keduanya ada.
+- **Yang harus dilakukan backend (pilih satu):**
+  1. **Tetapkan `avg*` sebagai kontrak resmi** dan perbarui §telemetry di API docs + `specs/shift-overview-api.md` (hapus nama lama dari dokumen); atau
+  2. Kembalikan key tanpa prefiks untuk menjaga kompatibilitas, dengan `avg*` sebagai alias aditif.
+- **Kriteria selesai:** satu tabel skema resmi di API docs untuk item hourly/aggregate (nama key + tipe + satuan); klien (dengan satu skema saja, setelah alias dilepas) menampilkan OEE per bucket non-nol yang cocok dengan `GET /live-state` pada jam yang sama (toleransi agregasi ±0,1).
+- **Catatan serius:** `hourlyOperatingSec/hourlyRunSec/hourlyDowntimeSec` mengembalikan **0** padahal `live-state` jam yang sama punya `runTimeSec: 24500`/`downtimeSec: 4300`. Ini kandidat bug agregasi backend (bukan sekadar nama key) — mohon diverifikasi ulang saat menutup item ini.
+
+## G18 — `GET /telemetry/:id` (raw history) memakai key `recordedAt` (Prioritas: SEDANG — sudah ditutup klien)
+
+- **Kebutuhan UI:** fallback overlay live (`useLiveTrend` → `GetTelemetryHistoryUseCase`) saat aggregate gagal.
+- **Payload nyata 30 Sep 2026:** item memuat `recordedAt: "2026-09-29T06:41:49.000Z"` — bukan `timestamp`/`ts`/`bucket` yang dibaca DTO lama.
+- **Dampak:** timestamp ter-map ke `new Date(0).toISOString()` (1970) → seluruh titik jatuh di luar window shift → overlay live kosong walau data ada.
+- **Status klien 30 Sep 2026:** `mapTelemetryHistoryDto` menerima `recordedAt`/`recorded_at` sebagai fallback timestamp (test ditambahkan).
+- **Yang harus dilakukan backend:** satukan nama key waktu antar endpoint telemetri (`timestamp` untuk WS/frame, `bucket` untuk agregat, `recordedAt` untuk baris mentah) dan cantumkan masing-masing di API docs — atau, lebih baik, pakai satu nama (`timestamp`) untuk semua bentuk.
+- **Kriteria selesai:** tabel "nama key waktu per endpoint telemetri" ada di API docs; klien memetakan window shift tanpa fallback epoch (verifikasi: tidak ada titik bertanggal 1970 di payload bersih).
+
+## G19 — Staleness flag `isOnline` di registry devices/machines (Prioritas: TINGGI)
+
+- **Kebutuhan UI:** badge koneksi per mesin (`MachineStatusZone`), guard `resolveWorkOrderForSnapshot`, dan kelayakan aksi perangkat.
+- **Kondisi nyata 30 Sep 2026 (jam 06:38 UTC):**
+
+  | deviceId | `isOnline` (registry) | `lastSeenAt` | ingest `live-state` terkini |
+  |---|---|---|---|
+  | `STM32-OEE-SIM` | `true` | 06:38:01Z | 06:38:13Z |
+  | `STM32-OEE-01` | `false` | 2026-09-29T07:11:48Z | 2026-09-29T07:11:48Z |
+  | `STM32-MZWO-ONLINE` | `false` | 2026-09-29T07:11:39Z | 2026-09-29T07:11:40Z |
+
+  `/health` melaporkan `lastIngestedAt` yang bergerak (2043 pesan diterima, 1362 valid) — jadi relai ingest hidup, tetapi `isOnline` device lama tertinggal `false` (atau TTL-nya jauh lebih panjang dari irama telemetri).
+- **Dampak:** (1) badge mesin menampilkan OFFLINE untuk perangkat yang datanya masuk; (2) `GET /work-orders/:id/resolve` menolak dengan `DEVICE_OFFLINE` sehingga metadata WO/produk/shift tidak terisi di dashboard — lihat bukti nyata: `resolve?device_id=STM32-OEE-01` → `{"error":"DEVICE_OFFLINE"}` padahal `live-state` device itu `RUNNING`.
+- **Yang harus dilakukan backend:**
+  1. Definisikan aturan `isOnline` (§E): TTL berbasis `last_seen_at` (rekomendasi ≤ 3× interval telemetri, mis. 90 dtk) dan pastikan job ingest memperbarui `last_seen_at` pada **setiap** frame valid, bukan hanya saat registrasi pertama.
+  2. Pisahkan `DEVICE_OFFLINE` (regulator: device benar-benar bisu) dari `WO_MISMATCH`/`CONFLICT`; jangan blokir `resolve` hanya karena flag registry yang basi.
+  3. Dokumentasikan TTL + endpoint yang bergantung padanya (`/devices`, `/machines`, `resolve`).
+- **Kriteria selesai:** dengan telemetri aktif < 30 dtk, `GET /devices` menandai device tersebut `isOnline: true`; `resolve` untuk WO aktif pada device itu me-return `200` (bukan `DEVICE_OFFLINE`). Verifikasi silang: `isOnline=false` hanya bila `last_seen_at` > TTL yang didokumentasikan.
+
+## G20 — `GET /operators` mewajibkan auth tapi tak terdokumentasi (Prioritas: SEDANG)
+
+- **Kebutuhan UI:** `useDeviceRegistry` → dropdown operator (registry master-data), saat ini tidak pernah terisi di lane backend.
+- **Kondisi nyata 30 Sep 2026:** `GET /api/v1/operators` **tanpa token → `401 {"error":"UNAUTHORIZED"}`**, sedangkan `GET /devices`, `/machines`, `/products` terbuka tanpa token. Tidak ada catatan di API docs bahwa `/operators` berbeda kelas.
+- **Dampak:** registry hanya berisi devices+machines; daftar operator kosong senyap (mapper aman, tetapi fitur mati).
+- **Yang harus dilakukan backend (pilih satu):**
+  1. Buka `GET /operators` untuk pembacaan read-only seperti master-data lain (konsisten); atau
+  2. Pertahankan 401 dan dokumentasikan "master-data operator butuh Bearer (peran apa pun)" di §H, plus cantumkan di tabel auth per-endpoint.
+- **Kriteria selesai:** tabel auth per-endpoint di API docs mencakup `/operators`; klien (token operator dari `POST /auth/operator-pin`) memuat daftar operator tanpa `401` saat kontrak menyatakan read-only terbuka, atau menampilkan state "butuh login" eksplisit saat kontrak menyatakan wajib token.
+- **Catatan klien:** `OeeHttpMasterDataRepository.listOperators` sudah lewat `mapOperatorListDto` (toleran camelCase/snake_case), jadi begitu akses dibuka tidak ada kerja klien tambahan.

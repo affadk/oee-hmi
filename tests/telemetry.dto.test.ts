@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  mapHourlyTrendDto,
   mapTelemetryFrameDto,
   mapTelemetryHistoryDto,
   parseCategoryFromReason,
@@ -65,6 +66,55 @@ describe('mapTelemetryHistoryDto (incl. B5 aggregate buckets)', () => {
     const out = mapTelemetryHistoryDto({ bucket: '2026-09-22T10:00:00+07:00', oee: 81.2 });
     expect(out.timestamp).toBe('2026-09-22T10:00:00+07:00');
     expect(out.oee).toBeCloseTo(81.2);
+  });
+
+  it('falls back to recordedAt when timestamp/ts/bucket absent (raw history shape)', () => {
+    const out = mapTelemetryHistoryDto({ recordedAt: '2026-09-29T06:41:49.000Z', oee: '83.80' });
+    expect(out.timestamp).toBe('2026-09-29T06:41:49.000Z');
+    expect(out.oee).toBeCloseTo(83.8);
+  });
+
+  it('reads backend v2 aggregate keys (avgOee/avgAvailability/... numeric strings)', () => {
+    const out = mapTelemetryHistoryDto({
+      bucket: '2026-09-29T06:00:00.000Z',
+      avgOee: '83.80',
+      avgAvailability: '90.00',
+      avgPerformance: '94.31',
+      avgQuality: '98.73',
+    });
+    expect(out.oee).toBeCloseTo(83.8);
+    expect(out.availability).toBeCloseTo(90.0);
+    expect(out.performance).toBeCloseTo(94.31);
+    expect(out.quality).toBeCloseTo(98.73);
+  });
+});
+
+describe('mapHourlyTrendDto (backend v2 avg* + estHourlyOutput)', () => {
+  it('maps avg* OEE keys and estHourlyOutput as per-hour actual', () => {
+    const out = mapHourlyTrendDto({
+      bucket: '2026-09-29T06:00:00.000Z',
+      deviceId: 'STM32-OEE-01',
+      avgOee: '83.80',
+      avgAvailability: '90.00',
+      avgPerformance: '94.31',
+      avgQuality: '98.73',
+      estHourlyOutput: 8579,
+      targetPerHour: 63,
+      state: 'RUNNING',
+      planned: false,
+    });
+    expect(out.oee).toBeCloseTo(83.8);
+    expect(out.availability).toBeCloseTo(90.0);
+    expect(out.performance).toBeCloseTo(94.31);
+    expect(out.quality).toBeCloseTo(98.73);
+    expect(out.totalCount).toBe(8579);
+    expect(out.targetPerHour).toBe(63);
+    expect(out.state).toBe('RUNNING');
+  });
+
+  it('prefers explicit totalCount over estHourlyOutput', () => {
+    const out = mapHourlyTrendDto({ bucket: '10:00', totalCount: 100, estHourlyOutput: 8579 });
+    expect(out.totalCount).toBe(100);
   });
 });
 
