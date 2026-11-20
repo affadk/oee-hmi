@@ -23,6 +23,9 @@ interface LogEventModalProps {
   isBackendMode?: boolean;
   /** Event downtime yang bisa dilabel (dari listLabelableDowntimesUseCase). */
   labelableDowntimes?: DowntimeEvent[];
+  /** FR-007: gate capability downtime.reason.label. */
+  labelDisabled?: boolean;
+  gateReason?: string;
 }
 
 const SIX_BIG_LOSSES_CATEGORIES: DowntimeCategory[] = [
@@ -46,6 +49,8 @@ export const LogEventModal: React.FC<LogEventModalProps> = ({
   onAddReject,
   isBackendMode = false,
   labelableDowntimes = [],
+  labelDisabled = false,
+  gateReason,
 }) => {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
@@ -235,6 +240,8 @@ export const LogEventModal: React.FC<LogEventModalProps> = ({
               </button>
               <button
                 type="submit"
+                disabled={labelDisabled}
+                title={labelDisabled ? gateReason : undefined}
                 className="px-4 py-2 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-semibold flex items-center gap-1.5 shadow-sm"
               >
                 <AlertOctagon className="w-4 h-4" />
@@ -301,6 +308,8 @@ export const LogEventModal: React.FC<LogEventModalProps> = ({
               </button>
               <button
                 type="submit"
+                disabled={labelDisabled}
+                title={labelDisabled ? gateReason : undefined}
                 className="px-4 py-2 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-semibold flex items-center gap-1.5 shadow-sm"
               >
                 <AlertOctagon className="w-4 h-4" />

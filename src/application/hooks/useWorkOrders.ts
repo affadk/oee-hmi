@@ -8,6 +8,7 @@ import type { MachineConfig } from '../../domain/entities/Machine';
 import type { WorkOrderListItem, WorkOrderResolveResult } from '../../domain/entities/backend/WorkOrder';
 import type { GetMachinesUseCase } from '../use-cases/GetMachinesUseCase';
 import type { ListWorkOrdersUseCase } from '../use-cases/ListWorkOrdersUseCase';
+import { canMutate } from '../capabilityGate';
 
 export interface WorkOrdersDeps {
   useBackend: boolean;
@@ -17,6 +18,8 @@ export interface WorkOrdersDeps {
   listWorkOrdersUseCase: ListWorkOrdersUseCase;
   getMachinesUseCase: GetMachinesUseCase;
   runProtected: (action: () => Promise<void>) => Promise<void>;
+  capabilities: import('../../domain/ports/IOeeBackend').CapabilityMap | null;
+  mutationsAllowed: boolean | null;
   setMachines: React.Dispatch<React.SetStateAction<MachineConfig[]>>;
 }
 
@@ -42,7 +45,7 @@ export interface WorkOrdersApi {
 }
 
 export function useWorkOrders(deps: WorkOrdersDeps): WorkOrdersApi {
-  const { useBackend, currentDeviceId, currentTotalCount, listWorkOrdersUseCase, getMachinesUseCase, runProtected, setMachines } = deps;
+  const { useBackend, currentDeviceId, currentTotalCount, listWorkOrdersUseCase, getMachinesUseCase, runProtected, capabilities, mutationsAllowed, setMachines } = deps;
 
   const [isProductionSetupModalOpen, setIsProductionSetupModalOpen] = useState<boolean>(false);
   const [pendingWorkOrders, setPendingWorkOrders] = useState<WorkOrderListItem[]>([]);
@@ -109,6 +112,8 @@ export function useWorkOrders(deps: WorkOrdersDeps): WorkOrdersApi {
   }, []);
 
   const dispatchWorkOrder = useCallback(async (woId: string, deviceId: string) => {
+    const gate = canMutate({ useBackend, mutationsAllowed, capabilities, key: 'work_order.dispatch' });
+    if (!gate.allowed) { setProductionSetupError(gate.reason); throw new Error(gate.reason); }
     if (!useBackend) throw new Error('Dispatch work order hanya tersedia pada mode backend.');
     setProductionSetupBusy(true);
     try {
@@ -126,9 +131,11 @@ export function useWorkOrders(deps: WorkOrdersDeps): WorkOrdersApi {
     } finally {
       setProductionSetupBusy(false);
     }
-  }, [getMachinesUseCase, listWorkOrdersUseCase, runProtected, setMachines, useBackend]);
+  }, [getMachinesUseCase, listWorkOrdersUseCase, runProtected, setMachines, useBackend, useBackend, mutationsAllowed, capabilities]);
 
   const completeWorkOrder = useCallback(async (woId: string, finalRejectCount: number) => {
+    const gate = canMutate({ useBackend, mutationsAllowed, capabilities, key: 'work_order.update' });
+    if (!gate.allowed) { setProductionSetupError(gate.reason); throw new Error(gate.reason); }
     if (!useBackend) throw new Error('Complete work order hanya tersedia pada mode backend.');
     // FR-016 guard klien: reject akhir tidak boleh melebihi total produksi
     // (backend 400 SCRAP_COUNT_INVALID; cegah sebelum fetch).
@@ -159,9 +166,11 @@ export function useWorkOrders(deps: WorkOrdersDeps): WorkOrdersApi {
     } finally {
       setProductionSetupBusy(false);
     }
-  }, [currentTotalCount, getMachinesUseCase, listWorkOrdersUseCase, runProtected, setMachines, useBackend]);
+  }, [currentTotalCount, getMachinesUseCase, listWorkOrdersUseCase, runProtected, setMachines, useBackend, useBackend, mutationsAllowed, capabilities]);
 
   const cancelWorkOrder = useCallback(async (woId: string, reason?: string) => {
+    const gate = canMutate({ useBackend, mutationsAllowed, capabilities, key: 'work_order.cancel' });
+    if (!gate.allowed) { setProductionSetupError(gate.reason); throw new Error(gate.reason); }
     if (!useBackend) throw new Error('Cancel work order hanya tersedia pada mode backend.');
     setProductionSetupBusy(true);
     try {
@@ -176,7 +185,7 @@ export function useWorkOrders(deps: WorkOrdersDeps): WorkOrdersApi {
     } finally {
       setProductionSetupBusy(false);
     }
-  }, [getMachinesUseCase, listWorkOrdersUseCase, runProtected, setMachines, useBackend]);
+  }, [getMachinesUseCase, listWorkOrdersUseCase, runProtected, setMachines, useBackend, useBackend, mutationsAllowed, capabilities]);
 
   return {
     isProductionSetupModalOpen,

@@ -189,6 +189,8 @@ export const DashboardPage: React.FC = () => {
       <Outlet context={outletContext} />
 
       <LogEventModal
+        labelDisabled={!dashboard.canLabelDowntime}
+        gateReason={dashboard.gateReason}
         isOpen={dashboard.isLogModalOpen}
         onClose={dashboard.closeLogModal}
         machineId={dashboard.currentMachine.id}
@@ -208,6 +210,7 @@ export const DashboardPage: React.FC = () => {
           Perangkat + Setup Produksi (REST nyata). */}
       {!dashboard.useBackend && (
       <MqttEdgeInspectorModal
+        commandsDisabled={!dashboard.canSendCommands}
         isOpen={dashboard.isMqttModalOpen}
         onClose={dashboard.closeMqttModal}
         machine={dashboard.currentMachine}
@@ -218,6 +221,7 @@ export const DashboardPage: React.FC = () => {
       )}
 
       <DeviceConfigModal
+        editDisabled={!dashboard.canEditRegistry}
         isOpen={dashboard.isDeviceConfigModalOpen}
         onClose={dashboard.closeDeviceConfigModal}
         registry={dashboard.deviceRegistry}
@@ -247,6 +251,10 @@ export const DashboardPage: React.FC = () => {
         onComplete={dashboard.completeWorkOrder}
         onCancel={dashboard.cancelWorkOrder}
         onOpenDetail={dashboard.openWorkOrderDetail}
+        canDispatch={dashboard.canDispatchWorkOrder}
+        canComplete={dashboard.canCompleteWorkOrder}
+        canCancel={dashboard.canCancelWorkOrder}
+        gateReason={dashboard.gateReason}
       />
 
       <WorkOrderDetailModal

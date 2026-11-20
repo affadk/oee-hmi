@@ -24,6 +24,7 @@ interface DeviceConfigModalProps {
   registry: { devices: DeviceRecord[]; machines: MachineRecord[] } | null;
   registryError: string;
   isBackendMode: boolean;
+  editDisabled?: boolean;
   onRefresh: () => Promise<void>;
   onSaveDeviceMetadata: (deviceId: string, patch: { ipAddress?: string; firmwareVersion?: string }) => Promise<void>;
   onSaveMachineMetadata: (machineId: string, patch: { machineName?: string; modbusSlaveId?: number }) => Promise<void>;
@@ -37,6 +38,7 @@ export const DeviceConfigModal: React.FC<DeviceConfigModalProps> = ({
   registry,
   registryError,
   isBackendMode,
+  editDisabled = false,
   onRefresh,
   onSaveDeviceMetadata,
   onSaveMachineMetadata,
@@ -153,6 +155,7 @@ export const DeviceConfigModal: React.FC<DeviceConfigModalProps> = ({
         )}
 
         <DeviceListPanel
+          editDisabled={editDisabled}
           registry={registry}
           drafts={drafts}
           setDrafts={setDrafts}
@@ -170,6 +173,7 @@ export const DeviceConfigModal: React.FC<DeviceConfigModalProps> = ({
         />
 
         <MachineMetaPanel
+          editDisabled={editDisabled}
           registry={registry}
           machineDrafts={machineDrafts}
           setMachineDrafts={setMachineDrafts}
@@ -186,6 +190,7 @@ export const DeviceConfigModal: React.FC<DeviceConfigModalProps> = ({
         />
 
         <MachineBindPanel
+          editDisabled={editDisabled}
           registry={registry}
           unboundDevices={unboundDevices}
           bindTarget={bindTarget}

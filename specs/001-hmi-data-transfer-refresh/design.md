@@ -6,7 +6,7 @@
 **Lifecycle:** DESIGNED
 **Health:** VALID
 **Traces to:** `spec.md` (unit ini) · ADR-0001, ADR-0002, ADR-0003 (Accepted 2026-11-20)
-**Reviewed against:** spec revision 2
+**Reviewed against:** spec revision 3
 
 > Gate terpenuhi 2026-11-20: ADR Accepted (directive pemilik "mulai implementasikan") + OQ resolved (rev 2). Implementasi Fase 1 berjalan.
 

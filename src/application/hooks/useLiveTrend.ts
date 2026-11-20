@@ -11,7 +11,8 @@ import type { ShiftWindowIso } from '../../domain/services/ShiftTimeline';
 
 export interface LiveTrendPoint {
   timestamp: string;
-  oee: number;
+  /** null = bucket tanpa sampel (FR-018); chart memperlakukan sebagai gap. */
+  oee: number | null;
 }
 
 export interface LiveTrendDeps {

@@ -67,6 +67,7 @@ import { useDashboardUi } from './useDashboardUi';
 import { useShiftServerData, mergeShiftSummary } from './useShiftServerData';
 import { resolveShiftWindowIso } from '../../domain/services/ShiftTimeline';
 import { createRefetchScheduler, type RefetchKind } from '../lifecycleRefetch';
+import { canMutate } from '../capabilityGate';
 import { useFleetResync } from './useFleetResync';
 
 export type { BackendDowntimeLabelInput };
@@ -203,6 +204,15 @@ export interface UseOeeDashboardReturn {
   capabilities: import('../../domain/ports/IOeeBackend').CapabilityMap | null;
   mutationsAllowed: boolean | null;
   logoutOperator: () => void;
+  /** FR-007/008 gate boolean untuk disable tombol mutasi. */
+  canSendCommands: boolean;
+  canDispatchWorkOrder: boolean;
+  canCompleteWorkOrder: boolean;
+  canCancelWorkOrder: boolean;
+  canLabelDowntime: boolean;
+  canAckAlarm: boolean;
+  canEditRegistry: boolean;
+  gateReason: string;
 }
 
 export function useOeeDashboard(deps: OeeDashboardDeps): UseOeeDashboardReturn {
@@ -325,6 +335,8 @@ export function useOeeDashboard(deps: OeeDashboardDeps): UseOeeDashboardReturn {
     labelDowntimeReasonUseCase,
     exportTelemetryUseCase,
     runProtected: auth.runProtected,
+    capabilities: auth.capabilities,
+    mutationsAllowed: auth.mutationsAllowed,
     getOperatorId: () => auth.authSession?.operator.id ?? null,
     setMachines: machines.setMachines,
     setAlarms: machines.setAlarms,
@@ -337,6 +349,8 @@ export function useOeeDashboard(deps: OeeDashboardDeps): UseOeeDashboardReturn {
     configureDeviceUseCase,
     getMachinesUseCase,
     runProtected: auth.runProtected,
+    capabilities: auth.capabilities,
+    mutationsAllowed: auth.mutationsAllowed,
     setMachines: machines.setMachines,
   });
 
@@ -377,6 +391,8 @@ export function useOeeDashboard(deps: OeeDashboardDeps): UseOeeDashboardReturn {
     listWorkOrdersUseCase,
     getMachinesUseCase,
     runProtected: auth.runProtected,
+    capabilities: auth.capabilities,
+    mutationsAllowed: auth.mutationsAllowed,
     setMachines: machines.setMachines,
   });
 
@@ -494,5 +510,14 @@ export function useOeeDashboard(deps: OeeDashboardDeps): UseOeeDashboardReturn {
     capabilities: auth.capabilities,
     mutationsAllowed: auth.mutationsAllowed,
     logoutOperator: auth.logoutOperator,
+    // FR-007/008: boolean gate untuk disable tombol (alasan via gateReason*).
+    canSendCommands: canMutate({ useBackend, mutationsAllowed: auth.mutationsAllowed, capabilities: auth.capabilities, key: 'device_command.send' }).allowed,
+    canDispatchWorkOrder: canMutate({ useBackend, mutationsAllowed: auth.mutationsAllowed, capabilities: auth.capabilities, key: 'work_order.dispatch' }).allowed,
+    canCompleteWorkOrder: canMutate({ useBackend, mutationsAllowed: auth.mutationsAllowed, capabilities: auth.capabilities, key: 'work_order.update' }).allowed,
+    canCancelWorkOrder: canMutate({ useBackend, mutationsAllowed: auth.mutationsAllowed, capabilities: auth.capabilities, key: 'work_order.cancel' }).allowed,
+    canLabelDowntime: canMutate({ useBackend, mutationsAllowed: auth.mutationsAllowed, capabilities: auth.capabilities, key: 'downtime.reason.label' }).allowed,
+    canAckAlarm: canMutate({ useBackend, mutationsAllowed: auth.mutationsAllowed, capabilities: auth.capabilities, key: 'operational_event.ack' }).allowed,
+    canEditRegistry: canMutate({ useBackend, mutationsAllowed: auth.mutationsAllowed, capabilities: auth.capabilities, key: 'machine.update' }).allowed,
+    gateReason: canMutate({ useBackend, mutationsAllowed: auth.mutationsAllowed, capabilities: auth.capabilities, key: 'device_command.send' }).reason,
   };
 }

@@ -18,7 +18,7 @@ Klien masih memakai `AuthPinModal` (PIN numerik 8 digit) + `/auth/operator-pin` 
 3. **Tanpa lockout/throttle paralel di klien.** `429` → tampilkan countdown `Retry-After`; submit dinonaktifkan selama jendela.
 4. **Gerbang rotasi password**: flag `must_change_password` dari login ATAU `403 PASSWORD_ROTATION_REQUIRED` dari rute mana pun → dialog ganti password (`{current_password, new_password}` kanonis). Sukses → login ulang otomatis (token lama pasti `AUTHZ_STALE`).
 5. **Refresh sliding proaktif**: pre-action bila `exp` < 120s (eksisting) + timer berkala ≤ 5 menit selama sesi aktif. `401 AUTHZ_STALE` / subjek nonaktif → logout paksa + modal login (bukan loop retry). Refresh hanya dicoba di kanal LAN.
-6. **UI aksi terproteksi di-gate capability `GET /auth/me`** (`<domain>.<action>`): `allow` → aktif; `deny`/`unknown` → nonaktif (fail-closed) dengan alasan. Role ditampilkan apa adanya (string bebas), bukan enum.
+6. **UI aksi terproteksi di-gate capability `GET /auth/me`** (`<domain>.<action>`): `deny` → nonaktif dengan alasan; `unknown`/absen → coba dengan enforcement backend (403 ditampilkan). **Amandemen 2026-11-20 (bukti live, spec 001 rev 3):** shadow-mode `unknown` = baseline preset yang backend tegakkan per-rute (OPERATOR `device_command.send=unknown` namun PAUSE/RESUME diizinkan backend); fail-closed tetap di backend. Granularitas katalog domain-level; RBAC per-perintah di backend. Role ditampilkan apa adanya (string bebas), bukan enum.
 7. **`GET /system/access-mode`**: `mutations_allowed=false` → mode read-only: semua mutasi dinonaktifkan + penanda memakai elemen UI eksisting.
 
 ## Alternatif yang Dipertimbangkan

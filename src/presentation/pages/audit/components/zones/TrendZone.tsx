@@ -32,10 +32,10 @@ export const TrendZone: React.FC<TrendZoneProps> = ({
     actual: 0,
     good: 0,
     reject: 0,
-    oee: 0,
-    availability: 0,
-    performance: 0,
-    quality: 0,
+    oee: null,
+    availability: null,
+    performance: null,
+    quality: null,
     status: 'IDLE',
   };
   const firstTrend = hourlyTrends[0];
@@ -60,12 +60,19 @@ export const TrendZone: React.FC<TrendZoneProps> = ({
     return paddingTop + chartHeight - (clamped / 100) * chartHeight;
   };
   const createPath = (dataKey: 'oee' | 'availability' | 'performance' | 'quality') => {
+    // FR-018: null = gap (bucket tanpa sampel), bukan titik nol palsu.
+    let penDown = false;
     return hourlyTrends.reduce((acc, pt, idx) => {
+      const val = pt[dataKey];
+      if (val === null) { penDown = false; return acc; }
       const x = getX(idx);
-      const y = getY(pt[dataKey]);
-      return idx === 0 ? `M ${x} ${y}` : `${acc} L ${x} ${y}`;
+      const y = getY(val);
+      const seg = !penDown ? `M ${x} ${y}` : `L ${x} ${y}`;
+      penDown = true;
+      return acc + seg;
     }, '');
   };
+  const pct = (v: number | null) => (v === null ? '—' : `${v}%`);
   const targetY = getY(targetOee);
   const maxProd = Math.max(...hourlyTrends.map(h => Math.max(h.target, h.actual)), 150);
 
@@ -125,12 +132,13 @@ export const TrendZone: React.FC<TrendZoneProps> = ({
               <path d={createPath('oee')} fill="none" stroke={isDark ? '#38bdf8' : '#2563eb'} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
               {hourlyTrends.map((pt, idx) => {
                 const x = getX(idx);
-                const y = getY(pt.oee);
                 const isHovered = hoveredHour?.hour === pt.hour;
                 return (
                   <g key={pt.hour} className="cursor-pointer">
-                    <circle cx={x} cy={y} r="12" fill="transparent" onMouseEnter={() => setHoveredHour(pt)} onMouseLeave={() => setHoveredHour(null)} />
-                    <circle cx={x} cy={y} r={isHovered ? '5' : '3.5'} fill={pt.oee >= targetOee ? (isDark ? '#38bdf8' : '#2563eb') : '#f43f5e'} stroke={isDark ? '#0f1b2e' : '#ffffff'} strokeWidth="2" />
+                    <circle cx={x} cy={pt.oee === null ? getY(0) : getY(pt.oee)} r="12" fill="transparent" onMouseEnter={() => setHoveredHour(pt)} onMouseLeave={() => setHoveredHour(null)} />
+                    {pt.oee !== null && (
+                      <circle cx={x} cy={getY(pt.oee)} r={isHovered ? '5' : '3.5'} fill={pt.oee >= targetOee ? (isDark ? '#38bdf8' : '#2563eb') : '#f43f5e'} stroke={isDark ? '#0f1b2e' : '#ffffff'} strokeWidth="2" />
+                    )}
                     <text x={x} y={svgHeight - 8} fill={isHovered ? (isDark ? '#38bdf8' : '#2563eb') : isDark ? '#94a3b8' : '#475569'} fontSize="10" fontFamily="monospace" textAnchor="middle" fontWeight={isHovered ? 'bold' : 'normal'}>{pt.hour}</text>
                   </g>
                 );
@@ -147,7 +155,7 @@ export const TrendZone: React.FC<TrendZoneProps> = ({
           </div>
           {hoveredHour ? (
             <div className={`px-2 py-0.5 rounded border audit-caption font-mono ${isDark ? 'bg-[#132238] border-slate-700 text-slate-200' : 'bg-slate-100 border-slate-200 text-slate-800'}`}>
-              {hoveredHour.hour} → OEE: <strong className="text-blue-600 dark:text-sky-300">{hoveredHour.oee}%</strong> (A:{hoveredHour.availability}% P:{hoveredHour.performance}% Q:{hoveredHour.quality}%)
+              {hoveredHour.hour} → OEE: <strong className="text-blue-600 dark:text-sky-300">{pct(hoveredHour.oee)}</strong> (A:{pct(hoveredHour.availability)} P:{pct(hoveredHour.performance)} Q:{pct(hoveredHour.quality)})
             </div>
           ) : (
             <div className={`audit-caption font-mono ${isDark ? 'text-slate-500' : 'text-slate-600'}`}>Hover nodes to inspect</div>

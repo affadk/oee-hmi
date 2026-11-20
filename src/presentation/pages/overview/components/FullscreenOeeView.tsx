@@ -33,6 +33,8 @@ export const FullscreenOeeView: React.FC<FullscreenOeeViewProps> = ({
   onUpdateMachineStatus = async () => {},
   onLogReject = async () => {},
   onDispatchMachineCommand = async () => {},
+  commandsDisabled = false,
+  disabledReason,
   onApplyJobConfig = async () => {},
   useBackend,
   backendHealth = null,
@@ -220,6 +222,8 @@ export const FullscreenOeeView: React.FC<FullscreenOeeViewProps> = ({
               {/* Floor Push Buttons */}
               {!useBackend && (
                 <FloorPushButtonsPanel
+                  commandsDisabled={commandsDisabled}
+                  disabledReason={disabledReason}
                   machine={machine}
                   onUpdateMachineStatus={onUpdateMachineStatus}
                   onLogReject={onLogReject}

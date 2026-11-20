@@ -122,4 +122,5 @@ export interface MqttEdgeTabContext {
   useBackend?: boolean;
   pushLog: (kind: ConsoleLine['kind'], text: string) => void;
   sendCmd: (cmd: DeviceCommandKind) => void;
+  commandsDisabled?: boolean;
 }

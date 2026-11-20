@@ -6,8 +6,8 @@
 
 Phase: 0 (inisiasi SDD)
 Unit: `specs/001-hmi-data-transfer-refresh` (aktif) · `specs/002-hmi-station-surfaces` (CLARIFYING)
-Stage: Implementing — Fase 1+2 unit 001 selesai (T001–T015); Fase 3 berikutnya
-Current Task: T016 (DTO kanonis *Pct + null-preserving)
+Stage: Implementing — Fase 1+2+3 unit 001 selesai (T001–T021); sisa T022–T024 (E2E UI manual + dokumen)
+Current Task: T022 (E2E skenario UI/live manual)
 
 ## Completed
 
@@ -22,18 +22,17 @@ Current Task: T016 (DTO kanonis *Pct + null-preserving)
 
 ## In Progress
 
-- [>] Fase 3 unit 001 (T016 DTO kanonis → T021)
+- [>] T022 E2E skenario UI/live manual (countdown 429, rotation gate, transisi FSM, staleness, private-mode tunnel)
 
 ## Next
 
-- [ ] Fase 3: T016..T021 (DTO *Pct/null/provisional, availability fallback, capability gate, access-mode read-only, ack bersih)
-- [ ] T022 E2E sisa (UI manual: countdown 429, rotation gate, transisi FSM live, staleness) → verification VERIFIED
+- [ ] T023 diff-review final + T024 dokumen (README/backend-gaps cross-ref) → verification VERIFIED bila semua AC berbukti
 - [ ] Acceptance ADR-0004 → design/tasks unit 002 (OQ sudah resolved)
 - [ ] **Pemilik backend/deploy**: tutup GAP-B06 (lepas mount dev di tunnel publik / Cloudflare Access di depan dev override)
 
 ## Blocked
 
-- [!] AC-003/004/008/009/010/011/013 butuh skenario UI/live manual (browser/edge transition) — unit + E2E API sudah hijau; bukan blocker kode.
+- [!] AC-003/004/008/009/010/011/013/017(UI)/007(private-mode) butuh skenario browser/edge/manual — unit + E2E API hijau; bukan blocker kode.
 - [!] Unit 002 menunggu ADR-0004 Accepted.
 
 ## Direction
@@ -54,3 +53,5 @@ Perombakan lapisan data transfer saja (auth password, realtime WS lengkap, DTO k
 - Fase 2 unit 001 (T009–T015): WS close 4403 stop+onFatal / 4429 backoff ≥60s+jitter / onReconnect resync; mapper lifecycle 26 tipe; merge FSM→status+statusSince (domain `fsmToMachineStatus`); DEVICE_STATUS_UPDATE→connectionStatus; scheduler debounced refetch 1.5s dedupe (fleet/registry/supplemental); `useFleetResync` poll 60s; perintah 6 enum + COUNT_ADJUST count (guard 0..999999); type-only union di presentasi (nol JSX). 3 file test baru; lint + 137 test hijau.
 - E2E kredensial (directive pemilik): bootstrap ADM-001 dari docker/.env → login 200 via :3002 → create OPR-E2E-01 (201, password dev saat pembuatan) → login+station valid 200, /auth/me nested {access,operator,authz} (konfirmasi GAP-B02 bentuk live), refresh 200, station machineId → 400 STATION_NOT_FOUND. AC-001/002/005/012/014/020 PASS; sisanya PARTIAL (skenario UI/live manual).
 - Sync Fase 2 ke apps/hmi (rsync src) + rebuild dist → container menyajikan build baru tanpa restart.
+- Fase 3 unit 001 (T016–T021): DTO kanonis `*Pct` menang + null-preserving + provisional/operatingSec/runSec/sampleCount; TrendZone gap null + tooltip `—`, ECharts null guard; parity availability fallback terbukti (85.7 = run/(run+udt), tanpa ubah formula); capabilityGate + gate boolean dashboard + disable tombol (FloorPushButtons/KontrolTab/ProductionSetup/LogEvent/Alarms/DeviceConfig) + title alasan; ack body {note} saja. Amandemen OQ-004/FR-007/AC-006 (spec rev 3 + ADR-0002): live OPERATOR `device_command.send=unknown` (shadow) → UI deny-only, enforcement backend; dev ACCESS_MODE=public → tunnel mutations_allowed=true (private-mode E2E pending). 147 test hijau; sync+build apps/hmi.
+- Commit & push: repo ini (docs SDD + feat F1-F2) dan iiot-oee (apps/hmi + compose hmi) — perubahan backend lain milik pemilik TIDAK disentuh.

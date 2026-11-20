@@ -8,10 +8,11 @@ export interface TelemetryHistoryPoint {
   totalCount: number;
   goodCount: number;
   rejectCount: number;
-  oee: number;
-  availability: number;
-  performance: number;
-  quality: number;
+  /** FR-018: null = tanpa sampel (bukan 0). */
+  oee: number | null;
+  availability: number | null;
+  performance: number | null;
+  quality: number | null;
   isBuffered: boolean;
 }
 

@@ -16,6 +16,7 @@ import type { LogRejectUseCase } from '../use-cases/LogRejectUseCase';
 import type { ManageAlarmsUseCase } from '../use-cases/ManageAlarmsUseCase';
 import type { MachineCommandUseCase } from '../use-cases/MachineCommandUseCase';
 import { buildJobConfigPayload, deriveActualRate } from '../use-cases/MachineCommandUseCase';
+import { canMutate } from '../capabilityGate';
 import type { LabelDowntimeReasonUseCase } from '../use-cases/LabelDowntimeReasonUseCase';
 import type { ExportTelemetryUseCase, TelemetryExportFormat } from '../use-cases/ExportTelemetryUseCase';
 
@@ -36,6 +37,9 @@ export interface MachineActionsDeps {
   labelDowntimeReasonUseCase: LabelDowntimeReasonUseCase;
   exportTelemetryUseCase: ExportTelemetryUseCase;
   runProtected: (action: () => Promise<void>) => Promise<void>;
+  /** FR-007/008: capability + access-mode gate (fail-closed). */
+  capabilities: import('../../domain/ports/IOeeBackend').CapabilityMap | null;
+  mutationsAllowed: boolean | null;
   /** Operator id untuk atribusi ack server (G4); null = ack lokal saja. */
   getOperatorId?: () => string | null;
   setMachines: React.Dispatch<React.SetStateAction<MachineConfig[]>>;
@@ -78,6 +82,8 @@ export function useMachineActions(deps: MachineActionsDeps): MachineActionsApi {
     labelDowntimeReasonUseCase,
     exportTelemetryUseCase,
     runProtected,
+    capabilities,
+    mutationsAllowed,
     getOperatorId,
     setMachines,
     setAlarms,
@@ -86,6 +92,8 @@ export function useMachineActions(deps: MachineActionsDeps): MachineActionsApi {
   } = deps;
 
   const updateMachineStatus = useCallback(async (newStatus: MachineStatus) => {
+    const gate = canMutate({ useBackend, mutationsAllowed, capabilities, key: 'device_command.send' });
+    if (!gate.allowed) throw new Error(gate.reason);
     await runProtected(async () => {
       const { updatedMachine, createdAlarm } = await updateMachineStatusUseCase.execute(
         currentMachineId,
@@ -96,9 +104,11 @@ export function useMachineActions(deps: MachineActionsDeps): MachineActionsApi {
         setAlarms((prev) => [createdAlarm, ...prev]);
       }
     });
-  }, [runProtected, updateMachineStatusUseCase, currentMachineId, setMachines, setAlarms]);
+  }, [runProtected, updateMachineStatusUseCase, currentMachineId, setMachines, setAlarms, useBackend, mutationsAllowed, capabilities]);
 
   const logDowntime = useCallback(async (event: BackendDowntimeLabelInput) => {
+    const gate = canMutate({ useBackend, mutationsAllowed, capabilities, key: 'downtime.reason.label' });
+    if (!gate.allowed) throw new Error(gate.reason);
     if (useBackend) {
       if (typeof event.backendEventId !== 'number') return;
       await runProtected(async () => {
@@ -138,7 +148,7 @@ export function useMachineActions(deps: MachineActionsDeps): MachineActionsApi {
     );
     setMachines((prev) => prev.map((m) => (m.id === currentMachineId ? updatedMachine : m)));
     setAlarms((prev) => [createdAlarm, ...prev]);
-  }, [currentMachineId, labelDowntimeReasonUseCase, logDowntimeUseCase, runProtected, setLabelableDowntimes, setAlarms, setMachines, useBackend]);
+  }, [currentMachineId, labelDowntimeReasonUseCase, logDowntimeUseCase, runProtected, setLabelableDowntimes, setAlarms, setMachines, useBackend, useBackend, mutationsAllowed, capabilities]);
 
   const logReject = useCallback(async (reasonLabel: string, count: number) => {
     if (useBackend) {
@@ -153,11 +163,13 @@ export function useMachineActions(deps: MachineActionsDeps): MachineActionsApi {
   }, [logRejectUseCase, currentMachineId, useBackend, setMachines]);
 
   const acknowledgeAlarm = useCallback(async (alarmId: string) => {
+    const gate = canMutate({ useBackend, mutationsAllowed, capabilities, key: 'operational_event.ack' });
+    if (!gate.allowed) throw new Error(gate.reason);
     await runProtected(async () => {
       const updated = await manageAlarmsUseCase.acknowledgeAlarm(alarmId, getOperatorId?.() ?? undefined);
       setAlarms((prev) => prev.map((a) => (a.id === alarmId ? updated : a)));
     });
-  }, [runProtected, manageAlarmsUseCase, getOperatorId, setAlarms]);
+  }, [runProtected, manageAlarmsUseCase, getOperatorId, setAlarms, useBackend, mutationsAllowed, capabilities]);
 
   const resolveAlarm = useCallback(async (alarmId: string) => {
     await runProtected(async () => {
@@ -167,6 +179,8 @@ export function useMachineActions(deps: MachineActionsDeps): MachineActionsApi {
   }, [runProtected, manageAlarmsUseCase, getOperatorId, setAlarms]);
 
   const dispatchMachineCommand = useCallback(async (command: MachineEdgeCommand, count?: number) => {
+    const gate = canMutate({ useBackend, mutationsAllowed, capabilities, key: 'device_command.send' });
+    if (!gate.allowed) throw new Error(gate.reason);
     await runProtected(async () => {
       const { updatedMachine } = await machineCommandUseCase.dispatchCommand(
         currentMachineId,
@@ -177,11 +191,13 @@ export function useMachineActions(deps: MachineActionsDeps): MachineActionsApi {
         setMachines((prev) => prev.map((m) => (m.id === updatedMachine.id ? updatedMachine : m)));
       }
     });
-  }, [runProtected, machineCommandUseCase, currentMachineId, setMachines]);
+  }, [runProtected, machineCommandUseCase, currentMachineId, setMachines, useBackend, mutationsAllowed, capabilities]);
 
   const resetCounters = useCallback(async () => {
+    const gate = canMutate({ useBackend, mutationsAllowed, capabilities, key: 'device_command.send' });
+    if (!gate.allowed) throw new Error(gate.reason);
     await dispatchMachineCommand('RESET_COUNTER');
-  }, [dispatchMachineCommand]);
+  }, [dispatchMachineCommand, useBackend, mutationsAllowed, capabilities]);
 
   const exportTelemetry = useCallback(async (format: TelemetryExportFormat = 'csv'): Promise<Blob | null> => {
     if (!useBackend) return null;
@@ -198,6 +214,8 @@ export function useMachineActions(deps: MachineActionsDeps): MachineActionsApi {
     cycleTimeSec?: number,
     shiftOverride?: { shiftStart: string; shiftEnd: string; breakWindow: string; breakMin: number }
   ) => {
+    const gate = canMutate({ useBackend, mutationsAllowed, capabilities, key: 'work_order.dispatch' });
+    if (!gate.allowed) throw new Error(gate.reason);
     if (!currentMachine) return;
     const stdCycleSec = cycleTimeSec ?? currentMachine.idealCycleTimeSec ?? currentMachine.jobConfig?.standardCycleTimeSec ?? 9.0;
     const payload = buildJobConfigPayload({
@@ -226,7 +244,7 @@ export function useMachineActions(deps: MachineActionsDeps): MachineActionsApi {
       setMachines((prev) => prev.map((m) => (m.id === currentMachineId ? syncedMachine : m)));
       closeMqttModal();
     });
-  }, [runProtected, machineCommandUseCase, currentMachineId, currentMachine, setMachines, closeMqttModal]);
+  }, [runProtected, machineCommandUseCase, currentMachineId, currentMachine, setMachines, closeMqttModal, useBackend, mutationsAllowed, capabilities]);
 
   return {
     updateMachineStatus,

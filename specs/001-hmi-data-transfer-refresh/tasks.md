@@ -6,7 +6,7 @@
 **Lifecycle:** IMPLEMENTING
 **Health:** VALID
 **Traces to:** `design.md`, `spec.md` (unit ini)
-**Reviewed against:** spec revision 2, design DRAFT (review rev 2: jawaban OQ sesuai asumsi task; T004 memakai `VITE_STATION_ID` + store + query)
+**Reviewed against:** spec revision 3, design DESIGNED/VALID (review rev 3: amandemen capability gate sesuai bukti live; T019 memakai canMutate deny-only)
 
 ## Fase 1 — Auth & WO (P0)
 
@@ -31,12 +31,12 @@
 
 ## Fase 3 — Kontrak data & otorisasi (P2)
 
-- [ ] T016 DTO kanonis `*Pct` + null-preserving + `provisional` + `operatingSec/runSec/sampleCount` (hourly/aggregate/live-state); alias legacy fallback bertanda sunset [FR-017/018] (depends T015)
-- [ ] T017 Penyisiran pemakai tipe nullable di presentation — adaptasi nilai `—`/sembunyi, TANPA ubah layout [FR-018, BR-003] (depends T016)
-- [ ] T018 `OeeCalculator` fallback availability `run/(run+unplanned)` + parity lane simulasi [FR-019] (depends T016)
-- [ ] T019 Capability gate aksi (useMachineActions/useDeviceRegistry/useWorkOrders) + access-mode read-only state + penanda elemen eksisting [FR-007/008, OQ-004] (depends T005, T015)
-- [ ] T020 Ack body `{note?}` saja [FR-020] (depends T002)
-- [ ] T021 Test fase 3: DTO dua skema + null, calculator parity, capability gate, access-mode; lint+test hijau [AC-006/007, AC-016..AC-019] (depends T016..T020)
+- [x] T016 DTO kanonis `*Pct` + null-preserving + `provisional` + `operatingSec/runSec/sampleCount` (hourly/aggregate/live-state); alias legacy fallback bertanda sunset [FR-017/018] (depends T015)
+- [x] T017 Penyisiran pemakai tipe nullable di presentation — adaptasi nilai `—`/sembunyi, TANPA ubah layout [FR-018, BR-003] (depends T016)
+- [x] T018 `OeeCalculator` fallback availability `run/(run+unplanned)` + parity lane simulasi [FR-019] (depends T016)
+- [x] T019 Capability gate aksi (useMachineActions/useDeviceRegistry/useWorkOrders) + access-mode read-only state + penanda elemen eksisting [FR-007/008, OQ-004] (depends T005, T015)
+- [x] T020 Ack body `{note?}` saja [FR-020] (depends T002)
+- [x] T021 Test fase 3: DTO dua skema + null, calculator parity, capability gate, access-mode; lint+test hijau [AC-006/007, AC-016..AC-019] (depends T016..T020)
 
 ## Verifikasi & dokumen
 

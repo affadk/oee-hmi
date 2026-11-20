@@ -26,10 +26,10 @@ export interface HourlyDataPoint {
   actual: number;
   good: number;
   reject: number;
-  oee: number;
-  availability: number;
-  performance: number;
-  quality: number;
+  oee: number | null;
+  availability: number | null;
+  performance: number | null;
+  quality: number | null;
   status: MachineStatus;
   isBuffered?: boolean;
   /** G9: FSM dominan bucket dari backend; undefined = fallback komplemen-istirahat. */

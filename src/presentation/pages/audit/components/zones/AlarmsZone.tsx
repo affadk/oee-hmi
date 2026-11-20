@@ -8,6 +8,7 @@ import { useTheme } from '../../../../providers/ThemeProvider';
 interface AlarmsZoneProps {
   alarms: MachineAlarmEvent[];
   onAcknowledgeAlarm: (alarmId: string) => void;
+  ackDisabled?: boolean;
   onResolveAlarm: (alarmId: string) => void;
   /** Global active-downtime count (§J.1, B3); null = unknown. */
   activeDowntimeCount?: number | null;
@@ -16,6 +17,7 @@ interface AlarmsZoneProps {
 export const AlarmsZone: React.FC<AlarmsZoneProps> = ({
   alarms,
   onAcknowledgeAlarm,
+  ackDisabled = false,
   onResolveAlarm,
   activeDowntimeCount = null,
 }) => {
@@ -115,6 +117,7 @@ export const AlarmsZone: React.FC<AlarmsZoneProps> = ({
                     <div className="flex items-center justify-end gap-1.5">
                       {alm.status === 'Waiting Maintenance' && (
                         <button type="button"
+                          disabled={ackDisabled}
                           onClick={() => onAcknowledgeAlarm(alm.id)}
                           className="px-2 py-0.5 rounded audit-micro font-bold border bg-[#1a3464] hover:opacity-90 text-white border-[#1a3464] transition-all cursor-pointer"
                         >

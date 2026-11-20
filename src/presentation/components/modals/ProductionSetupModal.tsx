@@ -36,6 +36,10 @@ interface ProductionSetupModalProps {
   onOpenDetail: (woId: string) => Promise<void>;
   onDispatch: (woId: string, deviceId: string) => Promise<void>;
   onComplete: (woId: string, finalRejectCount: number) => Promise<void>;
+  canDispatch?: boolean;
+  canComplete?: boolean;
+  canCancel?: boolean;
+  gateReason?: string;
   onCancel: (woId: string, reason?: string) => Promise<void>;
 }
 
@@ -56,6 +60,10 @@ export const ProductionSetupModal: React.FC<ProductionSetupModalProps> = ({
   onDispatch,
   onComplete,
   onCancel,
+  canDispatch = true,
+  canComplete = true,
+  canCancel = true,
+  gateReason,
 }) => {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
@@ -170,7 +178,8 @@ export const ProductionSetupModal: React.FC<ProductionSetupModalProps> = ({
                   </button>
                   <button
                     type="button"
-                    disabled={busy || !isBackendMode || !deviceId}
+                    disabled={busy || !isBackendMode || !deviceId || !canDispatch}
+                    title={!canDispatch ? gateReason : undefined}
                     onClick={() => {
                       if (!deviceId) return;
                       setActionError('');
@@ -253,7 +262,8 @@ export const ProductionSetupModal: React.FC<ProductionSetupModalProps> = ({
           <div className="flex flex-wrap justify-end gap-2 mt-3">
             <button
               type="button"
-              disabled={busy || !isBackendMode || !preview}
+              disabled={busy || !isBackendMode || !preview || !canComplete}
+              title={!canComplete ? gateReason : undefined}
               onClick={() => {
                 const woId = preview?.woId;
                 if (!woId) return;
@@ -271,7 +281,8 @@ export const ProductionSetupModal: React.FC<ProductionSetupModalProps> = ({
             </button>
             <button
               type="button"
-              disabled={busy || !isBackendMode || !preview}
+              disabled={busy || !isBackendMode || !preview || !canCancel}
+              title={!canCancel ? gateReason : undefined}
               onClick={() => {
                 const woId = preview?.woId;
                 if (!woId) return;

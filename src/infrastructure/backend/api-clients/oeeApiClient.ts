@@ -277,7 +277,7 @@ export class OeeHttpTelemetryRepository implements ITelemetryRepository {
   async acknowledgeOperationalEvent(id: number, operatorId: string, note?: string): Promise<OperationalEvent> {
     const raw = await httpRequest<unknown>(endpoints.operationalEventAck(id), {
       method: 'PATCH',
-      body: { operator_id: operatorId, note },
+      body: { note },
     });
     // Respons ack ringkas {id, acknowledgedAt, ...} — gabung ke bentuk event penuh.
     const ack = raw as { acknowledgedAt?: string; acknowledged_at?: string; acknowledgedBy?: string; acknowledged_by?: string; ackNote?: string; ack_note?: string };

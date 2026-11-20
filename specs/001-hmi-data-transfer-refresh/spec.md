@@ -8,7 +8,7 @@
 
 **Lifecycle:** SPECIFIED
 **Health:** VALID
-**Revision:** 2
+**Revision:** 3
 **Authority:** Dokumen ini otoritas utama perilaku fungsional unit ini. `design.md` dan `tasks.md` turunan; tidak boleh mendefinisikan ulang requirement.
 
 ## 1. Purpose
@@ -58,7 +58,7 @@ Menyelaraskan lapisan data transfer HMI OEE (REST + WS + auth + DTO) dengan kont
 - **FR-004** `must_change_password=true` → dialog ganti password wajib (`POST /auth/password/change {current_password, new_password}`); sukses → login ulang otomatis. (spec 043)
 - **FR-005** `403 PASSWORD_ROTATION_REQUIRED` dari rute terproteksi mana pun → gerbang FR-004 yang sama (bukan error generik). (spec 043)
 - **FR-006** Refresh sliding: pre-action bila `exp` < 120s + berkala ≤ 5 menit selama sesi aktif; `401 AUTHZ_STALE`/subjek nonaktif → logout paksa + modal login; refresh hanya kanal LAN. (§6D, §L)
-- **FR-007** `GET /auth/me` setelah login/refresh → capability `<domain>.<action>` meng-gate aksi terproteksi: `allow` aktif; `deny`/`unknown` nonaktif + alasan (fail-closed). Role tampil apa adanya (string bebas). (§L, §3.4)
+- **FR-007** `GET /auth/me` setelah login/refresh → capability `<domain>.<action>` meng-gate aksi terproteksi: `deny` → nonaktif + alasan; `unknown`/absen → coba dengan enforcement backend (403 ditampilkan) — amandemen rev 3: shadow-mode `unknown` = baseline preset yang backend tegakkan per-rute, bukan deny. `mutations_allowed=false` → semua mutasi nonaktif. Granularitas katalog = domain-level (mis. `device_command.send`); RBAC per-perintah (RESET_COUNTER supervisor+) tetap di backend. Role tampil apa adanya (string bebas). (§L, §3.4)
 - **FR-008** `GET /system/access-mode` → `mutations_allowed=false` → mode read-only: semua mutasi nonaktif + penanda pada elemen eksisting. (§I)
 
 **Realtime**
@@ -106,7 +106,7 @@ Lihat `.sdd/context/constraints.md` (berlaku repo-wide). Khusus unit: perubahan 
 - **AC-003** (FR-003) Given 5 login gagal dalam 60s, When percobaan ke-6, Then UI menampilkan countdown `Retry-After` dan submit nonaktif sampai jendela lewat.
 - **AC-004** (FR-004/005) Given `must_change_password=true` (atau 403 `PASSWORD_ROTATION_REQUIRED`), When aksi terproteksi dicoba, Then dialog ganti password muncul; after sukses, Then login ulang otomatis dan aksi dilanjutkan.
 - **AC-005** (FR-006) Given sesi idle > TTL tanpa aksi, When timer refresh jalan, Then token diperpanjang tanpa interaksi; given `AUTHZ_STALE`, Then logout + modal login (bukan retry buta).
-- **AC-006** (FR-007) Given capability `device_command.reset` = deny untuk OPERATOR, When dashboard tampil, Then tombol RESET nonaktif + alasan; given allow (SUPERVISOR), Then aktif.
+- **AC-006** (FR-007) Given capability `work_order.cancel` = deny untuk OPERATOR (terverifikasi live), When dashboard tampil, Then tombol cancel nonaktif + alasan; given `device_command.send` = unknown (shadow), Then tombol perintah tetap aktif dan 403 backend ditampilkan bila ditolak per-perintah.
 - **AC-007** (FR-008) Given `mutations_allowed=false`, When HMI dibuka, Then semua tombol mutasi nonaktif + penanda read-only; data live tetap mengalir.
 - **AC-008** (FR-009) Given mesin RUNNING, When edge transisi ke `UNPLANNED_DOWNTIME`, Then status layar berubah < 1s tanpa reload.
 - **AC-009** (FR-010) Given device online, When LWT offline → `DEVICE_STATUS_UPDATE`, Then badge koneksi jadi OFFLINE tanpa reload.
@@ -138,11 +138,12 @@ Dijawab oleh pemilik repo (delegasi eksplisit "bantu jawab disini", 2026-11-20).
 | OQ-001 station context | **env `VITE_STATION_ID` per deployment tablet** + override store (localStorage adapter) + query `?station=` untuk commissioning; nilai divalidasi ke `GET /devices`; tak ada/invalid → kirim kosong (throttle `<ip>:default`). Tidak pernah `machineId`. | Kiosk = instalasi tetap; env per deploy termurah, store = override lapangan tanpa rebuild, query = setup awal. Rantai spec 044 (explicit→query→store→registry→env) dipertahankan dengan env sebagai sumber deployment. | produk, delegasi 2026-11-20 |
 | OQ-002 poll 60s | **Ya, 60s** acceptable; konstanta tunggal di application layer; resync reconnect tetap pemicu utama. | 1 req/menit/klien ≪ nginx 100r/s; jaring pengaman WS mati total, bukan pengganti WS. | engineering, design review 2026-11-20 |
 | OQ-003 deployment tunnel | **Ya**, HMI disajikan via tunnel untuk observasi remote → FR-008 tetap in-scope (fase 3). | Backend sudah membangun perimeter dual-vhost (:8080 read-only) dan `GET /system/access-mode` memang untuk keputusan UI read-only; mengabaikannya = mutasi 403 buta di remote. | produk, delegasi 2026-11-20 |
-| OQ-004 capability unknown | **Fail-closed**: `unknown` → aksi nonaktif + alasan tampil + fallback login ulang. | Aktuasi mesin = safety-relevant; katalog capability backend lengkap (§3.4) sehingga `unknown` hanya kondisi transisi/cache basi. | engineering, design review 2026-11-20 |
+| OQ-004 capability unknown | **Amandemen 2026-11-20 (bukti live):** `deny` → nonaktif; `unknown`/absen/null → coba dengan enforcement backend (403 tampil). Bukti: OPR-E2E-01 (OPERATOR) `device_command.send=unknown` padahal backend mengizinkan PAUSE/RESUME per-rute (shadow mode = baseline preset). Fail-closed tetap di backend. | `/auth/me` live + §D RBAC + AUTHZ_MODE shadow (§3.4) |
 
 **Tidak ada OQ material tersisa.** Gate implementasi berikutnya: acceptance ADR-0001/0002/0003 (pemilik repo).
 
 ### Revision history
 
+- **Rev 3 (2026-11-20):** amandemen FR-007/AC-006/OQ-004 dari bukti live: granularitas katalog domain-level; `unknown` (shadow mode) = enforcement backend, UI nonaktif hanya `deny` eksplisit/read-only.
 - **Rev 2 (2026-11-20):** OQ-001..004 resolved (tabel di atas); FR tidak berubah (jawaban sesuai usulan spec). Downstream wajib review terhadap rev 2.
 - **Rev 1 (2026-11-20):** spec awal dari audit `docs/specs/hmi-data-transfer-2026-11.md`.

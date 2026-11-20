@@ -40,7 +40,7 @@ export interface KpiCardProps {
   onOpenFormula: (metric: string) => void;
 
   // Live points
-  livePoints?: Array<{ timestamp: string; oee: number }> | null;
+  livePoints?: Array<{ timestamp: string; oee: number | null }> | null;
 
   // UI
   isDark: boolean;

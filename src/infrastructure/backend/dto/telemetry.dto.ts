@@ -43,20 +43,28 @@ interface RawTelemetryHistory {
   totalCount?: number; total_count?: number; total?: number;
   goodCount?: number; good_count?: number; good?: number;
   rejectCount?: number; reject_count?: number; reject?: number;
-  oee?: string | number; total_oee?: string | number; avgOee?: string | number; avg_oee?: string | number;
-  availability?: string | number; avgAvailability?: string | number; avg_availability?: string | number;
-  performance?: string | number; avgPerformance?: string | number; avg_performance?: string | number;
-  quality?: string | number; avgQuality?: string | number; avg_quality?: string | number;
+  oee?: string | number | null; total_oee?: string | number | null; avgOee?: string | number | null; avg_oee?: string | number | null;
+  oeePct?: string | number | null;
+  availability?: string | number | null; avgAvailability?: string | number | null; avg_availability?: string | number | null;
+  availabilityPct?: string | number | null;
+  performance?: string | number | null; avgPerformance?: string | number | null; avg_performance?: string | number | null;
+  performancePct?: string | number | null;
+  quality?: string | number | null; avgQuality?: string | number | null; avg_quality?: string | number | null;
+  qualityPct?: string | number | null;
   isBuffered?: boolean; is_buffered?: boolean;
 }
 
 interface RawHourlyTrend {
   bucket?: string; hour?: string;
   deviceId?: string; device_id?: string;
-  oee?: string | number; total_oee?: string | number; avgOee?: string | number; avg_oee?: string | number;
-  availability?: string | number; avgAvailability?: string | number; avg_availability?: string | number;
-  performance?: string | number; avgPerformance?: string | number; avg_performance?: string | number;
-  quality?: string | number; avgQuality?: string | number; avg_quality?: string | number;
+  oee?: string | number | null; total_oee?: string | number | null; avgOee?: string | number | null; avg_oee?: string | number | null;
+  oeePct?: string | number | null;
+  availability?: string | number | null; avgAvailability?: string | number | null; avg_availability?: string | number | null;
+  availabilityPct?: string | number | null;
+  performance?: string | number | null; avgPerformance?: string | number | null; avg_performance?: string | number | null;
+  performancePct?: string | number | null;
+  quality?: string | number | null; avgQuality?: string | number | null; avg_quality?: string | number | null;
+  qualityPct?: string | number | null;
   totalCount?: number; total_count?: number;
   goodCount?: number; good_count?: number;
   rejectCount?: number; reject_count?: number;
@@ -65,6 +73,10 @@ interface RawHourlyTrend {
   targetPerHour?: number | null; target_per_hour?: number | null;
   state?: string | null;
   planned?: boolean | null;
+  provisional?: boolean | null;
+  operatingSec?: number | null; operating_sec?: number | null;
+  runSec?: number | null; run_sec?: number | null;
+  sampleCount?: number | null; sample_count?: number | null;
 }
 
 interface RawDowntime {
@@ -187,6 +199,20 @@ export function mapTelemetryFrameDto(raw: RawFrame): WsTelemetryFrame {
   };
 }
 
+/**
+ * FR-017/FR-018 (ADR-0003): skema kanonis `*Pct` MENANG atas alias legacy
+ * (`avg*`, nama lama); null dipertahankan (bucket tanpa sampel != 0).
+ * Semua kandidat absen/null -> null (jujur, bukan fabrikasi nol).
+ */
+function toNullablePercent(...candidates: Array<string | number | null | undefined>): number | null {
+  for (const c of candidates) {
+    if (c === undefined || c === null) continue;
+    const n = toFiniteNumber(c, NaN);
+    if (Number.isFinite(n)) return n;
+  }
+  return null;
+}
+
 export function mapTelemetryHistoryDto(raw: RawTelemetryHistory): TelemetryHistoryPoint {
   return {
     timestamp: raw.timestamp ?? raw.ts ?? raw.recordedAt ?? raw.recorded_at ?? raw.bucket ?? new Date(0).toISOString(),
@@ -194,10 +220,10 @@ export function mapTelemetryHistoryDto(raw: RawTelemetryHistory): TelemetryHisto
     totalCount: toFiniteNumber(raw.totalCount ?? raw.total_count ?? raw.total),
     goodCount: toFiniteNumber(raw.goodCount ?? raw.good_count ?? raw.good),
     rejectCount: toFiniteNumber(raw.rejectCount ?? raw.reject_count ?? raw.reject),
-    oee: toFiniteNumber(raw.oee ?? raw.total_oee ?? raw.avgOee ?? raw.avg_oee),
-    availability: toFiniteNumber(raw.availability ?? raw.avgAvailability ?? raw.avg_availability),
-    performance: toFiniteNumber(raw.performance ?? raw.avgPerformance ?? raw.avg_performance),
-    quality: toFiniteNumber(raw.quality ?? raw.avgQuality ?? raw.avg_quality),
+    oee: toNullablePercent(raw.oeePct, raw.oee, raw.total_oee, raw.avgOee, raw.avg_oee),
+    availability: toNullablePercent(raw.availabilityPct, raw.availability, raw.avgAvailability, raw.avg_availability),
+    performance: toNullablePercent(raw.performancePct, raw.performance, raw.avgPerformance, raw.avg_performance),
+    quality: toNullablePercent(raw.qualityPct, raw.quality, raw.avgQuality, raw.avg_quality),
     isBuffered: raw.isBuffered ?? raw.is_buffered ?? false,
   };
 }
@@ -219,16 +245,20 @@ export function mapHourlyTrendDto(raw: RawHourlyTrend): HourlyTrendPoint {
   return {
     bucket: raw.bucket ?? raw.hour ?? '',
     deviceId: raw.deviceId ?? raw.device_id ?? '',
-    oee: toFiniteNumber(raw.oee ?? raw.total_oee ?? raw.avgOee ?? raw.avg_oee),
-    availability: toFiniteNumber(raw.availability ?? raw.avgAvailability ?? raw.avg_availability),
-    performance: toFiniteNumber(raw.performance ?? raw.avgPerformance ?? raw.avg_performance),
-    quality: toFiniteNumber(raw.quality ?? raw.avgQuality ?? raw.avg_quality),
+    oee: toNullablePercent(raw.oeePct, raw.oee, raw.total_oee, raw.avgOee, raw.avg_oee),
+    availability: toNullablePercent(raw.availabilityPct, raw.availability, raw.avgAvailability, raw.avg_availability),
+    performance: toNullablePercent(raw.performancePct, raw.performance, raw.avgPerformance, raw.avg_performance),
+    quality: toNullablePercent(raw.qualityPct, raw.quality, raw.avgQuality, raw.avg_quality),
     totalCount,
     goodCount,
     rejectCount,
     targetPerHour: raw.targetPerHour ?? raw.target_per_hour ?? null,
     state: raw.state ?? null,
     planned: raw.planned ?? false,
+    provisional: raw.provisional === true,
+    operatingSec: raw.operatingSec ?? raw.operating_sec ?? null,
+    runSec: raw.runSec ?? raw.run_sec ?? null,
+    sampleCount: raw.sampleCount ?? raw.sample_count ?? null,
   };
 }
 

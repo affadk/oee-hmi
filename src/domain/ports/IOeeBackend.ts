@@ -117,10 +117,11 @@ export interface IHealthRepository {
 export interface HourlyTrendPoint {
   bucket: string;
   deviceId: string;
-  oee: number;
-  availability: number;
-  performance: number;
-  quality: number;
+  /** FR-018: null = bucket tanpa sampel ber-udt/penyebut nol (bukan 0). */
+  oee: number | null;
+  availability: number | null;
+  performance: number | null;
+  quality: number | null;
   totalCount: number;
   goodCount: number;
   rejectCount: number;
@@ -130,6 +131,11 @@ export interface HourlyTrendPoint {
   state: string | null;
   /** G9: true bila bucket dalam planned stop. */
   planned: boolean;
+  /** 019/§7J: bucket CAgg belum final. */
+  provisional: boolean;
+  operatingSec: number | null;
+  runSec: number | null;
+  sampleCount: number | null;
 }
 
 export interface AuthSession {

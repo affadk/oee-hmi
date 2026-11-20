@@ -20,6 +20,7 @@ export interface DeviceListPanelProps {
   inputCls: string;
   isDark: boolean;
   isBackendMode: boolean;
+  editDisabled?: boolean;
   onSave: (deviceId: string, patch: { ipAddress?: string; firmwareVersion?: string }, notice: string) => void;
 }
 
@@ -35,6 +36,7 @@ export const DeviceListPanel: React.FC<DeviceListPanelProps> = ({
   inputCls,
   isDark,
   isBackendMode,
+  editDisabled = false,
   onSave,
 }) => (
   <div className={`mt-4 p-4 rounded-xl border ${panel}`}>
@@ -90,7 +92,7 @@ export const DeviceListPanel: React.FC<DeviceListPanelProps> = ({
             <div className="flex justify-end mt-2">
               <button
                 type="button"
-                disabled={!dirty || isBusy || !isBackendMode}
+                disabled={!dirty || isBusy || !isBackendMode || editDisabled}
                 onClick={() =>
                   onSave(
                     device.deviceId,

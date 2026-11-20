@@ -16,6 +16,7 @@ export interface MachineMetaPanelProps {
   value: string;
   inputCls: string;
   isBackendMode: boolean;
+  editDisabled?: boolean;
   onSave: (machineId: string, patch: { machineName?: string; modbusSlaveId?: number }, notice: string) => void;
 }
 
@@ -30,6 +31,7 @@ export const MachineMetaPanel: React.FC<MachineMetaPanelProps> = ({
   value,
   inputCls,
   isBackendMode,
+  editDisabled = false,
   onSave,
 }) => (
   <div className={`mt-4 p-4 rounded-xl border ${panel}`}>
@@ -76,7 +78,7 @@ export const MachineMetaPanel: React.FC<MachineMetaPanelProps> = ({
             <div className="flex justify-end mt-2">
               <button
                 type="button"
-                disabled={!dirty || isBusy || !isBackendMode || Number.isNaN(slaveNum)}
+                disabled={!dirty || isBusy || !isBackendMode || Number.isNaN(slaveNum) || editDisabled}
                 onClick={() =>
                   onSave(
                     machine.machineId,

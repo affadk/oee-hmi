@@ -19,6 +19,7 @@ export interface MachineBindPanelProps {
   inputCls: string;
   isDark: boolean;
   isBackendMode: boolean;
+  editDisabled?: boolean;
   onBind: (machineId: string, deviceId: string) => void;
   onUnbind: (machineId: string) => void;
 }
@@ -36,6 +37,7 @@ export const MachineBindPanel: React.FC<MachineBindPanelProps> = ({
   inputCls,
   isDark,
   isBackendMode,
+  editDisabled = false,
   onBind,
   onUnbind,
 }) => (
@@ -62,7 +64,7 @@ export const MachineBindPanel: React.FC<MachineBindPanelProps> = ({
                     </span>
                     <button
                       type="button"
-                      disabled={isBusy || !isBackendMode}
+                      disabled={isBusy || !isBackendMode || editDisabled}
                       onClick={() => onUnbind(machine.machineId)}
                       className="px-3 py-1.5 rounded-lg border border-rose-500/60 text-rose-500 hover:bg-rose-500/10 disabled:opacity-40 text-[11px] font-bold flex items-center gap-1.5"
                     >
@@ -84,7 +86,7 @@ export const MachineBindPanel: React.FC<MachineBindPanelProps> = ({
                     </select>
                     <button
                       type="button"
-                      disabled={isBusy || !isBackendMode || !candidate}
+                      disabled={isBusy || !isBackendMode || !candidate || editDisabled}
                       onClick={() => onBind(machine.machineId, candidate)}
                       className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white text-[11px] font-bold flex items-center gap-1.5"
                     >

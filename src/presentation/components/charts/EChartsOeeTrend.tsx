@@ -24,7 +24,7 @@ interface EChartsOeeTrendProps {
   showBenchmark?: boolean;
   breakTimeWindow?: string;
   /** Live 5m overlay (B5 aggregate, B2 history fallback); null = hidden. */
-  livePoints?: Array<{ timestamp: string; oee: number }> | null;
+  livePoints?: Array<{ timestamp: string; oee: number | null }> | null;
 }
 
 export const EChartsOeeTrend: React.FC<EChartsOeeTrendProps> = ({
@@ -197,7 +197,7 @@ export const EChartsOeeTrend: React.FC<EChartsOeeTrendProps> = ({
             tip += `
               <div class="flex items-center justify-between gap-3 text-xs py-0.5">
                 <span style="color:${p.color}">● ${p.seriesName}:</span>
-                <span class="font-mono font-bold ${isDark ? 'text-white' : 'text-slate-900'}">${Number(p.value).toFixed(1)}%</span>
+                <span class="font-mono font-bold ${isDark ? 'text-white' : 'text-slate-900'}">${typeof p.value === 'number' ? `${p.value.toFixed(1)}%` : '—'}</span>
               </div>
             `;
           });

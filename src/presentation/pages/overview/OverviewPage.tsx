@@ -34,6 +34,8 @@ export const OverviewPage: React.FC = () => {
       onUpdateMachineStatus={dashboard.updateMachineStatus}
       onLogReject={dashboard.logReject}
       onDispatchMachineCommand={dashboard.dispatchMachineCommand}
+      commandsDisabled={!dashboard.canSendCommands}
+      disabledReason={dashboard.gateReason}
       onApplyJobConfig={dashboard.applyJobConfig}
       backendHealth={dashboard.backendHealth}
       catalog={dashboard.catalog}

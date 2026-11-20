@@ -94,6 +94,7 @@ export const AuditPage: React.FC = () => {
         />
 
         <AlarmsZone
+          ackDisabled={!dashboard.canAckAlarm}
           alarms={dashboard.alarms}
           onAcknowledgeAlarm={dashboard.acknowledgeAlarm}
           onResolveAlarm={dashboard.resolveAlarm}

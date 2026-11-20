@@ -3,7 +3,7 @@
 **Lifecycle:** PLANNED
 **Health:** VALID
 **Traces to:** `spec.md` (unit ini)
-**Reviewed against:** spec revision 2
+**Reviewed against:** spec revision 3
 
 > Review rev 2 (2026-11-20): OQ resolved sesuai asumsi plan; strategi/fase tidak berubah.
 

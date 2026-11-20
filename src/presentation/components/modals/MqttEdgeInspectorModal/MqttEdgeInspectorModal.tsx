@@ -32,6 +32,7 @@ interface MqttEdgeInspectorModalProps {
   onClose: () => void;
   machine: MachineConfig;
   onSendCommand: (cmd: DeviceCommandKind) => void;
+  commandsDisabled?: boolean;
   onSendJobConfig: (wo: string, product: string, operator: string, target: number, cycleTimeSec?: number) => void;
   useBackend?: boolean;
 }
@@ -41,6 +42,7 @@ export const MqttEdgeInspectorModal: React.FC<MqttEdgeInspectorModalProps> = ({
   onClose,
   machine,
   onSendCommand,
+  commandsDisabled = false,
   onSendJobConfig,
   useBackend,
 }) => {
@@ -202,6 +204,7 @@ export const MqttEdgeInspectorModal: React.FC<MqttEdgeInspectorModalProps> = ({
     useBackend,
     pushLog,
     sendCmd,
+    commandsDisabled,
   };
 
   return (

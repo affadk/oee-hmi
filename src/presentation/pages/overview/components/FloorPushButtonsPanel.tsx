@@ -13,6 +13,8 @@ interface FloorPushButtonsPanelProps {
   onDispatchMachineCommand: (command: DeviceCommandKind) => Promise<void>;
   /** Dipanggil saat START diminta tanpa WO aktif (arahkan ke QR/Setup Produksi). */
   onRequestWorkOrder?: () => void;
+  commandsDisabled?: boolean;
+  disabledReason?: string;
 }
 
 export const FloorPushButtonsPanel: React.FC<FloorPushButtonsPanelProps> = ({
@@ -21,6 +23,8 @@ export const FloorPushButtonsPanel: React.FC<FloorPushButtonsPanelProps> = ({
   onLogReject,
   onDispatchMachineCommand,
   onRequestWorkOrder,
+  commandsDisabled = false,
+  disabledReason,
 }) => {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
@@ -80,6 +84,7 @@ export const FloorPushButtonsPanel: React.FC<FloorPushButtonsPanelProps> = ({
   };
 
   const triggerButton = async (id: 'START' | 'STOP' | 'COUNTING' | 'REJECT' | 'RESET' | 'SPARE') => {
+    if (commandsDisabled) { setActionError(disabledReason ?? 'Aksi dinonaktifkan oleh hak akses.'); return; }
     // U2: COUNTING/SPARE tidak terhubung ke apa pun — tombol dinonaktifkan
     // jujur di bawah (tidak bisa diklik); cabang ini pertahanan terakhir.
     if (id === 'COUNTING' || id === 'SPARE') return;
@@ -206,7 +211,7 @@ export const FloorPushButtonsPanel: React.FC<FloorPushButtonsPanelProps> = ({
           const Icon = b.icon;
           const isEngaged = b.isEngaged;
           const isGuarded = 'guarded' in b && b.guarded === true;
-          const isDisabled = ('disabledReason' in b && typeof b.disabledReason === 'string') || isBusy;
+          const isDisabled = ('disabledReason' in b && typeof b.disabledReason === 'string') || isBusy || commandsDisabled;
 
           return (
             <button
@@ -221,7 +226,7 @@ export const FloorPushButtonsPanel: React.FC<FloorPushButtonsPanelProps> = ({
                   ? b.activeColor + ' ring-1 ring-white/30 font-bold shadow-md'
                   : b.idleColor
               }`}
-              title={'disabledReason' in b && typeof b.disabledReason === 'string' ? `${b.label} — nonaktif: ${b.disabledReason}` : isGuarded ? `${b.label} — ${b.sublabel} (perlu konfirmasi)` : `${b.label} — ${b.sublabel}`}
+              title={commandsDisabled ? (disabledReason ?? 'Aksi dinonaktifkan oleh hak akses.') : 'disabledReason' in b && typeof b.disabledReason === 'string' ? `${b.label} — nonaktif: ${b.disabledReason}` : isGuarded ? `${b.label} — ${b.sublabel} (perlu konfirmasi)` : `${b.label} — ${b.sublabel}`}
             >
               {isEngaged && (
                 <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-white animate-ping" />

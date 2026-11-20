@@ -27,6 +27,8 @@ export interface FullscreenOeeViewProps {
   onUpdateMachineStatus?: (status: 'RUNNING' | 'DOWN' | 'IDLE') => Promise<void>;
   onLogReject?: (reasonLabel: string, count: number) => Promise<void>;
   onDispatchMachineCommand?: (command: DeviceCommandKind) => Promise<void>;
+  commandsDisabled?: boolean;
+  disabledReason?: string;
   onApplyJobConfig?: (
     wo: string,
     product: string,
@@ -40,7 +42,7 @@ export interface FullscreenOeeViewProps {
   catalog?: { products: ProductRecord[]; operators: OperatorRecord[] } | null;
   onRefreshCatalog?: () => Promise<void>;
   shiftSegments?: TimelineSegment[] | null;
-  livePoints?: Array<{ timestamp: string; oee: number }> | null;
+  livePoints?: Array<{ timestamp: string; oee: number | null }> | null;
   workOrderPreview?: { woId: string; result: WorkOrderResolveResult } | null;
   onPreviewWorkOrder?: (woId: string) => Promise<void>;
   onProceedToSetup?: () => void;
