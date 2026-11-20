@@ -1,6 +1,7 @@
 # ADR-0004 — Separasi Surface: HMI Kiosk / Station / Andon / Admin-Panel
 
-**Status:** Proposed
+**Status:** Accepted
+**Acceptance:** pemilik repo, 2026-11-20 (jawaban eksplisit acceptance)
 **Tanggal:** 2026-11-20
 **Unit terkait:** `specs/002-hmi-station-surfaces`
 **Acuan:** Wikipedia *User interface* §Terminology (HMI lokal satu mesin vs operator interface multi-mesin); API_DOCUMENTATION §C.7/8 (4-zone QR), §C.4 (dispatch auth), §L (login), §B/§F (public read); preseden v1 `iiot-oee/apps/frontend` (StationPage/AndonPage/SupervisorPage/MultiZoneWizardModal); directive produk pemilik repo 2026-11-20.

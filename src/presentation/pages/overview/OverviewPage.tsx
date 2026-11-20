@@ -45,6 +45,9 @@ export const OverviewPage: React.FC = () => {
       workOrderPreview={dashboard.workOrderPreview}
       onPreviewWorkOrder={dashboard.previewWorkOrder}
       onProceedToSetup={dashboard.openProductionSetupModal}
+      machineLine={dashboard.machineLine}
+      sessionOperatorId={dashboard.authSession?.operator.id ?? null}
+      onInitiateFromZones={dashboard.initiateFromZones}
     />
   );
 };

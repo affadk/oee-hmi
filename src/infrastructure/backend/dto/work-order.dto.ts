@@ -1,7 +1,14 @@
 // /src/application/dto/work-order.dto.ts
 // Boundary DTO: raw REST JSON → domain WorkOrderListItem.
 
-import type { WorkOrderListItem, WorkOrderResolveResult, WorkOrderStatus } from '../../../domain/entities/backend/WorkOrder';
+import type {
+  InitiateFromZonesResult,
+  WorkOrderListItem,
+  WorkOrderResolveResult,
+  WorkOrderStatus,
+  ZoneType,
+  ZoneValidation,
+} from '../../../domain/entities/backend/WorkOrder';
 import { toFiniteNumber } from '../../../domain/entities/backend/LiveState';
 
 interface RawWorkOrder {
@@ -113,5 +120,64 @@ export function mapWorkOrderResolveDto(raw: RawWorkOrderResolve): WorkOrderResol
       ? { start: br.start, end: br.end, minutes: br.minutes as number }
       : null,
     status: normalizeStatus(raw.status),
+  };
+}
+
+// -------------------------------------------------------------
+// Multi-Zone QR v2 (§C.7/§C.8) — unit 002 FR-004
+// -------------------------------------------------------------
+
+const ZONE_TYPES = ['PRODUCT', 'MACHINE', 'OPERATOR', 'SHIFT'] as const;
+
+function normalizeZoneType(raw: unknown): ZoneType {
+  const s = String(raw ?? '').toUpperCase();
+  return (ZONE_TYPES as readonly string[]).includes(s) ? (s as ZoneType) : 'PRODUCT';
+}
+
+function toNullableBoolean(raw: unknown): boolean | null {
+  return typeof raw === 'boolean' ? raw : null;
+}
+
+function toNullableString(raw: unknown): string | null {
+  return typeof raw === 'string' && raw ? raw : null;
+}
+
+export function mapZoneValidationDto(raw: Record<string, unknown>): ZoneValidation {
+  const parsed = raw.parsed;
+  return {
+    valid: raw.valid === true,
+    zoneType: normalizeZoneType(raw.zone_type ?? raw.zoneType),
+    // parsed = record key-value zona; string apa adanya (backend otoritatif).
+    parsed: parsed && typeof parsed === 'object' ? Object.fromEntries(
+      Object.entries(parsed as Record<string, unknown>).map(([k, v]) => [k, String(v)]),
+    ) : {},
+    machineReady: toNullableBoolean(raw.machine_ready ?? raw.machineReady),
+    deviceOnline: toNullableBoolean(raw.device_online ?? raw.deviceOnline),
+    message: toNullableString(raw.message),
+  };
+}
+
+export function mapInitiateFromZonesDto(raw: Record<string, unknown>): InitiateFromZonesResult {
+  const wo = (raw.work_order ?? {}) as Record<string, unknown>;
+  const sp = (wo.shift_plan ?? wo.shiftPlan ?? {}) as Record<string, unknown>;
+  return {
+    success: raw.success === true,
+    dispatchTxId: String(raw.dispatch_tx_id ?? raw.dispatchTxId ?? ''),
+    idempotentDuplicate: raw.is_idempotent_duplicate === true,
+    workOrder: {
+      woId: String(wo.wo_id ?? wo.woId ?? ''),
+      machineId: String(wo.machine_id ?? wo.machineId ?? ''),
+      productName: String(wo.product_name ?? wo.productName ?? ''),
+      stdCycleTimeSec: toFiniteNumber(wo.std_cycle_time_sec ?? wo.stdCycleTimeSec),
+      operatorName: String(wo.operator_name ?? wo.operatorName ?? ''),
+      targetQty: toFiniteNumber(wo.target_qty ?? wo.targetQty),
+      shiftPlan: {
+        shiftStart: String(sp.shift_start ?? sp.shiftStart ?? ''),
+        shiftEnd: String(sp.shift_end ?? sp.shiftEnd ?? ''),
+        plannedBreakMin: toFiniteNumber(sp.planned_break_min ?? sp.plannedBreakMin),
+        plannedOperatingSec: toFiniteNumber(sp.planned_operating_sec ?? sp.plannedOperatingSec),
+      },
+      status: normalizeStatus(wo.status),
+    },
   };
 }

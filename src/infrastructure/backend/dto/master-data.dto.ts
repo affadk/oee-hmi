@@ -99,6 +99,7 @@ export function mapMachineDto(raw: unknown): MachineRecord {
     deviceId: strOrNull(r.deviceId, r.device_id) ?? (deviceId === '' ? null : deviceId),
     modbusSlaveId: toFiniteNumber(r.modbusSlaveId ?? r.modbus_slave_id),
     createdAt: str(r.createdAt, r.created_at),
+    lineId: strOrNull(r.lineId, r.line_id),
     boundDevice: deviceId === ''
       ? null
       : {

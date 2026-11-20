@@ -22,6 +22,7 @@ import { AuthPinModal } from '../components/modals/AuthPinModal';
 import { DeviceConfigModal } from '../components/modals/DeviceConfigModal/DeviceConfigModal';
 import { ProductionSetupModal } from '../components/modals/ProductionSetupModal';
 import { WorkOrderDetailModal } from '../components/modals/WorkOrderDetailModal';
+import { FleetCardsPanel } from './overview/components/panels/FleetCardsPanel';
 import { LayoutDashboard, Tv, Sun, Moon } from 'lucide-react';
 
 /** Shape handed to child pages through the router outlet context. */
@@ -38,8 +39,6 @@ export const DashboardPage: React.FC = () => {
   const { isFullscreen, toggleBrowserFullscreen } = useFullscreen();
   const navigate = useNavigate();
   const location = useLocation();
-  // Halaman aktif dari URL: satu-satunya route selain /audit adalah /overview.
-  const isOverview = location.pathname !== '/audit';
 
   const deps = useMemo(() => ({
     calculateOeeUseCase: container.calculateOeeUseCase,
@@ -134,7 +133,9 @@ export const DashboardPage: React.FC = () => {
         isDark ? 'bg-[#070d1a] text-slate-100' : 'bg-slate-100 text-slate-900'
       }`}
     >
-      {!isFullscreen && (
+      {/* Unit 002 (FR-002): kiosk terkunci device → tanpa switcher fleet.
+          Label mode pada switcher untuk station/andon (surface non-kiosk). */}
+      {!isFullscreen && dashboard.surface !== 'kiosk' && (
         <div
           id="floating-view-switcher"
           className={`fixed bottom-3 left-1/2 -translate-x-1/2 z-40 backdrop-blur-md rounded-full px-2.5 py-1.5 flex items-center gap-1.5 shadow-2xl border transition-colors ${
@@ -143,30 +144,28 @@ export const DashboardPage: React.FC = () => {
               : 'bg-white/95 border-slate-300 text-slate-700'
           }`}
         >
+          <span id="surface-mode-label" title="Mode surface (ADR-0004)" className={`px-2.5 text-[11px] font-bold uppercase tracking-wide ${isDark ? 'text-amber-300' : 'text-blue-700'}`}>
+            {dashboard.surface}
+          </span>
+          {dashboard.surface === 'andon' && dashboard.useBackend && (
+            <button
+              type="button"
+              id="btn-operator-login"
+              onClick={dashboard.openAuthModal}
+              title="Login operator (station mode)"
+              className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer border ${isDark ? 'border-emerald-700 text-emerald-300 hover:bg-emerald-900/40' : 'border-emerald-300 text-emerald-700 hover:bg-emerald-50'}`}
+            >
+              <LayoutDashboard className="w-3.5 h-3.5" />
+              <span>Login operator</span>
+            </button>
+          )}
           <button type="button"
             id="btn-switch-fullscreen-view"
             onClick={() => navigate('/overview')}
-            className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
-              isOverview
-                ? 'bg-blue-600 text-white shadow-md'
-                : isDark ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-900'
-            }`}
+            className="px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer bg-blue-600 text-white shadow-md"
           >
             <Tv className="w-3.5 h-3.5" />
             <span>OEE Shift Overview</span>
-          </button>
-
-          <button type="button"
-            id="btn-switch-audit-view"
-            onClick={() => navigate('/audit')}
-            className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
-              !isOverview
-                ? 'bg-blue-600 text-white shadow-md'
-                : isDark ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-900'
-            }`}
-          >
-            <LayoutDashboard className="w-3.5 h-3.5" />
-            <span>Detailed Audit Dashboard</span>
           </button>
 
           <span className={`w-[1px] h-4 ${isDark ? 'bg-slate-700' : 'bg-slate-300'}`}></span>
@@ -187,6 +186,16 @@ export const DashboardPage: React.FC = () => {
         </div>
       )}
       <Outlet context={outletContext} />
+
+      {/* Unit 002 FR-006: station surface — kartu fleet RUNNING; klik → live view. */}
+      {dashboard.surface === 'station' && !isFullscreen && (
+        <FleetCardsPanel
+          machines={dashboard.machines}
+          currentMachineId={dashboard.currentMachineId}
+          onSelectMachine={dashboard.selectMachine}
+          isDark={isDark}
+        />
+      )}
 
       <LogEventModal
         labelDisabled={!dashboard.canLabelDowntime}

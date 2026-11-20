@@ -33,9 +33,17 @@ import type { IAuthTokenStorage } from '../../../domain/ports/IAuthTokenStorage'
 import { AuthTokenStorageAdapter } from '../../storage/AuthTokenStorageAdapter';
 import type { DowntimeCategory, DeviceHealth, DowntimeEvent, OperationalEvent, RejectBreakdownItem, TelemetryHistoryPoint } from '../../../domain/entities/backend/Telemetry';
 import type { HourlyTrendPoint, OperationalEventsQuery, PageMeta } from '../../../domain/ports/IOeeBackend';
-import type { WorkOrderListItem, WorkOrderQuery, WorkOrderResolveResult } from '../../../domain/entities/backend/WorkOrder';
+import type {
+  InitiateFromZonesResult,
+  WorkOrderListItem,
+  WorkOrderQuery,
+  WorkOrderResolveResult,
+  ZoneRawStrings,
+  ZoneType,
+  ZoneValidation,
+} from '../../../domain/entities/backend/WorkOrder';
 import { mapLiveStateDto, mapLiveStateListDto } from '../dto/live-state.dto';
-import { mapWorkOrderDto, mapWorkOrderListDto, mapWorkOrderResolveDto } from '../dto/work-order.dto';
+import { mapInitiateFromZonesDto, mapWorkOrderDto, mapWorkOrderListDto, mapWorkOrderResolveDto, mapZoneValidationDto } from '../dto/work-order.dto';
 import {
   mapDeviceHealthDto,
   mapDowntimeEventDto,
@@ -112,6 +120,22 @@ export class OeeHttpWorkOrderRepository implements IWorkOrderRepository {
   }
   async cancel(woId: string, reason?: string): Promise<void> {
     await httpRequest(endpoints.workOrderCancel(woId), { method: 'POST', body: { reason } });
+  }
+  async validateZone(zoneType: ZoneType, deviceId: string, rawString: string, signal?: AbortSignal): Promise<ZoneValidation> {
+    const raw = await httpRequest<Record<string, unknown>>(endpoints.workOrderValidateZone(), {
+      method: 'POST',
+      body: { zone_type: zoneType, device_id: deviceId, raw_string: rawString },
+      signal,
+    });
+    return mapZoneValidationDto(raw);
+  }
+  async initiateFromZones(deviceId: string, zones: ZoneRawStrings, signal?: AbortSignal): Promise<InitiateFromZonesResult> {
+    const raw = await httpRequest<Record<string, unknown>>(endpoints.workOrderInitiateFromZones(), {
+      method: 'POST',
+      body: { device_id: deviceId, zones },
+      signal,
+    });
+    return mapInitiateFromZonesDto(raw);
   }
 }
 

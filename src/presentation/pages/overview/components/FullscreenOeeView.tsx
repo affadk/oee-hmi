@@ -45,6 +45,9 @@ export const FullscreenOeeView: React.FC<FullscreenOeeViewProps> = ({
   workOrderPreview = null,
   onPreviewWorkOrder,
   onProceedToSetup,
+  machineLine = '',
+  sessionOperatorId = null,
+  onInitiateFromZones,
 }) => {
   const { theme, toggleTheme } = useTheme();
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
@@ -112,6 +115,9 @@ export const FullscreenOeeView: React.FC<FullscreenOeeViewProps> = ({
                 }
               : undefined
           }
+          line={machineLine}
+          sessionOperatorId={sessionOperatorId}
+          onInitiateFromZones={onInitiateFromZones}
         />
 
         {/* 1. TOP HEADER */}

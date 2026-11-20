@@ -36,7 +36,7 @@ export interface MachineActionsDeps {
   machineCommandUseCase: MachineCommandUseCase;
   labelDowntimeReasonUseCase: LabelDowntimeReasonUseCase;
   exportTelemetryUseCase: ExportTelemetryUseCase;
-  runProtected: (action: () => Promise<void>) => Promise<void>;
+  runProtected: <T>(action: () => Promise<T>) => Promise<T | void>;
   /** FR-007/008: capability + access-mode gate (fail-closed). */
   capabilities: import('../../domain/ports/IOeeBackend').CapabilityMap | null;
   mutationsAllowed: boolean | null;

@@ -13,6 +13,9 @@ export const endpoints = {
   workOrderDispatch: (woId: string) => `/api/v1/work-orders/${encodeURIComponent(woId)}/dispatch`,
   workOrderComplete: (woId: string) => `/api/v1/work-orders/${encodeURIComponent(woId)}/complete`,
   workOrderCancel: (woId: string) => `/api/v1/work-orders/${encodeURIComponent(woId)}/cancel`,
+  // unit 002 FR-004 (§C.7/§C.8) — endpoint statis, tanpa id.
+  workOrderValidateZone: () => '/api/v1/work-orders/validate-zone',
+  workOrderInitiateFromZones: () => '/api/v1/work-orders/initiate-from-zones',
   deviceCommand: (deviceId: string) => `/api/v1/devices/${encodeURIComponent(deviceId)}/command`,
   devices: () => '/api/v1/devices',
   deviceDetail: (deviceId: string) => `/api/v1/devices/${encodeURIComponent(deviceId)}`,

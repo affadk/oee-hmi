@@ -20,6 +20,8 @@ export interface MachineRecord {
   deviceId: string | null;
   modbusSlaveId: number;
   createdAt: string;
+  /** LINE master (§C.8 MACHINE zone LINE); null = tak dikirim backend. */
+  lineId: string | null;
   boundDevice: { deviceId: string; macAddress: string | null; isOnline: boolean } | null;
 }
 

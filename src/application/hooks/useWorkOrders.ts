@@ -5,7 +5,13 @@
 
 import { useCallback, useState } from 'react';
 import type { MachineConfig } from '../../domain/entities/Machine';
-import type { WorkOrderListItem, WorkOrderResolveResult } from '../../domain/entities/backend/WorkOrder';
+import type {
+  InitiateFromZonesResult,
+  WorkOrderListItem,
+  WorkOrderResolveResult,
+  ZoneRawStrings,
+  ZoneType,
+} from '../../domain/entities/backend/WorkOrder';
 import type { GetMachinesUseCase } from '../use-cases/GetMachinesUseCase';
 import type { ListWorkOrdersUseCase } from '../use-cases/ListWorkOrdersUseCase';
 import { canMutate } from '../capabilityGate';
@@ -17,7 +23,7 @@ export interface WorkOrdersDeps {
   currentTotalCount: number | null;
   listWorkOrdersUseCase: ListWorkOrdersUseCase;
   getMachinesUseCase: GetMachinesUseCase;
-  runProtected: (action: () => Promise<void>) => Promise<void>;
+  runProtected: <T>(action: () => Promise<T>) => Promise<T | void>;
   capabilities: import('../../domain/ports/IOeeBackend').CapabilityMap | null;
   mutationsAllowed: boolean | null;
   setMachines: React.Dispatch<React.SetStateAction<MachineConfig[]>>;
@@ -42,6 +48,8 @@ export interface WorkOrdersApi {
   dispatchWorkOrder: (woId: string, deviceId: string) => Promise<void>;
   completeWorkOrder: (woId: string, finalRejectCount: number) => Promise<void>;
   cancelWorkOrder: (woId: string, reason?: string) => Promise<void>;
+  /** unit 002 FR-004: validate 4 zona → initiate WO + dispatch (Bearer, gate work_order.dispatch). */
+  initiateFromZones: (deviceId: string, zones: ZoneRawStrings) => Promise<InitiateFromZonesResult | void>;
 }
 
 export function useWorkOrders(deps: WorkOrdersDeps): WorkOrdersApi {
@@ -187,6 +195,45 @@ export function useWorkOrders(deps: WorkOrdersDeps): WorkOrdersApi {
     }
   }, [getMachinesUseCase, listWorkOrdersUseCase, runProtected, setMachines, useBackend, useBackend, mutationsAllowed, capabilities]);
 
+  // unit 002 FR-004: validate 4 zona berurutan (error per zona) → initiate.
+  // initiate-from-zones backend SUDAH dispatch (MQTT config + watchdog tx);
+  // POST /:wo_id/dispatch terpisah tidak dipanggil (akan konflik status).
+  const initiateFromZones = useCallback(async (deviceId: string, zones: ZoneRawStrings) => {
+    const gate = canMutate({ useBackend, mutationsAllowed, capabilities, key: 'work_order.dispatch' });
+    if (!gate.allowed) { setProductionSetupError(gate.reason); throw new Error(gate.reason); }
+    if (!useBackend) throw new Error('Initiate QR hanya tersedia pada mode backend.');
+    setProductionSetupError('');
+    setProductionSetupBusy(true);
+    try {
+      const result = await runProtected(async () => {
+        const steps: Array<{ zone: keyof ZoneRawStrings; type: ZoneType }> = [
+          { zone: 'product', type: 'PRODUCT' },
+          { zone: 'machine', type: 'MACHINE' },
+          { zone: 'operator', type: 'OPERATOR' },
+          { zone: 'shift', type: 'SHIFT' },
+        ];
+        for (const step of steps) {
+          const validation = await listWorkOrdersUseCase.validateZone(step.type, deviceId, zones[step.zone]);
+          if (!validation.valid) {
+            throw new Error(`Zona ${step.type}: ${validation.message ?? 'validasi gagal.'}`);
+          }
+        }
+        const initiated = await listWorkOrdersUseCase.initiateFromZones(deviceId, zones);
+        const machineList = await getMachinesUseCase.executeAll();
+        setMachines(machineList);
+        const pending = await listWorkOrdersUseCase.list({ status: 'PENDING', limit: 50 });
+        setPendingWorkOrders(pending);
+        return initiated;
+      });
+      return result;
+    } catch (err) {
+      setProductionSetupError(err instanceof Error ? err.message : 'Initiate work order gagal.');
+      throw err;
+    } finally {
+      setProductionSetupBusy(false);
+    }
+  }, [getMachinesUseCase, listWorkOrdersUseCase, runProtected, setMachines, useBackend, mutationsAllowed, capabilities]);
+
   return {
     isProductionSetupModalOpen,
     openProductionSetupModal,
@@ -206,5 +253,6 @@ export function useWorkOrders(deps: WorkOrdersDeps): WorkOrdersApi {
     dispatchWorkOrder,
     completeWorkOrder,
     cancelWorkOrder,
+    initiateFromZones,
   };
 }

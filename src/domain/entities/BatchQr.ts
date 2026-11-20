@@ -24,6 +24,8 @@ export interface QrOperatorPreset {
 
 export interface QrSchedulePreset {
   code: string;
+  /** SID master backend (§C.8) — default preset; validate-zone yang otoritatif. */
+  shiftId: string;
   shiftName: string;
   shiftStart: string;
   shiftEnd: string;
@@ -53,9 +55,9 @@ export const QR_OPERATOR_CATALOG: QrOperatorPreset[] = [
 ];
 
 export const QR_SCHEDULE_CATALOG: QrSchedulePreset[] = [
-  { code: 'QR-SCH-01', shiftName: 'Shift 1 (Pagi)', shiftStart: '07:00', shiftEnd: '15:00', breakStart: '12:00', breakEnd: '13:00', breakMin: 60 },
-  { code: 'QR-SCH-02', shiftName: 'Shift 2 (Siang)', shiftStart: '15:00', shiftEnd: '23:00', breakStart: '18:00', breakEnd: '19:00', breakMin: 60 },
-  { code: 'QR-SCH-03', shiftName: 'Shift 3 (Malam)', shiftStart: '23:00', shiftEnd: '07:00', breakStart: '02:00', breakEnd: '03:00', breakMin: 60 },
+  { code: 'QR-SCH-01', shiftId: 'SHIFT-1', shiftName: 'Shift 1 (Pagi)', shiftStart: '07:00', shiftEnd: '15:00', breakStart: '12:00', breakEnd: '13:00', breakMin: 60 },
+  { code: 'QR-SCH-02', shiftId: 'SHIFT-2', shiftName: 'Shift 2 (Siang)', shiftStart: '15:00', shiftEnd: '23:00', breakStart: '18:00', breakEnd: '19:00', breakMin: 60 },
+  { code: 'QR-SCH-03', shiftId: 'SHIFT-3', shiftName: 'Shift 3 (Malam)', shiftStart: '23:00', shiftEnd: '07:00', breakStart: '02:00', breakEnd: '03:00', breakMin: 60 },
 ];
 
 export type ParsedQrKind = 'PRODUCT' | 'OPERATOR' | 'SCHEDULE' | 'MACHINE';

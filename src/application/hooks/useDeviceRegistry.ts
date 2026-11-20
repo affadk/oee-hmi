@@ -14,7 +14,7 @@ export interface DeviceRegistryDeps {
   useBackend: boolean;
   configureDeviceUseCase: ConfigureDeviceUseCase;
   getMachinesUseCase: GetMachinesUseCase;
-  runProtected: (action: () => Promise<void>) => Promise<void>;
+  runProtected: <T>(action: () => Promise<T>) => Promise<T | void>;
   capabilities: import('../../domain/ports/IOeeBackend').CapabilityMap | null;
   mutationsAllowed: boolean | null;
   setMachines: React.Dispatch<React.SetStateAction<MachineConfig[]>>;

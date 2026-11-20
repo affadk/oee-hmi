@@ -24,6 +24,7 @@ import type { MachineConfig, MachineStatus } from '../../domain/entities/Machine
 import type { CalculatedOeeMetrics } from '../../domain/entities/OeeMetrics';
 import type { MachineAlarmEvent } from '../../domain/entities/Alarm';
 import type { AuthSession, BackendHealth, IAuthGateway } from '../../domain/ports/IOeeBackend';
+import type { InitiateFromZonesResult, ZoneRawStrings } from '../../domain/entities/backend/WorkOrder';
 import type { DeviceRecord, MachineRecord, OperatorRecord, ProductRecord } from '../../domain/entities/backend/Device';
 import type { WorkOrderListItem, WorkOrderResolveResult } from '../../domain/entities/backend/WorkOrder';
 import type { DowntimeEvent } from '../../domain/entities/backend/Telemetry';
@@ -63,12 +64,17 @@ import type { BackendDowntimeLabelInput } from './useMachineActions';
 import { useDeviceRegistry } from './useDeviceRegistry';
 import { useWorkOrders } from './useWorkOrders';
 import { useBackendHealth } from './useBackendHealth';
+import { useInactivityLock } from '../useInactivityLock';
 import { useDashboardUi } from './useDashboardUi';
 import { useShiftServerData, mergeShiftSummary } from './useShiftServerData';
 import { resolveShiftWindowIso } from '../../domain/services/ShiftTimeline';
 import { createRefetchScheduler, type RefetchKind } from '../lifecycleRefetch';
 import { canMutate } from '../capabilityGate';
 import { useFleetResync } from './useFleetResync';
+import { pickStationId } from '../stationContext';
+import { resolveSurfaceMode } from '../surfaceMode';
+import { isLockableSurface } from '../inactivityPolicy';
+import type { SurfaceMode } from '../surfaceMode';
 
 export type { BackendDowntimeLabelInput };
 
@@ -189,6 +195,10 @@ export interface UseOeeDashboardReturn {
   closeProductionSetupModal: () => void;
   loadPendingWorkOrders: () => Promise<void>;
   previewWorkOrder: (woId: string) => Promise<void>;
+  /** unit 002 FR-004: validate 4 zona → initiate WO + dispatch. */
+  initiateFromZones: (deviceId: string, zones: ZoneRawStrings) => Promise<InitiateFromZonesResult | void>;
+  /** LINE master mesin aktif (MACHINE zone §C.8); '' = unknown. */
+  machineLine: string;
   clearWorkOrderPreview: () => void;
   openWorkOrderDetail: (woId: string) => Promise<void>;
   closeWorkOrderDetail: () => void;
@@ -203,6 +213,10 @@ export interface UseOeeDashboardReturn {
   retryAfterSec: number;
   capabilities: import('../../domain/ports/IOeeBackend').CapabilityMap | null;
   mutationsAllowed: boolean | null;
+  /** Unit 002: 'kiosk' (terikat device) | 'station' (login) | 'andon' (publik). */
+  surface: SurfaceMode;
+  /** Device terikat tervalidasi registry; '' = tanpa binding. */
+  stationId: string;
   logoutOperator: () => void;
   /** FR-007/008 gate boolean untuk disable tombol mutasi. */
   canSendCommands: boolean;
@@ -271,6 +285,7 @@ export function useOeeDashboard(deps: OeeDashboardDeps): UseOeeDashboardReturn {
     onUnauthorized: auth.notifyUnauthorized,
   });
 
+
   // G11: windowed hourly scoped to the shift; memoized on primitive shift
   // strings + minute clock so identity is stable within a minute. Previously
   // memoized on machines.currentMachine (new object identity on every
@@ -306,6 +321,7 @@ export function useOeeDashboard(deps: OeeDashboardDeps): UseOeeDashboardReturn {
     setMachines: machines.setMachines,
   });
 
+
   useSimulationTicker({
     isSimulating: ui.isSimulating,
     currentMachine: machines.currentMachine,
@@ -334,7 +350,7 @@ export function useOeeDashboard(deps: OeeDashboardDeps): UseOeeDashboardReturn {
     machineCommandUseCase,
     labelDowntimeReasonUseCase,
     exportTelemetryUseCase,
-    runProtected: auth.runProtected,
+    runProtected: auth.runProtected as <T>(action: () => Promise<T>) => Promise<T | void>,
     capabilities: auth.capabilities,
     mutationsAllowed: auth.mutationsAllowed,
     getOperatorId: () => auth.authSession?.operator.id ?? null,
@@ -348,11 +364,44 @@ export function useOeeDashboard(deps: OeeDashboardDeps): UseOeeDashboardReturn {
     useBackend,
     configureDeviceUseCase,
     getMachinesUseCase,
-    runProtected: auth.runProtected,
+    runProtected: auth.runProtected as <T>(action: () => Promise<T>) => Promise<T | void>,
     capabilities: auth.capabilities,
     mutationsAllowed: auth.mutationsAllowed,
     setMachines: machines.setMachines,
   });
+
+  // Unit 002 (FR-001, ADR-0004): surface dari konteks deployment. stationId
+  // tervalidasi registry = kiosk terikat device; login = station; sisanya andon.
+  // getQueryStationId dibaca saat render (URL) — memo stabil lewat dep ref.
+  const stationId = useMemo(
+    () => pickStationId(
+      [getQueryStationId?.(), authGateway.getStationId(), stationIdEnv],
+      registry.deviceRegistry?.devices.map((d) => d.deviceId) ?? [],
+    ),
+    [getQueryStationId, authGateway, stationIdEnv, registry.deviceRegistry],
+  );
+  const surface: SurfaceMode = resolveSurfaceMode({ stationId, hasSession: !!auth.authSession });
+
+  // Kiosk: kunci tampilan ke device terikat begitu registry + fleet termuat.
+  useEffect(() => {
+    if (surface !== 'kiosk') return;
+    const bound = machines.machines.find((m) => m.deviceId === stationId);
+    if (bound && bound.id !== machines.currentMachineId) machines.selectMachine(bound.id);
+  }, [surface, stationId, machines.machines, machines.currentMachineId, machines.selectMachine]);
+
+  // Unit 002 FR-010: auto-lock sesi idle (default 5 m; VITE_INACTIVITY_TIMEOUT_MS).
+  // Lock = soft logout → mutasi tertutup; read-only tetap jalan. Kiosk dikecualikan.
+  useInactivityLock(useBackend && !!auth.authSession && isLockableSurface(surface), auth.logoutOperator);
+
+  // Kiosk: pemilihan device bukan aksi operator (HMI satu mesin).
+  const selectMachine = useCallback(
+    (machineId: string) => {
+      if (surface === 'kiosk') return;
+      machines.selectMachine(machineId);
+    },
+    [surface, machines.selectMachine],
+  );
+
 
   // FR-011: lifecycle WS tipis → debounced refetch REST (dedupe per jenis).
   const runRefetch = useCallback((kind: RefetchKind) => {
@@ -390,7 +439,7 @@ export function useOeeDashboard(deps: OeeDashboardDeps): UseOeeDashboardReturn {
     currentTotalCount: machines.currentMachine?.totalCount ?? null,
     listWorkOrdersUseCase,
     getMachinesUseCase,
-    runProtected: auth.runProtected,
+    runProtected: auth.runProtected as <T>(action: () => Promise<T>) => Promise<T | void>,
     capabilities: auth.capabilities,
     mutationsAllowed: auth.mutationsAllowed,
     setMachines: machines.setMachines,
@@ -461,9 +510,11 @@ export function useOeeDashboard(deps: OeeDashboardDeps): UseOeeDashboardReturn {
     productionSetupError: orders.productionSetupError,
     productionSetupBusy: orders.productionSetupBusy,
     formulaMetricHighlight: ui.formulaMetricHighlight,
+    surface,
+    stationId,
     toggleSimulate: ui.toggleSimulate,
     toggleTeep: ui.toggleTeep,
-    selectMachine: machines.selectMachine,
+    selectMachine,
     selectLine: machines.selectLine,
     selectShift: machines.selectShift,
     updateMachineStatus: actions.updateMachineStatus,
@@ -495,6 +546,8 @@ export function useOeeDashboard(deps: OeeDashboardDeps): UseOeeDashboardReturn {
     closeProductionSetupModal: orders.closeProductionSetupModal,
     loadPendingWorkOrders: orders.loadPendingWorkOrders,
     previewWorkOrder: orders.previewWorkOrder,
+    initiateFromZones: orders.initiateFromZones,
+    machineLine: machines.currentMachine?.line ?? '',
     clearWorkOrderPreview: orders.clearWorkOrderPreview,
     openWorkOrderDetail: orders.openWorkOrderDetail,
     closeWorkOrderDetail: orders.closeWorkOrderDetail,

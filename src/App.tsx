@@ -9,9 +9,8 @@ import { DashboardPage } from './presentation/pages/DashboardPage';
 const OverviewPage = React.lazy(() =>
   import('./presentation/pages/overview/OverviewPage').then((m) => ({ default: m.OverviewPage })),
 );
-const AuditPage = React.lazy(() =>
-  import('./presentation/pages/audit/AuditPage').then((m) => ({ default: m.AuditPage })),
-);
+// Unit 002 FR-009 (OQ-103): /audit v2 dikeluarkan dari surface HMI →
+// redirect ke /overview. Kode presentation/pages/audit/ diarsipkan (tak dirujuk).
 
 const RouteFallback: React.FC = () => (
   <div className="min-h-screen flex items-center justify-center font-mono text-sm bg-[#070d1a] text-slate-300">
@@ -36,7 +35,7 @@ export default function App() {
             <Route element={<DashboardPage />}>
               <Route path="/" element={<Navigate to="/overview" replace />} />
               <Route path="/overview" element={<Suspense fallback={<RouteFallback />}><OverviewPage /></Suspense>} />
-              <Route path="/audit" element={<Suspense fallback={<RouteFallback />}><AuditPage /></Suspense>} />
+              <Route path="/audit" element={<Navigate to="/overview" replace />} />
               <Route path="*" element={<Navigate to="/overview" replace />} />
             </Route>
           </Routes>

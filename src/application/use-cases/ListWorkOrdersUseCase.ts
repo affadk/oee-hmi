@@ -1,7 +1,15 @@
 // /src/application/use-cases/ListWorkOrdersUseCase.ts
 
 import type { IWorkOrderRepository } from '../../domain/ports/IOeeBackend';
-import type { WorkOrderListItem, WorkOrderQuery, WorkOrderResolveResult } from '../../domain/entities/backend/WorkOrder';
+import type {
+  InitiateFromZonesResult,
+  WorkOrderListItem,
+  WorkOrderQuery,
+  WorkOrderResolveResult,
+  ZoneRawStrings,
+  ZoneType,
+  ZoneValidation,
+} from '../../domain/entities/backend/WorkOrder';
 
 export class ListWorkOrdersUseCase {
   constructor(private readonly workOrders: IWorkOrderRepository) {}
@@ -34,5 +42,21 @@ export class ListWorkOrdersUseCase {
 
   cancel(woId: string, reason?: string): Promise<void> {
     return this.workOrders.cancel(woId, reason);
+  }
+
+  /** unit 002 FR-004: pre-flight satu zona QR v2 (§C.7). */
+  validateZone(zoneType: ZoneType, deviceId: string, rawString: string, signal?: AbortSignal): Promise<ZoneValidation> {
+    if (!deviceId) throw new Error('deviceId is required.');
+    if (!rawString?.trim()) throw new Error('rawString is required.');
+    return this.workOrders.validateZone(zoneType, deviceId, rawString, signal);
+  }
+
+  /** unit 002 FR-004: inisiasi WO dari 4 zona + dispatch MQTT (§C.8). */
+  initiateFromZones(deviceId: string, zones: ZoneRawStrings, signal?: AbortSignal): Promise<InitiateFromZonesResult> {
+    if (!deviceId) throw new Error('deviceId is required.');
+    if (!zones?.product || !zones?.machine || !zones?.operator || !zones?.shift) {
+      throw new Error('4 zona QR wajib lengkap (product, machine, operator, shift).');
+    }
+    return this.workOrders.initiateFromZones(deviceId, zones, signal);
   }
 }

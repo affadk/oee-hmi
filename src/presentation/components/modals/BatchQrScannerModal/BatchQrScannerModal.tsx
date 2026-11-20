@@ -26,7 +26,11 @@ import { useTheme } from '../../../providers/ThemeProvider';
 import { tx, cx, themeTokens } from '../../../styles/themeTokens';
 import type { MachineConfig } from '../../../../domain/index';
 import type { OperatorRecord, ProductRecord } from '../../../../domain/entities/backend/Device';
-import type { WorkOrderResolveResult } from '../../../../domain/entities/backend/WorkOrder';
+import type {
+  InitiateFromZonesResult,
+  WorkOrderResolveResult,
+  ZoneRawStrings,
+} from '../../../../domain/entities/backend/WorkOrder';
 import { QrCameraScanner } from '../../common/QrCameraScanner';
 import {
   QR_PRODUCT_CATALOG,
@@ -50,6 +54,7 @@ import { OperatorStep } from './steps/OperatorStep';
 import { ScheduleStep } from './steps/ScheduleStep';
 import { ReviewStep } from './steps/ReviewStep';
 import { BackendReviewStep } from './steps/BackendReviewStep';
+import { buildZoneStrings } from '../../../../application/qrZones';
 import type { BatchQrModalContext } from './BatchQrModalContext';
 
 export interface BatchShiftOverride {
@@ -83,6 +88,12 @@ interface BatchQrScannerModalProps {
   onProceedToSetup?: () => void;
   /** B4: backend product/operator master; null/empty = static catalog fallback. */
   catalog?: { products: ProductRecord[]; operators: OperatorRecord[] } | null;
+  /** LINE master mesin (§C.8 MACHINE zone); kosong = backend 400 yang menolak. */
+  line?: string;
+  /** unit 002 FR-004: sesi operator aktif (mismatch OID vs sesi → konfirmasi). */
+  sessionOperatorId?: string | null;
+  /** unit 002 FR-004: validate 4 zona → initiate WO + dispatch (§C.7/§C.8). */
+  onInitiateFromZones?: (deviceId: string, zones: ZoneRawStrings) => Promise<InitiateFromZonesResult | void>;
 }
 
 interface Toast {
@@ -121,6 +132,9 @@ export const BatchQrScannerModal: React.FC<BatchQrScannerModalProps> = ({
   onPreviewWorkOrder,
   onProceedToSetup,
   catalog = null,
+  line = '',
+  sessionOperatorId = null,
+  onInitiateFromZones,
 }) => {
   const { isDark, theme, setTheme } = useTheme();
 
@@ -155,6 +169,8 @@ export const BatchQrScannerModal: React.FC<BatchQrScannerModalProps> = ({
       setScannedWo(null);
       setResolvingWo(false);
       setCameraError(null);
+      setInitiatedWo(null);
+      setConfirmingOidMismatch(false);
       setCameraKey((k) => k + 1);
       // Fokus ke kolom QR setelah mount untuk alur keyboard.
       const t = setTimeout(() => inputRef.current?.focus(), 60);
@@ -322,6 +338,47 @@ export const BatchQrScannerModal: React.FC<BatchQrScannerModalProps> = ({
     setManualQr(text);
     void submitWoForPreview(text);
   }, [submitWoForPreview]);
+
+  // unit 002 FR-004/005: mismatch OID vs sesi → konfirmasi eksplisit (bukan tolak keras).
+  const [confirmingOidMismatch, setConfirmingOidMismatch] = useState(false);
+  const [initiatedWo, setInitiatedWo] = useState<string | null>(null);
+
+  const handleInitiateFromZones = useCallback(async () => {
+    if (!onInitiateFromZones) {
+      showToast('error', 'Initiate work order tidak tersedia.');
+      return;
+    }
+    const oid = draft.operator.operatorId?.trim();
+    if (sessionOperatorId && oid && oid !== sessionOperatorId && !confirmingOidMismatch) {
+      setConfirmingOidMismatch(true);
+      return;
+    }
+    setApplying(true);
+    setConfirmingOidMismatch(false);
+    try {
+      // Device target = mesin aktif (backend mengikat machineId via deviceId).
+      if (draft.machineId !== machine.id) {
+        showToast('error', 'Pilih mesin tujuan di langkah Mesin sebelum memulai produksi.');
+        return;
+      }
+      const zones = buildZoneStrings(draft, { machineName: machine.name, line });
+      const result = await onInitiateFromZones(machine.deviceId, zones);
+      if (result) {
+        setInitiatedWo(result.workOrder.woId);
+        showToast(
+          'success',
+          result.idempotentDuplicate
+            ? `WO ${result.workOrder.woId} sudah pernah dibuat (idempoten) — dispatch ulang.`
+            : `WO ${result.workOrder.woId} dibuat dan di-dispatch ke mesin.`,
+          4000,
+        );
+      }
+    } catch (err) {
+      showToast('error', err instanceof Error ? err.message : 'Initiate work order gagal.');
+    } finally {
+      setApplying(false);
+    }
+  }, [onInitiateFromZones, draft, machine, line, sessionOperatorId, confirmingOidMismatch, showToast]);
 
   if (!isOpen) return null;
 
@@ -531,7 +588,58 @@ export const BatchQrScannerModal: React.FC<BatchQrScannerModalProps> = ({
           {step === 'OPERATOR' && <OperatorStep ctx={ctx} />}
           {step === 'SCHEDULE' && <ScheduleStep ctx={ctx} />}
           {step === 'REVIEW' && !backendMode && <ReviewStep ctx={ctx} />}
-          {step === 'REVIEW' && backendMode && <BackendReviewStep ctx={ctx} workOrderPreview={workOrderPreview} />}
+          {step === 'REVIEW' && backendMode && (
+            <div className="space-y-2">
+              <BackendReviewStep ctx={ctx} workOrderPreview={workOrderPreview} />
+              {initiatedWo && (
+                <p
+                  className={cx(
+                    'rounded-lg border p-2.5 text-xs font-mono flex items-center gap-2',
+                    isDark ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400' : 'bg-emerald-50 border-emerald-300 text-emerald-700',
+                  )}
+                  role="status"
+                >
+                  <CheckCircle2 className="w-4 h-4 shrink-0" />
+                  Work order <strong>{initiatedWo}</strong> aktif — produksi berjalan.
+                </p>
+              )}
+              {confirmingOidMismatch && (
+                <div
+                  className={cx(
+                    'rounded-lg border p-3 text-xs space-y-2',
+                    isDark ? 'bg-amber-500/15 border-amber-500/30 text-amber-300' : 'bg-amber-50 border-amber-300 text-amber-800',
+                  )}
+                  role="alert"
+                >
+                  <p className="flex items-center gap-2 font-semibold">
+                    <AlertTriangle className="w-4 h-4 shrink-0" />
+                    Operator QR berbeda dari sesi login
+                  </p>
+                  <p>
+                    QR: <strong>{draft.operator.operatorName}</strong> ({draft.operator.operatorId})
+                    {sessionOperatorId ? <> · sesi: <strong>{sessionOperatorId}</strong></> : null}
+                  </p>
+                  <p className="opacity-80">Lanjutkan hanya jika badge QR ini memang operator yang bertugas.</p>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setConfirmingOidMismatch(false)}
+                      className={cx('px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer border', isDark ? 'border-slate-600 hover:bg-slate-800' : 'border-slate-300 hover:bg-slate-100')}
+                    >
+                      Batal
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void handleInitiateFromZones()}
+                      className="px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-white text-xs font-semibold cursor-pointer"
+                    >
+                      Tetap lanjutkan
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Footer navigasi */}
@@ -578,7 +686,18 @@ export const BatchQrScannerModal: React.FC<BatchQrScannerModalProps> = ({
                 >
                   {applied ? 'Selesai' : 'Batal'}
                 </button>
-                {backendMode && onProceedToSetup ? (
+                {backendMode && onInitiateFromZones ? (
+                  <button
+                    type="button"
+                    onClick={() => void handleInitiateFromZones()}
+                    disabled={applying || !!initiatedWo || confirmingOidMismatch}
+                    title="Validasi 4 zona lalu buat work order + dispatch ke mesin"
+                    className="px-4 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+                  >
+                    {applying ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ClipboardCheck className="w-3.5 h-3.5" />}
+                    {applying ? 'Memproses…' : initiatedWo ? `WO ${initiatedWo} Aktif` : 'Mulai Produksi (4 Zona QR)'}
+                  </button>
+                ) : backendMode && onProceedToSetup ? (
                   <button
                     type="button"
                     onClick={onProceedToSetup}

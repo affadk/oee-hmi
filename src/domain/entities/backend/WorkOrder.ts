@@ -62,3 +62,43 @@ export function isActiveWorkOrder(wo: Pick<WorkOrderListItem, 'status'>): boolea
   // PENDING_CLOSE masih menempati mesin (konfirmasi operator wajib) — aktif.
   return wo.status === 'ACTIVE' || wo.status === 'PENDING' || wo.status === 'PENDING_CLOSE';
 }
+
+// -------------------------------------------------------------
+// Multi-Zone QR v2 (§C.7/§C.8 API_DOCUMENTATION.md) — unit 002 FR-004
+// -------------------------------------------------------------
+
+export type ZoneType = 'PRODUCT' | 'MACHINE' | 'OPERATOR' | 'SHIFT';
+
+/** Zona QR key-value mentah: `PID=..;CT=..;NAME=..`. */
+export type ZoneRawStrings = { product: string; machine: string; operator: string; shift: string };
+
+/** POST /work-orders/validate-zone — pre-flight per zona. */
+export interface ZoneValidation {
+  valid: boolean;
+  zoneType: ZoneType;
+  parsed: Record<string, string>;
+  /** Hanya zona MACHINE: edge siap & online (null = backend tak kirim). */
+  machineReady: boolean | null;
+  deviceOnline: boolean | null;
+  message: string | null;
+}
+
+/** POST /work-orders/initiate-from-zones — WO dialokasikan + dispatch. */
+export interface InitiatedWorkOrder {
+  woId: string;
+  machineId: string;
+  productName: string;
+  stdCycleTimeSec: number;
+  operatorName: string;
+  targetQty: number;
+  shiftPlan: { shiftStart: string; shiftEnd: string; plannedBreakMin: number; plannedOperatingSec: number };
+  status: WorkOrderStatus;
+}
+
+export interface InitiateFromZonesResult {
+  success: boolean;
+  dispatchTxId: string;
+  /** Retry idempoten: WO sama sudah pernah dibuat (bukan error). */
+  idempotentDuplicate: boolean;
+  workOrder: InitiatedWorkOrder;
+}

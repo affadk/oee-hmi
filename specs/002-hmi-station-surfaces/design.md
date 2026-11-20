@@ -1,10 +1,10 @@
 # Design — Spec 002 Separasi Surface
 
 > Kontrak solusi teknis. Turunan spec 002 rev 2 + ADR-0004 (Proposed).
-> **Gate:** ADR-0004 Accepted sebelum implementasi; design ini DRAFT sampai itu.
+> Gate terpenuhi 2026-11-20: ADR-0004 Accepted (pemilik repo).
 
-**Lifecycle:** DRAFT
-**Health:** REVIEW_REQUIRED
+**Lifecycle:** DESIGNED
+**Health:** VALID
 **Traces to:** `spec.md` (unit ini) · ADR-0004
 **Reviewed against:** spec revision 2
 

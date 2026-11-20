@@ -45,7 +45,7 @@ export interface AuthSessionApi {
   submitPasswordChange: (currentPassword: string, newPassword: string) => Promise<void>;
   logoutOperator: () => void;
   /** Runs the action, parking it behind the auth modal when the session is missing/expired. */
-  runProtected: (action: () => Promise<void>) => Promise<void>;
+  runProtected: <T>(action: () => Promise<T>) => Promise<T | void>;
   hasAuthToken: () => boolean;
   isUnauthorizedError: (err: unknown) => boolean;
 }
@@ -74,7 +74,7 @@ export function useAuthSession(deps: AuthSessionDeps): AuthSessionApi {
   const [retryAfterSec, setRetryAfterSec] = useState<number>(0);
   const [capabilities, setCapabilities] = useState<CapabilityMap | null>(null);
   const [mutationsAllowed, setMutationsAllowed] = useState<boolean | null>(null);
-  const pendingProtectedActionRef = useRef<(() => Promise<void>) | null>(null);
+  const pendingProtectedActionRef = useRef<(() => Promise<unknown>) | null>(null);
   const rotationOperatorRef = useRef<string>('');
 
   // Countdown 429 (FR-003): backend satu-satunya sumber throttle.
@@ -166,7 +166,7 @@ export function useAuthSession(deps: AuthSessionDeps): AuthSessionApi {
     }
   }, [authGateway, authSession, loginWithPassword]);
 
-  const runProtected = useCallback(async (action: () => Promise<void>) => {
+  const runProtected = useCallback(async <T,>(action: () => Promise<T>): Promise<T | void> => {
     if (useBackend && !hasAuthToken()) {
       pendingProtectedActionRef.current = action;
       parkForLogin('');
@@ -189,7 +189,7 @@ export function useAuthSession(deps: AuthSessionDeps): AuthSessionApi {
         } else {
           parkForLogin('Sesi operator hampir kedaluwarsa — silakan login ulang.');
         }
-        return;
+        return undefined as T;
       }
     }
 

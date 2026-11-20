@@ -4,7 +4,15 @@
 // Application use-cases depend ONLY on these ports (dependency points inward).
 
 import type { LiveStateSnapshot } from '../entities/backend/LiveState';
-import type { WorkOrderListItem, WorkOrderQuery, WorkOrderResolveResult } from '../entities/backend/WorkOrder';
+import type {
+  InitiateFromZonesResult,
+  WorkOrderListItem,
+  WorkOrderQuery,
+  WorkOrderResolveResult,
+  ZoneRawStrings,
+  ZoneType,
+  ZoneValidation,
+} from '../entities/backend/WorkOrder';
 import type { DeviceHealth, DowntimeCategory, DowntimeEvent, OperationalEvent, RejectBreakdownItem, TelemetryHistoryPoint, WsLifecycleEvent, WsTelemetryFrame } from '../entities/backend/Telemetry';
 import type { DeviceCommandInput, DeviceRecord, MachineRecord, OperatorRecord, ProductRecord } from '../entities/backend/Device';
 
@@ -32,6 +40,10 @@ export interface IWorkOrderRepository {
   dispatch(woId: string, deviceId: string, notes?: string): Promise<void>;
   complete(woId: string, finalRejectCount: number, notes?: string): Promise<void>;
   cancel(woId: string, reason?: string): Promise<void>;
+  /** unit 002 FR-004: pre-flight satu zona QR v2. */
+  validateZone(zoneType: ZoneType, deviceId: string, rawString: string, signal?: AbortSignal): Promise<ZoneValidation>;
+  /** unit 002 FR-004: inisiasi WO dari komposit 4 zona + dispatch. */
+  initiateFromZones(deviceId: string, zones: ZoneRawStrings, signal?: AbortSignal): Promise<InitiateFromZonesResult>;
 }
 
 export interface IDeviceCommandGateway {

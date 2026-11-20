@@ -38,6 +38,7 @@ const machineRecord: MachineRecord = {
   deviceId: 'STM32-OEE-01',
   modbusSlaveId: 1,
   createdAt: '2026-09-06T03:58:15.976Z',
+  lineId: 'LINE-01',
   boundDevice: { deviceId: 'STM32-OEE-01', macAddress: '00:08:DC:55:01:0A', isOnline: false },
 };
 
