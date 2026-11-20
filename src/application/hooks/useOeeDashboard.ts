@@ -1,4 +1,5 @@
 // /src/application/hooks/useOeeDashboard.ts
+import type { DeviceCommandKind } from '../../domain/entities/backend/Device';
 // Application orchestration hook — composes focused hooks over use-case ports.
 // LAYER RULES (enforced):
 // - MUST NOT import infrastructure/* (concrete DI container, adapters)
@@ -18,7 +19,7 @@
 // - useDeviceRegistry: device registry + bind/unbind (backend lane)
 // - useWorkOrders: work-order lifecycle + production-setup modal (backend lane)
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { MachineConfig, MachineStatus } from '../../domain/entities/Machine';
 import type { CalculatedOeeMetrics } from '../../domain/entities/OeeMetrics';
 import type { MachineAlarmEvent } from '../../domain/entities/Alarm';
@@ -65,6 +66,8 @@ import { useBackendHealth } from './useBackendHealth';
 import { useDashboardUi } from './useDashboardUi';
 import { useShiftServerData, mergeShiftSummary } from './useShiftServerData';
 import { resolveShiftWindowIso } from '../../domain/services/ShiftTimeline';
+import { createRefetchScheduler, type RefetchKind } from '../lifecycleRefetch';
+import { useFleetResync } from './useFleetResync';
 
 export type { BackendDowntimeLabelInput };
 
@@ -77,6 +80,7 @@ export interface OeeDashboardDeps {
   manageAlarmsUseCase: ManageAlarmsUseCase;
   machineCommandUseCase: MachineCommandUseCase;
   machineRepository: import('../../domain/ports/IMachineRepository').IMachineRepository;
+  liveStateRepository: import('../../domain/ports/IOeeBackend').ILiveStateRepository;
   getDowntimeReasonsUseCase: GetDowntimeReasonsUseCase;
   getActiveDowntimesUseCase: GetActiveDowntimesUseCase;
   getHourlyTrendsUseCase: GetHourlyTrendsUseCase;
@@ -95,6 +99,10 @@ export interface OeeDashboardDeps {
   getShiftTimelineUseCase: GetShiftTimelineUseCase;
   authGateway: IAuthGateway;
   useBackend: boolean;
+  /** env VITE_STATION_ID (composition root membaca env). */
+  stationIdEnv: string;
+  /** Query ?station= commissioning (presentation membaca router). */
+  getQueryStationId?: () => string | null;
 }
 
 export interface UseOeeDashboardReturn {
@@ -149,7 +157,7 @@ export interface UseOeeDashboardReturn {
   logReject: (reasonLabel: string, count: number) => Promise<void>;
   acknowledgeAlarm: (alarmId: string) => Promise<void>;
   resolveAlarm: (alarmId: string) => Promise<void>;
-  dispatchMachineCommand: (command: 'RESET_COUNTER' | 'PAUSE' | 'RESUME') => Promise<void>;
+  dispatchMachineCommand: (command: DeviceCommandKind, count?: number) => Promise<void>;
   resetCounters: () => Promise<void>;
   exportTelemetry: (format?: TelemetryExportFormat) => Promise<Blob | null>;
   applyJobConfig: (
@@ -188,7 +196,12 @@ export interface UseOeeDashboardReturn {
   cancelWorkOrder: (woId: string, reason?: string) => Promise<void>;
   closeAuthModal: () => void;
   openAuthModal: () => void;
-  loginWithPin: (pin: string, operatorId?: string) => Promise<void>;
+  loginWithPassword: (operatorId: string, password: string) => Promise<void>;
+  submitPasswordChange: (currentPassword: string, newPassword: string) => Promise<void>;
+  authMode: import('./useAuthSession').AuthMode;
+  retryAfterSec: number;
+  capabilities: import('../../domain/ports/IOeeBackend').CapabilityMap | null;
+  mutationsAllowed: boolean | null;
   logoutOperator: () => void;
 }
 
@@ -202,6 +215,7 @@ export function useOeeDashboard(deps: OeeDashboardDeps): UseOeeDashboardReturn {
     manageAlarmsUseCase,
     machineCommandUseCase,
     machineRepository,
+    liveStateRepository,
     getDowntimeReasonsUseCase,
     getActiveDowntimesUseCase,
     getHourlyTrendsUseCase,
@@ -220,6 +234,8 @@ export function useOeeDashboard(deps: OeeDashboardDeps): UseOeeDashboardReturn {
     getShiftTimelineUseCase,
     authGateway,
     useBackend,
+    stationIdEnv,
+    getQueryStationId,
   } = deps;
 
   const ui = useDashboardUi(useBackend);
@@ -227,7 +243,10 @@ export function useOeeDashboard(deps: OeeDashboardDeps): UseOeeDashboardReturn {
   const auth = useAuthSession({
     authGateway,
     useBackend,
-    getStationId: () => machines.currentDeviceId || machines.currentMachineId,
+    stationIdEnv,
+    getQueryStationId,
+    // Registry dimuat paralel saat boot; kosong = station tak tervalidasi → ''.
+    getRegisteredDeviceIds: () => registry.deviceRegistry?.devices.map((d) => d.deviceId) ?? [],
     onAuthenticated: () => machines.retryLoad(),
   });
 
@@ -251,6 +270,8 @@ export function useOeeDashboard(deps: OeeDashboardDeps): UseOeeDashboardReturn {
   const shiftStart = machines.currentMachine?.jobConfig?.shiftStart;
   const shiftEnd = machines.currentMachine?.jobConfig?.shiftEnd;
   const [nowMinute, setNowMinute] = useState(() => Math.floor(Date.now() / 60000));
+  // FR-011: bump scheduler refetch → supplemental dimuat ulang (debounced).
+  const [supplementalSeq, setSupplementalSeq] = useState(0);
   useEffect(() => {
     const t = setInterval(() => setNowMinute(Math.floor(Date.now() / 60000)), 15000);
     return () => clearInterval(t);
@@ -270,15 +291,9 @@ export function useOeeDashboard(deps: OeeDashboardDeps): UseOeeDashboardReturn {
     getHourlyTrendsUseCase,
     getRejectBreakdownUseCase,
     listLabelableDowntimesUseCase,
+    refreshSeq: supplementalSeq,
     errorReporter,
     setMachines: machines.setMachines,
-  });
-
-  useTelemetrySubscription({
-    useBackend,
-    subscribeTelemetryUseCase,
-    setMachines: machines.setMachines,
-    setAlarms: machines.setAlarms,
   });
 
   useSimulationTicker({
@@ -325,9 +340,40 @@ export function useOeeDashboard(deps: OeeDashboardDeps): UseOeeDashboardReturn {
     setMachines: machines.setMachines,
   });
 
+  // FR-011: lifecycle WS tipis → debounced refetch REST (dedupe per jenis).
+  const runRefetch = useCallback((kind: RefetchKind) => {
+    if (kind === 'fleet') {
+      getMachinesUseCase.executeAll().then(machines.setMachines).catch(() => {});
+    } else if (kind === 'registry') {
+      void registry.refreshDeviceRegistry().catch(() => {});
+    } else {
+      setSupplementalSeq((s) => s + 1);
+    }
+  }, [getMachinesUseCase, machines.setMachines, registry.refreshDeviceRegistry]);
+  const refetchScheduler = useMemo(() => createRefetchScheduler(runRefetch), [runRefetch]);
+  useEffect(() => () => refetchScheduler.dispose(), [refetchScheduler]);
+
+  // FR-012: resync snapshot setelah reconnect + poll jaring-pengaman 60s.
+  const resync = useFleetResync({
+    useBackend,
+    liveStateRepository,
+    setMachines: machines.setMachines,
+  });
+
+  useTelemetrySubscription({
+    useBackend,
+    subscribeTelemetryUseCase,
+    setMachines: machines.setMachines,
+    setAlarms: machines.setAlarms,
+    onRefetch: refetchScheduler.schedule,
+    onReconnect: resync.triggerResync,
+    onFatal: () => machines.setLoadError('WebSocket ditolak origin (close 4403) — periksa CORS_ORIGIN backend; reconnect dihentikan.'),
+  });
+
   const orders = useWorkOrders({
     useBackend,
     currentDeviceId: machines.currentDeviceId,
+    currentTotalCount: machines.currentMachine?.totalCount ?? null,
     listWorkOrdersUseCase,
     getMachinesUseCase,
     runProtected: auth.runProtected,
@@ -441,7 +487,12 @@ export function useOeeDashboard(deps: OeeDashboardDeps): UseOeeDashboardReturn {
     cancelWorkOrder: orders.cancelWorkOrder,
     closeAuthModal: auth.closeAuthModal,
     openAuthModal: auth.openAuthModal,
-    loginWithPin: auth.loginWithPin,
+    loginWithPassword: auth.loginWithPassword,
+    submitPasswordChange: auth.submitPasswordChange,
+    authMode: auth.authMode,
+    retryAfterSec: auth.retryAfterSec,
+    capabilities: auth.capabilities,
+    mutationsAllowed: auth.mutationsAllowed,
     logoutOperator: auth.logoutOperator,
   };
 }

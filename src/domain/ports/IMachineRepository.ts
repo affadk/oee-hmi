@@ -2,6 +2,7 @@
 
 import { MachineConfig, MachineStatus } from '../entities/Machine';
 import { EdgeJobConfigPayload, EdgeTelemetryPayload } from '../entities/EdgeContracts';
+import type { DeviceCommandKind } from '../entities/backend/Device';
 
 export interface IMachineRepository {
   /**
@@ -45,5 +46,11 @@ export interface IMachineRepository {
    * Applies job configuration (Work order, product recipe, target count).
    */
   setJobConfig(machineId: string, jobConfig: EdgeJobConfigPayload): Promise<MachineConfig>;
+
+  /**
+   * FR-015: perintah perangkat kanonis 6 enum (§D). `count` wajib untuk
+   * COUNT_ADJUST; reason ≥ 5 karakter divalidasi di gateway/domain.
+   */
+  sendCommand(machineId: string, command: DeviceCommandKind, reason: string, count?: number): Promise<MachineConfig>;
 }
 

@@ -140,19 +140,42 @@ export interface AuthSession {
     username: string;
     role: string;
     lineId: string | null;
+    /** spec 043: password sementara wajib diganti sebelum aksi terproteksi. */
+    mustChangePassword: boolean;
   };
 }
 
+/** Capability projection GET /auth/me (§L/§3.4): allow/deny/unknown per <domain>.<action>. */
+export type CapabilityDecision = 'allow' | 'deny' | 'unknown';
+export type CapabilityMap = Record<string, CapabilityDecision>;
+
+/** GET /system/access-mode (§I): kanal + izin mutasi untuk UI read-only. */
+export interface AccessMode {
+  mode: string;
+  channel: 'lan' | 'tunnel' | 'unknown';
+  mutationsAllowed: boolean;
+}
+
 export interface IAuthGateway {
-  loginWithPin(pin: string, operatorId?: string, stationId?: string): Promise<AuthSession>;
+  /** 020/spec 044: password login (PIN dihapus backend). stationId = konteks kiosk tervalidasi. */
+  loginWithPassword(operatorId: string, password: string, stationId?: string): Promise<AuthSession>;
+  /** spec 043: ganti password; sukses menaikkan authz_version → token lama AUTHZ_STALE. */
+  changePassword(currentPassword: string, newPassword: string): Promise<void>;
   logout(): void;
   getToken(): string | null;
+  /** Station context persist (kiosk binding); bukan kredensial. */
+  getStationId(): string | null;
+  setStationId(stationId: string): void;
   /**
    * G13: sliding refresh — renew token sebelum kedaluwarsa.
-   * Null bila tak ada token tersimpan / backend menolak (pemanggil wajib
-   * fallback ke modal PIN reaktif, bukan gagal-buta).
+   * Null HANYA bila tak ada token tersimpan; error backend (401/AUTHZ_STALE/429)
+   * dipropagate sebagai BackendHttpError agar pemanggil bisa logout paksa /
+   * countdown, bukan loop modal buta.
    */
   refreshSession(): Promise<AuthSession | null>;
+  /** Capability map untuk gate UI (fail-closed deny/unknown). */
+  getCapabilities(): Promise<CapabilityMap>;
+  getAccessMode(): Promise<AccessMode>;
 }
 
 export type RealtimeListener = {
@@ -160,6 +183,10 @@ export type RealtimeListener = {
   onLifecycle?: (event: WsLifecycleEvent) => void;
   /** Relay `HEALTH_UPDATE` (frame health langsung dari edge, tanpa cache G3). Opsional. */
   onHealth?: (deviceId: string, health: import('../entities/EdgeContracts').EdgeHealthPayload) => void;
+  /** ADR-0001: WS (re)connect sukses (bukan boot pertama) → resync snapshot. */
+  onReconnect?: () => void;
+  /** ADR-0001: close 4403 Forbidden Origin — reconnect percuma, error konfigurasi. */
+  onFatal?: (reason: 'FORBIDDEN_ORIGIN') => void;
 };
 
 export interface IRealtimeGateway {

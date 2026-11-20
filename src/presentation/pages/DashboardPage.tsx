@@ -50,6 +50,7 @@ export const DashboardPage: React.FC = () => {
     manageAlarmsUseCase: container.manageAlarmsUseCase,
     machineCommandUseCase: container.machineCommandUseCase,
     machineRepository: container.machineRepository,
+    liveStateRepository: container.liveStateRepository,
     getDowntimeReasonsUseCase: container.getDowntimeReasonsUseCase,
     getActiveDowntimesUseCase: container.getActiveDowntimesUseCase,
     getHourlyTrendsUseCase: container.getHourlyTrendsUseCase,
@@ -68,7 +69,9 @@ export const DashboardPage: React.FC = () => {
     getShiftTimelineUseCase: container.getShiftTimelineUseCase,
     authGateway: container.authGateway,
     useBackend: container.useBackend,
-  }), [container]);
+    stationIdEnv: container.stationIdEnv,
+    getQueryStationId: () => new URLSearchParams(location.search).get('station'),
+  }), [container, location.search]);
 
   const dashboard = useOeeDashboard(deps);
 
@@ -101,8 +104,11 @@ export const DashboardPage: React.FC = () => {
         <AuthPinModal
           isOpen={dashboard.isAuthModalOpen}
           error={dashboard.authError}
+          mode={dashboard.authMode}
+          retryAfterSec={dashboard.retryAfterSec}
           onClose={dashboard.closeAuthModal}
-          onSubmit={(pin, operatorId) => dashboard.loginWithPin(pin, operatorId)}
+          onSubmit={(operatorId, password) => dashboard.loginWithPassword(operatorId, password)}
+          onChangePassword={(current, next) => dashboard.submitPasswordChange(current, next)}
         />
       </div>
     );
@@ -252,8 +258,11 @@ export const DashboardPage: React.FC = () => {
       <AuthPinModal
         isOpen={dashboard.isAuthModalOpen}
         error={dashboard.authError}
+        mode={dashboard.authMode}
+        retryAfterSec={dashboard.retryAfterSec}
         onClose={dashboard.closeAuthModal}
-        onSubmit={(pin, operatorId) => dashboard.loginWithPin(pin, operatorId)}
+        onSubmit={(operatorId, password) => dashboard.loginWithPassword(operatorId, password)}
+        onChangePassword={(current, next) => dashboard.submitPasswordChange(current, next)}
       />
     </div>
   );

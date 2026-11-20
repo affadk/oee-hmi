@@ -8,7 +8,7 @@
 // which in dev go through vite server.proxy to the gateway — no CORS change
 // needed on the backend stack.
 
-type EnvKey = 'VITE_API_BASE_URL' | 'VITE_WS_TELEMETRY_URL' | 'VITE_API_TOKEN' | 'VITE_USE_BACKEND';
+type EnvKey = 'VITE_API_BASE_URL' | 'VITE_WS_TELEMETRY_URL' | 'VITE_API_TOKEN' | 'VITE_USE_BACKEND' | 'VITE_STATION_ID';
 
 // PENTING: tiap variabel WAJIB diakses sebagai `import.meta.env.VITE_X`
 // statis per-baris. Akses dinamis (`meta.env?.[key]`) TIDAK diganti Vite
@@ -20,6 +20,7 @@ function readEnv(key: EnvKey, fallback = ''): string {
       key === 'VITE_API_BASE_URL' ? import.meta.env.VITE_API_BASE_URL :
       key === 'VITE_WS_TELEMETRY_URL' ? import.meta.env.VITE_WS_TELEMETRY_URL :
       key === 'VITE_API_TOKEN' ? import.meta.env.VITE_API_TOKEN :
+      key === 'VITE_STATION_ID' ? import.meta.env.VITE_STATION_ID :
       import.meta.env.VITE_USE_BACKEND;
     return v ?? fallback;
   } catch {
@@ -53,4 +54,6 @@ export const env = {
   apiToken: readEnv('VITE_API_TOKEN', ''),
   /** Toggle between simulation lane (false) and real backend lane (true). */
   useBackend: readEnv('VITE_USE_BACKEND', 'false') === 'true',
+  /** Kiosk station binding (deviceId terdaftar); '' = station/andon mode. */
+  stationIdEnv: readEnv('VITE_STATION_ID', '').trim(),
 } as const;

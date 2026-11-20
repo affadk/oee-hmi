@@ -12,6 +12,9 @@ import { env } from '../config/env';
 const HEARTBEAT_MS = 25_000;
 const RECONNECT_BASE_MS = 1_000;
 const RECONNECT_MAX_MS = 30_000;
+// ADR-0001/FR-013: 4429 = rate limit 120 koneksi/menit/IP → backoff jauh lebih panjang.
+const RATE_LIMIT_BASE_MS = 60_000;
+const RATE_LIMIT_MAX_MS = 120_000;
 
 export class TelemetryWsClient implements IRealtimeGateway {
   private socket: WebSocket | null = null;
@@ -19,6 +22,7 @@ export class TelemetryWsClient implements IRealtimeGateway {
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private reconnectAttempts = 0;
   private manualClose = false;
+  private hasConnectedBefore = false;
   private listener: RealtimeListener = {};
   private url: string;
 
@@ -76,11 +80,25 @@ export class TelemetryWsClient implements IRealtimeGateway {
     };
     this.socket.onopen = () => {
       this.reconnectAttempts = 0;
+      // Boot pertama tidak memicu resync (boot load sudah fetch live-state).
+      if (this.hasConnectedBefore) this.listener.onReconnect?.();
+      this.hasConnectedBefore = true;
     };
-    this.socket.onclose = () => {
+    this.socket.onclose = (event: CloseEvent) => {
       this.clearHeartbeat();
       this.socket = null;
-      if (!this.manualClose) this.scheduleReconnect();
+      if (this.manualClose) return;
+      // FR-013: 4403 Forbidden Origin = konfigurasi CORS_ORIGIN salah;
+      // reconnect tidak akan pernah sukses → berhenti + error eksplisit.
+      if (event.code === 4403) {
+        this.listener.onFatal?.('FORBIDDEN_ORIGIN');
+        return;
+      }
+      if (event.code === 4429) {
+        this.scheduleReconnect(RATE_LIMIT_BASE_MS, RATE_LIMIT_MAX_MS, true);
+        return;
+      }
+      this.scheduleReconnect();
     };
     this.socket.onerror = () => {
       try {
@@ -95,9 +113,10 @@ export class TelemetryWsClient implements IRealtimeGateway {
     }, HEARTBEAT_MS);
   }
 
-  private scheduleReconnect(): void {
+  private scheduleReconnect(baseMs = RECONNECT_BASE_MS, capMs = RECONNECT_MAX_MS, jitter = false): void {
     if (this.manualClose || this.reconnectTimer) return;
-    const delay = Math.min(RECONNECT_MAX_MS, RECONNECT_BASE_MS * 2 ** Math.min(this.reconnectAttempts, 5));
+    const exponential = Math.min(capMs, baseMs * 2 ** Math.min(this.reconnectAttempts, 5));
+    const delay = jitter ? exponential + Math.floor(Math.random() * 5_000) : exponential;
     this.reconnectAttempts += 1;
     this.reconnectTimer = setTimeout(() => {
       this.reconnectTimer = null;
@@ -112,6 +131,7 @@ export class TelemetryWsClient implements IRealtimeGateway {
 
   disconnect(): void {
     this.manualClose = true;
+    this.hasConnectedBefore = false;
     if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
     this.reconnectTimer = null;
     this.clearHeartbeat();

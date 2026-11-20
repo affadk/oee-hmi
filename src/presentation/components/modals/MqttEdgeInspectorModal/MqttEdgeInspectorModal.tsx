@@ -1,4 +1,5 @@
 // /src/presentation/components/modals/MqttEdgeInspectorModal/MqttEdgeInspectorModal.tsx
+import type { DeviceCommandKind } from '../../../../domain/entities/backend/Device';
 // STM32H723 Edge Controller Terminal — koordinator modal.
 // State, log console, dan publish job tetap di sini; rendering tab
 // didelegasikan ke sub-components tabs/ + MqttConsole via ctx.
@@ -30,7 +31,7 @@ interface MqttEdgeInspectorModalProps {
   isOpen: boolean;
   onClose: () => void;
   machine: MachineConfig;
-  onSendCommand: (cmd: 'RESET_COUNTER' | 'PAUSE' | 'RESUME') => void;
+  onSendCommand: (cmd: DeviceCommandKind) => void;
   onSendJobConfig: (wo: string, product: string, operator: string, target: number, cycleTimeSec?: number) => void;
   useBackend?: boolean;
 }
@@ -162,7 +163,7 @@ export const MqttEdgeInspectorModal: React.FC<MqttEdgeInspectorModalProps> = ({
 
   const jobValid = wo.trim().length > 0 && productName.trim().length > 0 && Number(targetQty) > 0 && Number(stdCycle) > 0;
 
-  const sendCmd = (cmd: 'RESET_COUNTER' | 'PAUSE' | 'RESUME') => {
+  const sendCmd = (cmd: DeviceCommandKind) => {
     pushLog('TX', `POST /api/v1/devices/${machine.deviceId}/command → "${cmd}"`);
     onSendCommand(cmd);
     pushLog('RX', `ACK backend: FSM event ${cmd === 'RESET_COUNTER' ? 'EVENT_BUTTON_RESET' : cmd === 'PAUSE' ? 'FSM→UNPLANNED_DT' : 'FSM→RUNNING'} diteruskan ke edge`);

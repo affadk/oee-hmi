@@ -12,6 +12,8 @@ import type { ListWorkOrdersUseCase } from '../use-cases/ListWorkOrdersUseCase';
 export interface WorkOrdersDeps {
   useBackend: boolean;
   currentDeviceId: string;
+  /** totalCount mesin aktif untuk guard complete (FR-016); null = unknown. */
+  currentTotalCount: number | null;
   listWorkOrdersUseCase: ListWorkOrdersUseCase;
   getMachinesUseCase: GetMachinesUseCase;
   runProtected: (action: () => Promise<void>) => Promise<void>;
@@ -40,7 +42,7 @@ export interface WorkOrdersApi {
 }
 
 export function useWorkOrders(deps: WorkOrdersDeps): WorkOrdersApi {
-  const { useBackend, currentDeviceId, listWorkOrdersUseCase, getMachinesUseCase, runProtected, setMachines } = deps;
+  const { useBackend, currentDeviceId, currentTotalCount, listWorkOrdersUseCase, getMachinesUseCase, runProtected, setMachines } = deps;
 
   const [isProductionSetupModalOpen, setIsProductionSetupModalOpen] = useState<boolean>(false);
   const [pendingWorkOrders, setPendingWorkOrders] = useState<WorkOrderListItem[]>([]);
@@ -128,6 +130,17 @@ export function useWorkOrders(deps: WorkOrdersDeps): WorkOrdersApi {
 
   const completeWorkOrder = useCallback(async (woId: string, finalRejectCount: number) => {
     if (!useBackend) throw new Error('Complete work order hanya tersedia pada mode backend.');
+    // FR-016 guard klien: reject akhir tidak boleh melebihi total produksi
+    // (backend 400 SCRAP_COUNT_INVALID; cegah sebelum fetch).
+    if (!Number.isInteger(finalRejectCount) || finalRejectCount < 0) {
+      setProductionSetupError('Reject akhir harus bilangan bulat ≥ 0.');
+      throw new Error('Reject akhir harus bilangan bulat ≥ 0.');
+    }
+    if (currentTotalCount !== null && finalRejectCount > currentTotalCount) {
+      const msg = `Reject akhir (${finalRejectCount}) melebihi total produksi (${currentTotalCount}).`;
+      setProductionSetupError(msg);
+      throw new Error(msg);
+    }
     setProductionSetupBusy(true);
     try {
       await runProtected(async () => {
@@ -136,12 +149,17 @@ export function useWorkOrders(deps: WorkOrdersDeps): WorkOrdersApi {
         setMachines(machineList);
       });
     } catch (err) {
-      setProductionSetupError(err instanceof Error ? err.message : 'Complete work order gagal.');
+      const code = !!err && typeof err === 'object' ? String((err as { code?: unknown }).code ?? '') : '';
+      setProductionSetupError(
+        code === 'UNCLASSIFIED_DOWNTIME_CONFLICT'
+          ? 'Downtime belum diklasifikasi — labeli alasan downtime dulu sebelum menyelesaikan WO.'
+          : err instanceof Error ? err.message : 'Complete work order gagal.',
+      );
       throw err;
     } finally {
       setProductionSetupBusy(false);
     }
-  }, [getMachinesUseCase, listWorkOrdersUseCase, runProtected, setMachines, useBackend]);
+  }, [currentTotalCount, getMachinesUseCase, listWorkOrdersUseCase, runProtected, setMachines, useBackend]);
 
   const cancelWorkOrder = useCallback(async (woId: string, reason?: string) => {
     if (!useBackend) throw new Error('Cancel work order hanya tersedia pada mode backend.');

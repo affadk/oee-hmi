@@ -20,6 +20,8 @@ import type { MachineRecord } from '../../../domain/entities/backend/Device';
 import type { WorkOrderListItem, WorkOrderResolveResult } from '../../../domain/entities/backend/WorkOrder';
 import type { DowntimeEvent } from '../../../domain/entities/backend/Telemetry';
 import { isPlannedDowntimeCategory } from '../../../domain/entities/backend/Telemetry';
+import { assertCountAdjust, assertDeviceCommandReason } from '../../../domain/entities/backend/Device';
+import type { DeviceCommandKind } from '../../../domain/entities/backend/Device';
 import { resolveShiftWindowIso } from '../../../domain/services/ShiftTimeline';
 
 function mapLiveStateToMachineStatus(state: LiveMachineState): MachineStatus {
@@ -307,6 +309,17 @@ export class BackendMachineRepository implements IMachineRepository {
     await this.commandGateway.sendCommand({ deviceId: await this.resolveDeviceId(machineId), command: 'RESET_COUNTER', reason });
     const updated = await this.getMachineById(machineId);
     if (!updated) throw new Error(`Machine ${machineId} not found after reset`);
+    return updated;
+  }
+
+  /** FR-015: perintah kanonis 6 enum via device-command gateway (JWT+LAN+audit). */
+  async sendCommand(machineId: string, command: DeviceCommandKind, reason: string, count?: number): Promise<MachineConfig> {
+    assertDeviceCommandReason(reason);
+    assertCountAdjust(command, count);
+    const deviceId = await this.resolveDeviceId(machineId);
+    await this.commandGateway.sendCommand({ deviceId, command, reason, count });
+    const updated = await this.getMachineById(machineId);
+    if (!updated) throw new Error(`Machine ${machineId} not found after command.`);
     return updated;
   }
 

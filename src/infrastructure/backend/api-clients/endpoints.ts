@@ -36,6 +36,9 @@ export const endpoints = {
   operationalEventAck: (id: number) => `/api/v1/operational-events/${encodeURIComponent(String(id))}/ack`,
   qualityRejects: (deviceId: string) => `/api/v1/quality/rejects/${encodeURIComponent(deviceId)}`,
   deviceHealth: (deviceId: string) => `/api/v1/devices/${encodeURIComponent(deviceId)}/health`,
-  authOperatorPin: () => '/api/v1/auth/operator-pin',
+  authLogin: () => '/api/v1/auth/login',
+  authPasswordChange: () => '/api/v1/auth/password/change',
+  authMe: () => '/api/v1/auth/me',
+  systemAccessMode: () => '/api/v1/system/access-mode',
   authRefresh: () => '/api/v1/auth/refresh',
 } as const;

@@ -6,8 +6,10 @@
 // query-string shapes, and envelope unwrapping.
 
 import type {
+  AccessMode,
   AuthSession,
   BackendHealth,
+  CapabilityMap,
   IAuthGateway,
   IDeviceCommandGateway,
   IHealthRepository,
@@ -52,7 +54,7 @@ import {
   mapOperatorListDto,
   mapProductListDto,
 } from '../dto/master-data.dto';
-import { assertDeviceCommandReason } from '../../../domain/entities/backend/Device';
+import { assertCountAdjust, assertDeviceCommandReason } from '../../../domain/entities/backend/Device';
 import { endpoints } from './endpoints';
 import { BackendHttpError, httpDownload, httpRequest } from './httpClient';
 
@@ -116,9 +118,14 @@ export class OeeHttpWorkOrderRepository implements IWorkOrderRepository {
 export class OeeHttpDeviceCommandGateway implements IDeviceCommandGateway {
   async sendCommand(input: DeviceCommandInput): Promise<{ success: boolean; transactionId: string }> {
     assertDeviceCommandReason(input.reason);
+    assertCountAdjust(input.command, input.count);
     const raw = await httpRequest<{ success: boolean; transaction_id: string }>(endpoints.deviceCommand(input.deviceId), {
       method: 'POST',
-      body: { command: input.command, reason: input.reason },
+      body: {
+        command: input.command,
+        reason: input.reason,
+        ...(input.command === 'COUNT_ADJUST' ? { count: input.count } : {}),
+      },
     });
     return { success: raw.success, transactionId: raw.transaction_id };
   }
@@ -323,55 +330,98 @@ export class OeeHttpAuthGateway implements IAuthGateway {
 
   constructor(private readonly tokens: IAuthTokenStorage = new AuthTokenStorageAdapter()) {}
 
-  async loginWithPin(pin: string, operatorId?: string, stationId?: string): Promise<AuthSession> {
+  async loginWithPassword(operatorId: string, password: string, stationId?: string): Promise<AuthSession> {
     const raw = await httpRequest<{
       token: string;
       expires_in: number;
-      operator?: { id?: string; username?: string; role?: string; line_id?: string | null; lineId?: string | null };
-    }>(endpoints.authOperatorPin(), {
+      operator?: {
+        id?: string; username?: string; role?: string;
+        line_id?: string | null; lineId?: string | null;
+        must_change_password?: boolean; mustChangePassword?: boolean;
+      };
+    }>(endpoints.authLogin(), {
       method: 'POST',
-      body: { pin, operator_id: operatorId, station_id: stationId },
+      body: { operator_id: operatorId, password, station_id: stationId || undefined },
     });
     this.tokens.setToken(raw.token);
     const session: AuthSession = {
       token: raw.token,
       expiresIn: raw.expires_in,
       operator: {
-        id: raw.operator?.id ?? operatorId ?? '',
-        username: raw.operator?.username ?? '',
+        id: raw.operator?.id ?? operatorId,
+        username: raw.operator?.username ?? operatorId,
         role: raw.operator?.role ?? '',
         lineId: raw.operator?.line_id ?? raw.operator?.lineId ?? null,
+        mustChangePassword: raw.operator?.must_change_password ?? raw.operator?.mustChangePassword ?? false,
       },
     };
     this.lastOperator = session.operator;
     return session;
   }
+
+  async changePassword(currentPassword: string, newPassword: string): Promise<void> {
+    await httpRequest(endpoints.authPasswordChange(), {
+      method: 'POST',
+      body: { current_password: currentPassword, new_password: newPassword },
+    });
+  }
+
   logout(): void {
     this.tokens.clearToken();
     this.lastOperator = null;
   }
+
   getToken(): string | null {
     return this.tokens.getToken();
   }
-  /** G13 sliding refresh — null bila tak ada token / backend menolak. */
+
+  getStationId(): string | null {
+    return this.tokens.getStationId();
+  }
+
+  setStationId(stationId: string): void {
+    this.tokens.setStationId(stationId);
+  }
+
+  /** G13 sliding refresh — null hanya bila tak ada token; error propagate (FR-006). */
   async refreshSession(): Promise<AuthSession | null> {
     const current = this.tokens.getToken();
     if (!current) return null;
-    try {
-      const raw = await httpRequest<{ token: string; expires_in: number }>(endpoints.authRefresh(), {
-        method: 'POST',
-        body: { token: current },
-      });
-      this.tokens.setToken(raw.token);
-      const session: AuthSession = {
-        token: raw.token,
-        expiresIn: raw.expires_in,
-        operator: this.lastOperator ?? { id: '', username: '', role: '', lineId: null },
-      };
-      return session;
-    } catch {
-      return null;
+    const raw = await httpRequest<{ token: string; expires_in: number }>(endpoints.authRefresh(), {
+      method: 'POST',
+      body: { token: current },
+    });
+    this.tokens.setToken(raw.token);
+    return {
+      token: raw.token,
+      expiresIn: raw.expires_in,
+      operator: this.lastOperator ?? { id: '', username: '', role: '', lineId: null, mustChangePassword: false },
+    };
+  }
+
+  /** §L/§3.4: bentuk nested {authz:{capabilities}} dan flat {capabilities} diterima. */
+  async getCapabilities(): Promise<CapabilityMap> {
+    const raw = await httpRequest<Record<string, unknown>>(endpoints.authMe());
+    const authz = (raw.authz ?? raw) as { capabilities?: unknown };
+    const list = Array.isArray(authz.capabilities) ? authz.capabilities : [];
+    const map: CapabilityMap = {};
+    for (const item of list as Array<{ key?: unknown; decision?: unknown }>) {
+      if (typeof item?.key !== 'string') continue;
+      const decision = item.decision;
+      map[item.key] = decision === 'allow' || decision === 'deny' ? decision : 'unknown';
     }
+    return map;
+  }
+
+  async getAccessMode(): Promise<AccessMode> {
+    const raw = await httpRequest<Record<string, unknown>>(endpoints.systemAccessMode());
+    const src = (raw.access ?? raw) as { mode?: unknown; channel?: unknown; mutations_allowed?: unknown; mutationsAllowed?: unknown };
+    const channel = src.channel === 'lan' || src.channel === 'tunnel' ? src.channel : 'unknown';
+    return {
+      mode: typeof src.mode === 'string' ? src.mode : 'private',
+      channel,
+      mutationsAllowed: src.mutations_allowed === true || src.mutationsAllowed === true,
+    };
   }
 }
 

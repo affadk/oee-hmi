@@ -1,7 +1,7 @@
 // /src/domain/entities/backend/WorkOrder.ts
 // Domain entity mirroring Work Order Dispatch & Management (§C API_DOCUMENTATION.md).
 
-export type WorkOrderStatus = 'PENDING' | 'ACTIVE' | 'COMPLETED' | 'ABORTED';
+export type WorkOrderStatus = 'PENDING' | 'ACTIVE' | 'PENDING_CLOSE' | 'COMPLETED' | 'ABORTED';
 
 export interface WorkOrderListItem {
   woId: string;
@@ -16,6 +16,13 @@ export interface WorkOrderListItem {
   createdAt: string;
   startTime: string | null;
   endTime: string | null;
+  /** ADR-0021 workflow fields (aditif, nullable). */
+  dispatchedAt?: string | null;
+  ackedAt?: string | null;
+  actualStartAt?: string | null;
+  actualEndAt?: string | null;
+  provisional?: boolean;
+  countUncertain?: boolean;
 }
 
 export interface WorkOrderResolveResult {
@@ -52,5 +59,6 @@ export interface WorkOrderQuery {
 }
 
 export function isActiveWorkOrder(wo: Pick<WorkOrderListItem, 'status'>): boolean {
-  return wo.status === 'ACTIVE' || wo.status === 'PENDING';
+  // PENDING_CLOSE masih menempati mesin (konfirmasi operator wajib) — aktif.
+  return wo.status === 'ACTIVE' || wo.status === 'PENDING' || wo.status === 'PENDING_CLOSE';
 }

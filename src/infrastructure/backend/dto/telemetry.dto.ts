@@ -112,6 +112,12 @@ interface RawLifecycleEvent {
   machineId?: string; machine_id?: string;
   woId?: string; wo_id?: string;
   productId?: string; product_id?: string;
+  lineId?: string; line_id?: string;
+  shiftId?: string; shift_id?: string;
+  scheduleId?: string; schedule_id?: string;
+  dayOfWeek?: number; day_of_week?: number;
+  eventId?: number; event_id?: number;
+  isOnline?: boolean; is_online?: boolean;
   status?: string;
   data?: { wo_id?: string; woId?: string; status?: string };
 }
@@ -318,30 +324,70 @@ export function mapOperationalEventResultDto(raw: unknown): { data: OperationalE
   return { data: unwrapped.data.map(mapOperationalEventDto), meta: unwrapped.meta };
 }
 
+/**
+ * FR-011: seluruh envelope lifecycle §4 (26 tipe) dipetakan defensif
+ * (camelCase/snake_case campuran sesuai kontrak). Type tak dikenal → null
+ * (ignore-unknown by design; server MAY menambah advisory types).
+ */
 export function mapWsLifecycleEventDto(raw: RawLifecycleEvent): WsLifecycleEvent | null {
   const type = raw.type;
-  if (type === 'MACHINE_BOUND') {
-    return { type, machineId: raw.machineId ?? raw.machine_id ?? '', deviceId: raw.deviceId ?? raw.device_id ?? '' };
+  const deviceId = raw.deviceId ?? raw.device_id ?? '';
+  const machineId = raw.machineId ?? raw.machine_id ?? '';
+  const productId = raw.productId ?? raw.product_id ?? '';
+  const lineId = raw.lineId ?? raw.line_id ?? '';
+  const shiftId = raw.shiftId ?? raw.shift_id ?? '';
+  const scheduleId = raw.scheduleId ?? raw.schedule_id ?? '';
+  const eventId = toFiniteNumber(raw.eventId ?? raw.event_id);
+  switch (type) {
+    case 'MACHINE_BOUND':
+    case 'MACHINE_UNBOUND':
+      return { type, machineId, deviceId };
+    case 'MACHINE_DELETED':
+    case 'MACHINE_UPDATED':
+      return { type, machineId };
+    case 'MACHINE_CREATED':
+      return { type, machineId, deviceId: deviceId || null };
+    case 'PRODUCT_CREATED':
+    case 'PRODUCT_UPDATED':
+    case 'PRODUCT_DELETED':
+      return { type, productId };
+    case 'PRODUCTION_LINE_CREATED':
+    case 'PRODUCTION_LINE_UPDATED':
+    case 'PRODUCTION_LINE_DELETED':
+      return { type, lineId };
+    case 'SHIFT_CREATED':
+    case 'SHIFT_UPDATED':
+    case 'SHIFT_DELETED':
+      return { type, shiftId };
+    case 'SHIFT_SCHEDULE_CREATED':
+      return { type, lineId, shiftId, dayOfWeek: raw.dayOfWeek ?? raw.day_of_week ?? null };
+    case 'SHIFT_SCHEDULE_UPDATED':
+    case 'SHIFT_SCHEDULE_DELETED':
+      return { type, scheduleId };
+    case 'DEVICE_STATUS_UPDATE':
+      return { type, deviceId, isOnline: raw.isOnline ?? raw.is_online ?? false };
+    case 'DEVICE_EVENT':
+      return { type, deviceId };
+    case 'DOWNTIME_EVENT_OPENED':
+    case 'DOWNTIME_EVENT_CLOSED':
+      return { type, eventId, deviceId, machineId: machineId || null };
+    case 'DOWNTIME_REASON_LABELED':
+      return { type, eventId, deviceId };
+    case 'WORK_ORDER_COMPLETED':
+      return {
+        type, deviceId, machineId,
+        woId: raw.woId ?? raw.wo_id ?? raw.data?.woId ?? raw.data?.wo_id ?? '',
+        status: raw.data?.status ?? raw.status ?? 'COMPLETED',
+      };
+    case 'WORK_ORDER_CANCELLED':
+      return {
+        type, deviceId, machineId,
+        woId: raw.woId ?? raw.wo_id ?? raw.data?.woId ?? raw.data?.wo_id ?? '',
+        status: 'ABORTED',
+      };
+    default:
+      return null;
   }
-  if (type === 'MACHINE_UNBOUND') {
-    return { type, machineId: raw.machineId ?? raw.machine_id ?? '', deviceId: raw.deviceId ?? raw.device_id ?? '' };
-  }
-  if (type === 'MACHINE_DELETED') {
-    return { type, machineId: raw.machineId ?? raw.machine_id ?? '' };
-  }
-  if (type === 'PRODUCT_DELETED') {
-    return { type, productId: raw.productId ?? raw.product_id ?? '' };
-  }
-  if (type === 'WORK_ORDER_CANCELLED') {
-    return {
-      type,
-      deviceId: raw.deviceId ?? raw.device_id ?? '',
-      machineId: raw.machineId ?? raw.machine_id ?? '',
-      woId: raw.woId ?? raw.wo_id ?? raw.data?.woId ?? raw.data?.wo_id ?? '',
-      status: 'ABORTED',
-    };
-  }
-  return null;
 }
 
 interface RawWsHealthItem { name?: string; age_ms?: number; alive?: number }

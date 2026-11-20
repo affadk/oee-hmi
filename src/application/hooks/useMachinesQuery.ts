@@ -30,6 +30,7 @@ export interface MachinesQueryApi {
   setAlarms: React.Dispatch<React.SetStateAction<MachineAlarmEvent[]>>;
   isLoading: boolean;
   loadError: string;
+  setLoadError: React.Dispatch<React.SetStateAction<string>>;
   retryLoad: () => void;
   selectedPlant: string;
   selectedLine: string;
@@ -144,6 +145,7 @@ export function useMachinesQuery(deps: MachinesQueryDeps): MachinesQueryApi {
     setAlarms,
     isLoading,
     loadError,
+    setLoadError,
     retryLoad,
     selectedPlant,
     selectedLine,

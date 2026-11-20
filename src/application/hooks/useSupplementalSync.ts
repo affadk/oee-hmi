@@ -25,6 +25,8 @@ export interface SupplementalSyncDeps {
   getHourlyTrendsUseCase: GetHourlyTrendsUseCase;
   getRejectBreakdownUseCase: GetRejectBreakdownUseCase;
   listLabelableDowntimesUseCase: ListLabelableDowntimesUseCase;
+  /** FR-011: bump dari scheduler refetch lifecycle → muat ulang supplemental. */
+  refreshSeq?: number;
   errorReporter: IErrorReporter;
   setMachines: React.Dispatch<React.SetStateAction<MachineConfig[]>>;
 }
@@ -49,6 +51,7 @@ export function useSupplementalSync(deps: SupplementalSyncDeps): SupplementalSyn
     getHourlyTrendsUseCase,
     getRejectBreakdownUseCase,
     listLabelableDowntimesUseCase,
+    refreshSeq,
     errorReporter,
     setMachines,
   } = deps;
@@ -112,7 +115,7 @@ export function useSupplementalSync(deps: SupplementalSyncDeps): SupplementalSyn
     return () => {
       isMounted = false;
     };
-  }, [useBackend, currentMachineId, currentDeviceId, shiftWindow, getDowntimeReasonsUseCase, getActiveDowntimesUseCase, getHourlyTrendsUseCase, getRejectBreakdownUseCase, listLabelableDowntimesUseCase, errorReporter, setMachines]);
+  }, [useBackend, currentMachineId, currentDeviceId, shiftWindow, getDowntimeReasonsUseCase, getActiveDowntimesUseCase, getHourlyTrendsUseCase, getRejectBreakdownUseCase, listLabelableDowntimesUseCase, refreshSeq, errorReporter, setMachines]);
 
   return { labelableDowntimes, setLabelableDowntimes, supplementalError, activeDowntimeCount };
 }

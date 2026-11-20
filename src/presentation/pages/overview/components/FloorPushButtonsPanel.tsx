@@ -1,4 +1,5 @@
 // /src/components/fullscreen/FloorPushButtonsPanel.tsx
+import type { DeviceCommandKind } from '../../../../domain/entities/backend/Device';
 
 import React, { useEffect, useState } from 'react';
 import { Play, Square, PlusCircle, AlertOctagon, RotateCcw, Wrench, ShieldAlert, TriangleAlert, X } from 'lucide-react';
@@ -9,7 +10,7 @@ interface FloorPushButtonsPanelProps {
   machine: MachineConfig;
   onUpdateMachineStatus: (status: 'RUNNING' | 'DOWN' | 'IDLE') => Promise<void>;
   onLogReject: (reasonLabel: string, count: number) => Promise<void>;
-  onDispatchMachineCommand: (command: 'RESET_COUNTER' | 'PAUSE' | 'RESUME') => Promise<void>;
+  onDispatchMachineCommand: (command: DeviceCommandKind) => Promise<void>;
   /** Dipanggil saat START diminta tanpa WO aktif (arahkan ke QR/Setup Produksi). */
   onRequestWorkOrder?: () => void;
 }

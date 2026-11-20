@@ -52,24 +52,29 @@ export function deriveActualRate(stdCycleSec: number): number {
   return Math.round(theoretical * 0.5075);
 }
 
-export type MachineEdgeCommand = 'RESET_COUNTER' | 'PAUSE' | 'RESUME';
+export type MachineEdgeCommand = 'RESET_COUNTER' | 'PAUSE' | 'RESUME' | 'PLANNED_DT_START' | 'PLANNED_DT_END' | 'COUNT_ADJUST';
 
 export class MachineCommandUseCase {
   constructor(private readonly machineRepo: IMachineRepository) {}
 
   public async dispatchCommand(
     machineId: string,
-    command: MachineEdgeCommand
+    command: MachineEdgeCommand,
+    opts?: { count?: number; reason?: string }
   ): Promise<{ message: string; updatedMachine?: MachineConfig }> {
     let updatedMachine: MachineConfig | undefined;
+    const reason = opts?.reason ?? `HMI ${command} via dashboard`;
     if (command === 'RESET_COUNTER') {
       updatedMachine = await this.machineRepo.resetCounters(machineId);
     } else if (command === 'PAUSE') {
       const timeNow = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       updatedMachine = await this.machineRepo.updateMachineStatus(machineId, 'DOWN', `${timeNow} (Paused)`);
-    } else {
+    } else if (command === 'RESUME') {
       const timeNow = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       updatedMachine = await this.machineRepo.updateMachineStatus(machineId, 'RUNNING', `${timeNow} (Resumed)`);
+    } else {
+      // FR-015: PLANNED_DT_START/END + COUNT_ADJUST via gateway kanonis (§D).
+      updatedMachine = await this.machineRepo.sendCommand(machineId, command, reason, opts?.count);
     }
     return { message: `${command} dispatched via backend`, updatedMachine };
   }

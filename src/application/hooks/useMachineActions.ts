@@ -1,4 +1,6 @@
 // /src/application/hooks/useMachineActions.ts
+import type { DeviceCommandKind } from '../../domain/entities/backend/Device';
+import type { MachineEdgeCommand } from '../use-cases/MachineCommandUseCase';
 // Focused hook: machine mutations (status, downtime, reject, alarms, MQTT
 // edge commands + job config). Thin use-case composition over repository ports.
 // LAYER RULES: domain ports + React only — no infrastructure/*, no seeds, no DOM.
@@ -50,7 +52,7 @@ export interface MachineActionsApi {
   resolveAlarm: (alarmId: string) => Promise<void>;
   /** Counter reset via edge command (RESET_COUNTER). Caller owns the confirm guard. */
   resetCounters: () => Promise<void>;
-  dispatchMachineCommand: (command: 'RESET_COUNTER' | 'PAUSE' | 'RESUME') => Promise<void>;
+  dispatchMachineCommand: (command: DeviceCommandKind, count?: number) => Promise<void>;
   /** B6: returns raw export Blob; presentation owns the object-URL download. */
   exportTelemetry: (format?: TelemetryExportFormat) => Promise<Blob | null>;
   applyJobConfig: (
@@ -164,11 +166,12 @@ export function useMachineActions(deps: MachineActionsDeps): MachineActionsApi {
     });
   }, [runProtected, manageAlarmsUseCase, getOperatorId, setAlarms]);
 
-  const dispatchMachineCommand = useCallback(async (command: 'RESET_COUNTER' | 'PAUSE' | 'RESUME') => {
+  const dispatchMachineCommand = useCallback(async (command: MachineEdgeCommand, count?: number) => {
     await runProtected(async () => {
       const { updatedMachine } = await machineCommandUseCase.dispatchCommand(
         currentMachineId,
-        command
+        command,
+        count !== undefined ? { count } : undefined
       );
       if (updatedMachine) {
         setMachines((prev) => prev.map((m) => (m.id === updatedMachine.id ? updatedMachine : m)));

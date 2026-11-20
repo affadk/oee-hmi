@@ -4,6 +4,8 @@ import { IMachineRepository } from '../../../domain/ports/IMachineRepository';
 import { MachineConfig, MachineStatus } from '../../../domain/entities/Machine';
 import { EdgeJobConfigPayload, EdgeTelemetryPayload } from '../../../domain/entities/EdgeContracts';
 import { INITIAL_MACHINES } from '../../simulation/data-generation/seedData';
+import { assertCountAdjust, assertDeviceCommandReason } from '../../../domain/entities/backend/Device';
+import type { DeviceCommandKind } from '../../../domain/entities/backend/Device';
 
 export class InMemoryMachineRepository implements IMachineRepository {
   private machines: MachineConfig[];
@@ -153,6 +155,33 @@ export class InMemoryMachineRepository implements IMachineRepository {
       hourlyTrends: updatedHourlyTrends,
     };
 
+    this.machines[index] = updated;
+    return { ...updated };
+  }
+
+  public async sendCommand(machineId: string, command: DeviceCommandKind, reason: string, count?: number): Promise<MachineConfig> {
+    assertDeviceCommandReason(reason);
+    assertCountAdjust(command, count);
+    const index = this.machines.findIndex((m) => m.id === machineId || m.deviceId === machineId);
+    if (index === -1) throw new Error(`Machine with id ${machineId} not found.`);
+    const target = this.machines[index];
+    if (!target) throw new Error('Machine not found in simulation store.');
+    // Simulasi parity: status/counter berubah tanpa broker (lane dev).
+    const status: MachineStatus =
+      command === 'PAUSE' ? 'DOWN'
+      : command === 'RESUME' ? 'RUNNING'
+      : command === 'PLANNED_DT_START' ? 'PLANNED_STOP'
+      : command === 'PLANNED_DT_END' ? 'IDLE'
+      : target.status;
+    const totalCount = command === 'COUNT_ADJUST' && count !== undefined ? count : command === 'RESET_COUNTER' ? 0 : target.totalCount;
+    const updated: MachineConfig = {
+      ...target,
+      status,
+      totalCount,
+      goodCount: command === 'RESET_COUNTER' ? 0 : Math.max(0, totalCount - target.rejectCount),
+      rejectCount: command === 'RESET_COUNTER' ? 0 : target.rejectCount,
+      telemetry: { ...target.telemetry, tot: totalCount, rej: command === 'RESET_COUNTER' ? 0 : target.telemetry.rej },
+    };
     this.machines[index] = updated;
     return { ...updated };
   }

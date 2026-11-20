@@ -7,4 +7,7 @@ export interface IAuthTokenStorage {
   getToken(): string | null;
   setToken(token: string): void;
   clearToken(): void;
+  /** Station context kiosk (deviceId); persist lintas sesi, bukan kredensial. */
+  getStationId(): string | null;
+  setStationId(stationId: string): void;
 }

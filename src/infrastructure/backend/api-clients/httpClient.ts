@@ -18,6 +18,8 @@ export class BackendHttpError extends Error {
     public readonly status: number,
     public readonly code: string,
     message: string,
+    /** Header Retry-After (detik) bila ada — 429 login/refresh countdown (FR-003). */
+    public readonly retryAfterSec: number | null = null,
   ) {
     super(message);
     this.name = 'BackendHttpError';
@@ -57,7 +59,9 @@ export async function httpRequest<T>(path: string, options: HttpOptions = {}): P
   if (!res.ok) {
     const code = (payload as { error?: string } | null)?.error ?? `HTTP_${res.status}`;
     const message = (payload as { message?: string } | null)?.message ?? res.statusText;
-    throw new BackendHttpError(res.status, code, message);
+    const retryRaw = Number(res.headers.get('Retry-After'));
+    const retryAfterSec = Number.isFinite(retryRaw) && retryRaw > 0 ? Math.ceil(retryRaw) : null;
+    throw new BackendHttpError(res.status, code, message, retryAfterSec);
   }
   return payload as T;
 }

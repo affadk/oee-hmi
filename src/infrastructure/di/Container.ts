@@ -65,6 +65,8 @@ import { GetHealthUseCase } from '../../application/use-cases/GetHealthUseCase';
 export interface AppContainer {
   // Data source mode
   useBackend: boolean;
+  /** Kiosk station binding dari env (composition root satu-satunya pembaca env). */
+  stationIdEnv: string;
 
   // Ports / Repositories (lane depends on useBackend flag)
   machineRepository: IMachineRepository;
@@ -178,6 +180,7 @@ export function createContainer(): AppContainer {
 
   return {
     useBackend,
+    stationIdEnv: env.stationIdEnv,
     machineRepository,
     alarmRepository,
     themeStorage,

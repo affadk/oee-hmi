@@ -17,6 +17,12 @@ interface RawWorkOrder {
   created_at?: string; createdAt?: string;
   start_time?: string | null; startTime?: string | null;
   end_time?: string | null; endTime?: string | null;
+  dispatched_at?: string | null; dispatchedAt?: string | null;
+  acked_at?: string | null; ackedAt?: string | null;
+  actual_start_at?: string | null; actualStartAt?: string | null;
+  actual_end_at?: string | null; actualEndAt?: string | null;
+  provisional?: boolean;
+  count_uncertain?: boolean; countUncertain?: boolean;
 }
 
 interface RawWorkOrderResolve {
@@ -49,7 +55,7 @@ interface RawWorkOrderResolve {
 
 function normalizeStatus(raw: unknown): WorkOrderStatus {
   const s = String(raw ?? 'PENDING').toUpperCase();
-  return s === 'ACTIVE' || s === 'COMPLETED' || s === 'ABORTED' ? (s as WorkOrderStatus) : 'PENDING';
+  return s === 'ACTIVE' || s === 'PENDING_CLOSE' || s === 'COMPLETED' || s === 'ABORTED' ? (s as WorkOrderStatus) : 'PENDING';
 }
 
 export function mapWorkOrderDto(raw: RawWorkOrder): WorkOrderListItem {
@@ -66,6 +72,12 @@ export function mapWorkOrderDto(raw: RawWorkOrder): WorkOrderListItem {
     createdAt: raw.created_at ?? raw.createdAt ?? new Date(0).toISOString(),
     startTime: raw.start_time ?? raw.startTime ?? null,
     endTime: raw.end_time ?? raw.endTime ?? null,
+    dispatchedAt: raw.dispatched_at ?? raw.dispatchedAt ?? null,
+    ackedAt: raw.acked_at ?? raw.ackedAt ?? null,
+    actualStartAt: raw.actual_start_at ?? raw.actualStartAt ?? null,
+    actualEndAt: raw.actual_end_at ?? raw.actualEndAt ?? null,
+    provisional: raw.provisional ?? false,
+    countUncertain: raw.count_uncertain ?? raw.countUncertain ?? false,
   };
 }
 

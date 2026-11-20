@@ -5,7 +5,10 @@ describe('endpoints (pure path builders, no network)', () => {
   it('builds static collection paths', () => {
     expect(endpoints.liveStateAll()).toBe('/api/v1/live-state');
     expect(endpoints.workOrders()).toBe('/api/v1/work-orders');
-    expect(endpoints.authOperatorPin()).toBe('/api/v1/auth/operator-pin');
+    expect(endpoints.authLogin()).toBe('/api/v1/auth/login');
+    expect(endpoints.authPasswordChange()).toBe('/api/v1/auth/password/change');
+    expect(endpoints.authMe()).toBe('/api/v1/auth/me');
+    expect(endpoints.systemAccessMode()).toBe('/api/v1/system/access-mode');
   });
 
   it('encodes dynamic segments', () => {
