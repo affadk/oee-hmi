@@ -4,10 +4,10 @@
 
 ## Current Position
 
-Phase: 0 (inisiasi SDD)
-Unit: `specs/001-hmi-data-transfer-refresh` (aktif) · `specs/002-hmi-station-surfaces` (CLARIFYING)
-Stage: Verifying — unit 001 T001–T024 selesai; unit 002 plan/design/tasks DRAFT menunggu ADR-0004
-Current Task: — (gate: ADR-0004 Accepted → unit 002 READY)
+Phase: 1 (implementasi unit 002)
+Unit: `specs/002-hmi-station-surfaces` (aktif) · `specs/001-hmi-data-transfer-refresh` (verifikasi visual manual pending)
+Stage: Verifying — unit 002 T101–T117 selesai; deployed ke podman `iiot-oee-dev`; tests 169/26 hijau; sdd-check 0 FAIL
+Current Task: — (AC visual manual pemilik: countdown 429, rotation, badge, gap chart + scan kamera fisik)
 
 ## Completed
 
@@ -22,18 +22,17 @@ Current Task: — (gate: ADR-0004 Accepted → unit 002 READY)
 
 ## In Progress
 
-- [>] Menunggu acceptance ADR-0004 (unit 002) + skenario visual manual unit 001 (pemilik)
+- [>] Skenario visual manual unit 001 + unit 002 (browser/scan kamera fisik) — pemilik; bukan blocker kode
 
 ## Next
 
-- [ ] Acceptance ADR-0004 → design 002 DESIGNED/VALID → tasks READY → Fase 1 unit 002 (T101..)
 - [ ] Skenario visual manual unit 001 (browser): countdown 429, rotation dialog, badge staleness/online, gap chart → AC PARTIAL jadi PASS
+- [ ] E2E scan fisik 4-zona QR → initiate → dispatch → RUNNING (kamera); OID-mismatch konfirmasi; station kartu klik→live; andon publik; auto-lock 5m
 - [ ] **Pemilik backend/deploy**: GAP-B06 (posture dev tunnel publik) + GAP-B07 (anomali data sim operatingSec/performancePct)
 
 ## Blocked
 
-- [!] Unit 002 implementasi terblokir ADR-0004 Proposed (gate konstitusi).
-- [!] AC visual unit 001 butuh browser/manual pemilik — bukan blocker kode.
+- [!] AC visual unit 001/002 butuh browser/manual pemilik — bukan blocker kode.
 
 ## Direction
 
@@ -56,3 +55,4 @@ Perombakan lapisan data transfer saja (auth password, realtime WS lengkap, DTO k
 - Fase 3 unit 001 (T016–T021): DTO kanonis `*Pct` menang + null-preserving + provisional/operatingSec/runSec/sampleCount; TrendZone gap null + tooltip `—`, ECharts null guard; parity availability fallback terbukti (85.7 = run/(run+udt), tanpa ubah formula); capabilityGate + gate boolean dashboard + disable tombol (FloorPushButtons/KontrolTab/ProductionSetup/LogEvent/Alarms/DeviceConfig) + title alasan; ack body {note} saja. Amandemen OQ-004/FR-007/AC-006 (spec rev 3 + ADR-0002): live OPERATOR `device_command.send=unknown` (shadow) → UI deny-only, enforcement backend; dev ACCESS_MODE=public → tunnel mutations_allowed=true (private-mode E2E pending). 147 test hijau; sync+build apps/hmi.
 - Commit & push: repo ini (docs SDD + feat F1-F2) dan iiot-oee (apps/hmi + compose hmi) — perubahan backend lain milik pemilik TIDAK disentuh.
 - T022–T024: E2E 429+Retry-After 60 live; capture WS relay transisi FSM (st=4 → UNPLANNED_DOWNTIME) + DEVICE_STATUS_UPDATE offline/online via stop/start edge-sim; null aggregate live (performancePct/oeePct null); staleness age 72478s; **sunset alias legacy DTO** (live kanonis penuh) + map counter aggregate outputDelta/goodDelta/rejectDelta; test legacy diperbarui; 148 test hijau. GAP-B01/B02 CLOSED; GAP-B07 dibuka (anomali data sim). Unit 002 plan/design/tasks DRAFT dibuat (gate ADR-0004).
+- Unit 002 implementasi selesai (T101–T117): surfaceMode resolver (kiosk device-bound, station login-first, andon publik read-only); DashboardPage switcher hide kiosk + label mode; FleetCardsPanel kartu RUNNING station-only klik→live; BatchQrScannerModal initiate-from-zones (validate 4 zona → initiate → dispatch, OID-mismatch konfirmasi); qrZones builder §C.8; MachineRecord.lineId; runProtected generic; App.tsx /audit→/overview redirect + nav exit; useInactivityLock (5m VITE_INACTIVITY_TIMEOUT_MS, pause tab hidden, soft logout, kiosk dikecualikan). Live monitor layout beku (hanya additive prop pass-through 3 file/14 baris). tests 169/26 hijau; lint:arch OK; sdd-check 0 FAIL (Spec: refs ditambahkan ke tasks). Build + sync apps/hmi + rebuild dist; podman iiot-oee-hmi-dev menyajikan index-D7JkFG_1.js (unit 002). E2E smoke: /auth/login 200 (snake_case), /work-orders/validate-zone + /initiate-from-zones route live (400/UNAUTHORIZED, bukan 404). Commit: repo ini 3636a84, iiot-oee b73346d (apps/hmi saja). AC scan kamera fisik + visual manual pending pemilik.
