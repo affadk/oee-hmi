@@ -6,8 +6,8 @@
 
 Phase: 0 (inisiasi SDD)
 Unit: `specs/001-hmi-data-transfer-refresh` (aktif) · `specs/002-hmi-station-surfaces` (CLARIFYING)
-Stage: Implementing — Fase 1+2+3 unit 001 selesai (T001–T021); sisa T022–T024 (E2E UI manual + dokumen)
-Current Task: T022 (E2E skenario UI/live manual)
+Stage: Verifying — unit 001 T001–T024 selesai; unit 002 plan/design/tasks DRAFT menunggu ADR-0004
+Current Task: — (gate: ADR-0004 Accepted → unit 002 READY)
 
 ## Completed
 
@@ -22,18 +22,18 @@ Current Task: T022 (E2E skenario UI/live manual)
 
 ## In Progress
 
-- [>] T022 E2E skenario UI/live manual (countdown 429, rotation gate, transisi FSM, staleness, private-mode tunnel)
+- [>] Menunggu acceptance ADR-0004 (unit 002) + skenario visual manual unit 001 (pemilik)
 
 ## Next
 
-- [ ] T023 diff-review final + T024 dokumen (README/backend-gaps cross-ref) → verification VERIFIED bila semua AC berbukti
-- [ ] Acceptance ADR-0004 → design/tasks unit 002 (OQ sudah resolved)
-- [ ] **Pemilik backend/deploy**: tutup GAP-B06 (lepas mount dev di tunnel publik / Cloudflare Access di depan dev override)
+- [ ] Acceptance ADR-0004 → design 002 DESIGNED/VALID → tasks READY → Fase 1 unit 002 (T101..)
+- [ ] Skenario visual manual unit 001 (browser): countdown 429, rotation dialog, badge staleness/online, gap chart → AC PARTIAL jadi PASS
+- [ ] **Pemilik backend/deploy**: GAP-B06 (posture dev tunnel publik) + GAP-B07 (anomali data sim operatingSec/performancePct)
 
 ## Blocked
 
-- [!] AC-003/004/008/009/010/011/013/017(UI)/007(private-mode) butuh skenario browser/edge/manual — unit + E2E API hijau; bukan blocker kode.
-- [!] Unit 002 menunggu ADR-0004 Accepted.
+- [!] Unit 002 implementasi terblokir ADR-0004 Proposed (gate konstitusi).
+- [!] AC visual unit 001 butuh browser/manual pemilik — bukan blocker kode.
 
 ## Direction
 
@@ -55,3 +55,4 @@ Perombakan lapisan data transfer saja (auth password, realtime WS lengkap, DTO k
 - Sync Fase 2 ke apps/hmi (rsync src) + rebuild dist → container menyajikan build baru tanpa restart.
 - Fase 3 unit 001 (T016–T021): DTO kanonis `*Pct` menang + null-preserving + provisional/operatingSec/runSec/sampleCount; TrendZone gap null + tooltip `—`, ECharts null guard; parity availability fallback terbukti (85.7 = run/(run+udt), tanpa ubah formula); capabilityGate + gate boolean dashboard + disable tombol (FloorPushButtons/KontrolTab/ProductionSetup/LogEvent/Alarms/DeviceConfig) + title alasan; ack body {note} saja. Amandemen OQ-004/FR-007/AC-006 (spec rev 3 + ADR-0002): live OPERATOR `device_command.send=unknown` (shadow) → UI deny-only, enforcement backend; dev ACCESS_MODE=public → tunnel mutations_allowed=true (private-mode E2E pending). 147 test hijau; sync+build apps/hmi.
 - Commit & push: repo ini (docs SDD + feat F1-F2) dan iiot-oee (apps/hmi + compose hmi) — perubahan backend lain milik pemilik TIDAK disentuh.
+- T022–T024: E2E 429+Retry-After 60 live; capture WS relay transisi FSM (st=4 → UNPLANNED_DOWNTIME) + DEVICE_STATUS_UPDATE offline/online via stop/start edge-sim; null aggregate live (performancePct/oeePct null); staleness age 72478s; **sunset alias legacy DTO** (live kanonis penuh) + map counter aggregate outputDelta/goodDelta/rejectDelta; test legacy diperbarui; 148 test hijau. GAP-B01/B02 CLOSED; GAP-B07 dibuka (anomali data sim). Unit 002 plan/design/tasks DRAFT dibuat (gate ADR-0004).

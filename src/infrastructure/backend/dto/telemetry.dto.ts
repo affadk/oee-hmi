@@ -43,13 +43,9 @@ interface RawTelemetryHistory {
   totalCount?: number; total_count?: number; total?: number;
   goodCount?: number; good_count?: number; good?: number;
   rejectCount?: number; reject_count?: number; reject?: number;
-  oee?: string | number | null; total_oee?: string | number | null; avgOee?: string | number | null; avg_oee?: string | number | null;
   oeePct?: string | number | null;
-  availability?: string | number | null; avgAvailability?: string | number | null; avg_availability?: string | number | null;
   availabilityPct?: string | number | null;
-  performance?: string | number | null; avgPerformance?: string | number | null; avg_performance?: string | number | null;
   performancePct?: string | number | null;
-  quality?: string | number | null; avgQuality?: string | number | null; avg_quality?: string | number | null;
   qualityPct?: string | number | null;
   isBuffered?: boolean; is_buffered?: boolean;
 }
@@ -57,19 +53,16 @@ interface RawTelemetryHistory {
 interface RawHourlyTrend {
   bucket?: string; hour?: string;
   deviceId?: string; device_id?: string;
-  oee?: string | number | null; total_oee?: string | number | null; avgOee?: string | number | null; avg_oee?: string | number | null;
   oeePct?: string | number | null;
-  availability?: string | number | null; avgAvailability?: string | number | null; avg_availability?: string | number | null;
   availabilityPct?: string | number | null;
-  performance?: string | number | null; avgPerformance?: string | number | null; avg_performance?: string | number | null;
   performancePct?: string | number | null;
-  quality?: string | number | null; avgQuality?: string | number | null; avg_quality?: string | number | null;
   qualityPct?: string | number | null;
   totalCount?: number; total_count?: number;
   goodCount?: number; good_count?: number;
   rejectCount?: number; reject_count?: number;
-  estHourlyOutput?: number; est_hourly_output?: number;
-  estHourlyReject?: number; est_hourly_reject?: number;
+  outputDelta?: number; output_delta?: number;
+  goodDelta?: number; good_delta?: number;
+  rejectDelta?: number; reject_delta?: number;
   targetPerHour?: number | null; target_per_hour?: number | null;
   state?: string | null;
   planned?: boolean | null;
@@ -220,10 +213,10 @@ export function mapTelemetryHistoryDto(raw: RawTelemetryHistory): TelemetryHisto
     totalCount: toFiniteNumber(raw.totalCount ?? raw.total_count ?? raw.total),
     goodCount: toFiniteNumber(raw.goodCount ?? raw.good_count ?? raw.good),
     rejectCount: toFiniteNumber(raw.rejectCount ?? raw.reject_count ?? raw.reject),
-    oee: toNullablePercent(raw.oeePct, raw.oee, raw.total_oee, raw.avgOee, raw.avg_oee),
-    availability: toNullablePercent(raw.availabilityPct, raw.availability, raw.avgAvailability, raw.avg_availability),
-    performance: toNullablePercent(raw.performancePct, raw.performance, raw.avgPerformance, raw.avg_performance),
-    quality: toNullablePercent(raw.qualityPct, raw.quality, raw.avgQuality, raw.avg_quality),
+    oee: toNullablePercent(raw.oeePct),
+    availability: toNullablePercent(raw.availabilityPct),
+    performance: toNullablePercent(raw.performancePct),
+    quality: toNullablePercent(raw.qualityPct),
     isBuffered: raw.isBuffered ?? raw.is_buffered ?? false,
   };
 }
@@ -233,22 +226,23 @@ export function mapTelemetryHistoryListDto(raw: unknown): TelemetryHistoryPoint[
 }
 
 export function mapHourlyTrendDto(raw: RawHourlyTrend): HourlyTrendPoint {
-  // Backend v2 hourly mengirim `estHourlyOutput`/`estHourlyReject` (perkiraan
-  // output/reject per jam) alih-alih totalCount/goodCount/rejectCount. Good
-  // diturunkan = output - reject (aritmetika jujur, bukan fabrikasi).
-  const totalCount = toFiniteNumber(raw.totalCount ?? raw.total_count ?? raw.estHourlyOutput ?? raw.est_hourly_output);
-  const rejectCount = toFiniteNumber(raw.rejectCount ?? raw.reject_count ?? raw.estHourlyReject ?? raw.est_hourly_reject);
-  const explicitGood = raw.goodCount ?? raw.good_count;
+  // Counter kanonis: hourly totalCount/goodCount/rejectCount; aggregate
+  // outputDelta/goodDelta/rejectDelta (live 2026-11-20). Good eksplisit menang;
+  // bila absen diturunkan = output - reject (aritmetika jujur).
+  // Alias legacy (avg*/estHourly*) di-sunset 2026-11-20 (ADR-0003): live kanonis penuh.
+  const totalCount = toFiniteNumber(raw.totalCount ?? raw.total_count ?? raw.outputDelta ?? raw.output_delta);
+  const rejectCount = toFiniteNumber(raw.rejectCount ?? raw.reject_count ?? raw.rejectDelta ?? raw.reject_delta);
+  const explicitGood = raw.goodCount ?? raw.good_count ?? raw.goodDelta ?? raw.good_delta;
   const goodCount = explicitGood !== undefined && explicitGood !== null
     ? toFiniteNumber(explicitGood)
     : Math.max(0, totalCount - rejectCount);
   return {
     bucket: raw.bucket ?? raw.hour ?? '',
     deviceId: raw.deviceId ?? raw.device_id ?? '',
-    oee: toNullablePercent(raw.oeePct, raw.oee, raw.total_oee, raw.avgOee, raw.avg_oee),
-    availability: toNullablePercent(raw.availabilityPct, raw.availability, raw.avgAvailability, raw.avg_availability),
-    performance: toNullablePercent(raw.performancePct, raw.performance, raw.avgPerformance, raw.avg_performance),
-    quality: toNullablePercent(raw.qualityPct, raw.quality, raw.avgQuality, raw.avg_quality),
+    oee: toNullablePercent(raw.oeePct),
+    availability: toNullablePercent(raw.availabilityPct),
+    performance: toNullablePercent(raw.performancePct),
+    quality: toNullablePercent(raw.qualityPct),
     totalCount,
     goodCount,
     rejectCount,

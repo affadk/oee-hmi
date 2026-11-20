@@ -40,6 +40,6 @@
 
 ## Verifikasi & dokumen
 
-- [ ] T022 E2E stack hidup: skenario AC-001..AC-019 + bukti ke `verification.md`; probe sunset alias legacy [AC semua] (depends T021)
-- [ ] T023 Diff-review layout: nol perubahan komponen live monitor kecuali AuthPinModal; `pnpm lint`+`pnpm test` final [AC-020] (depends T022)
-- [ ] T024 Update `docs/README.md`, cross-ref `docs/specs/backend-gaps.md` → spec ini; TODO.md final; status ADR/design/tasks/verification diperbarui [governance] (depends T023)
+- [x] T022 E2E stack hidup: 429+Retry-After, relay FSM/LWT capture, null aggregate live, staleness age, sunset alias terverifikasi + dieksekusi; bukti di verification.md. Sisa skenario visual manual = pending pemilik (bukan blocker kode) (depends T021)
+- [x] T023 Diff-review layout: nol perubahan komponen live monitor kecuali AuthPinModal; `pnpm lint`+`pnpm test` final [AC-020] (depends T022)
+- [x] T024 Update `docs/README.md`, cross-ref `docs/specs/backend-gaps.md` → spec ini; TODO.md final; status ADR/design/tasks/verification diperbarui [governance] (depends T023)

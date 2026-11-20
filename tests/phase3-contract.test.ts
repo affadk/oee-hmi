@@ -12,11 +12,10 @@ import { makeMachine } from './helpers';
 afterEach(() => vi.unstubAllGlobals());
 
 describe('DTO kanonis *Pct (FR-017/FR-018, ADR-0003)', () => {
-  it('kanonis menang atas alias legacy bila keduanya ada', () => {
+  it('kanonis *Pct terpetakan dari payload live (hourly & aggregate)', () => {
     const point = mapHourlyTrendDto({
       bucket: '2026-11-20T03:00:00Z', deviceId: 'D1',
       oeePct: '83.80', availabilityPct: '90.00', performancePct: '94.31', qualityPct: '98.73',
-      avgOee: '11.11', avgAvailability: '22.22', avgPerformance: '33.33', avgQuality: '44.44',
       totalCount: 100, goodCount: 98, rejectCount: 2, sampleCount: 22,
       operatingSec: 3600, runSec: 3240, provisional: true,
     });
@@ -30,9 +29,23 @@ describe('DTO kanonis *Pct (FR-017/FR-018, ADR-0003)', () => {
     expect(point.sampleCount).toBe(22);
   });
 
-  it('alias legacy tetap dipakai bila kanonis absen (transisi)', () => {
-    const point = mapHourlyTrendDto({ bucket: 'b', deviceId: 'D1', avgOee: '70.5', totalCount: 10 });
-    expect(point.oee).toBe(70.5);
+  it('alias legacy di-sunset (ADR-0003): payload avg*-saja → null, bukan angka lama', () => {
+    const point = mapHourlyTrendDto({ bucket: 'b', deviceId: 'D1', avgOee: '70.5', totalCount: 10 } as Parameters<typeof mapHourlyTrendDto>[0]);
+    expect(point.oee).toBeNull();
+  });
+
+  it('aggregate kanonis outputDelta/goodDelta/rejectDelta terpetakan (live 2026-11-20)', () => {
+    const point = mapHourlyTrendDto({
+      bucket: 'b', deviceId: 'D1', outputDelta: 500, rejectDelta: 10, goodDelta: 490,
+      availabilityPct: '100.00', performancePct: null, qualityPct: '98.00', oeePct: null,
+      runSec: 18000, operatingSec: 21000, sampleCount: 62, provisional: true,
+    });
+    expect(point.totalCount).toBe(500);
+    expect(point.goodCount).toBe(490);
+    expect(point.rejectCount).toBe(10);
+    expect(point.performance).toBeNull();
+    expect(point.oee).toBeNull();
+    expect(point.provisional).toBe(true);
   });
 
   it('null eksplisit dipertahankan (bucket tanpa sampel ≠ 0)', () => {

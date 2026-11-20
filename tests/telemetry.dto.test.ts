@@ -116,24 +116,24 @@ describe('mapTelemetryFrameDto', () => {
 
 describe('mapTelemetryHistoryDto (incl. B5 aggregate buckets)', () => {
   it('falls back to bucket as timestamp', () => {
-    const out = mapTelemetryHistoryDto({ bucket: '2026-09-22T10:00:00+07:00', oee: 81.2 });
+    const out = mapTelemetryHistoryDto({ bucket: '2026-09-22T10:00:00+07:00', oeePct: 81.2 });
     expect(out.timestamp).toBe('2026-09-22T10:00:00+07:00');
     expect(out.oee).toBeCloseTo(81.2);
   });
 
   it('falls back to recordedAt when timestamp/ts/bucket absent (raw history shape)', () => {
-    const out = mapTelemetryHistoryDto({ recordedAt: '2026-09-29T06:41:49.000Z', oee: '83.80' });
+    const out = mapTelemetryHistoryDto({ recordedAt: '2026-09-29T06:41:49.000Z', oeePct: '83.80' });
     expect(out.timestamp).toBe('2026-09-29T06:41:49.000Z');
     expect(out.oee).toBeCloseTo(83.8);
   });
 
-  it('reads backend v2 aggregate keys (avgOee/avgAvailability/... numeric strings)', () => {
+  it('reads canonical aggregate keys (*Pct numeric strings, sunset avg* 2026-11-20)', () => {
     const out = mapTelemetryHistoryDto({
       bucket: '2026-09-29T06:00:00.000Z',
-      avgOee: '83.80',
-      avgAvailability: '90.00',
-      avgPerformance: '94.31',
-      avgQuality: '98.73',
+      oeePct: '83.80',
+      availabilityPct: '90.00',
+      performancePct: '94.31',
+      qualityPct: '98.73',
     });
     expect(out.oee).toBeCloseTo(83.8);
     expect(out.availability).toBeCloseTo(90.0);
@@ -142,17 +142,17 @@ describe('mapTelemetryHistoryDto (incl. B5 aggregate buckets)', () => {
   });
 });
 
-describe('mapHourlyTrendDto (backend v2 avg* + estHourlyOutput)', () => {
-  it('maps avg* OEE keys and estHourlyOutput as per-hour actual', () => {
+describe('mapHourlyTrendDto (kanonis *Pct + counter delta; sunset avg* 2026-11-20)', () => {
+  it('maps canonical *Pct keys and totalCount as per-hour actual', () => {
     const out = mapHourlyTrendDto({
       bucket: '2026-09-29T06:00:00.000Z',
       deviceId: 'STM32-OEE-01',
-      avgOee: '83.80',
-      avgAvailability: '90.00',
-      avgPerformance: '94.31',
-      avgQuality: '98.73',
-      estHourlyOutput: 8579,
-      estHourlyReject: 0,
+      oeePct: '83.80',
+      availabilityPct: '90.00',
+      performancePct: '94.31',
+      qualityPct: '98.73',
+      totalCount: 8579,
+      rejectCount: 0,
       targetPerHour: 63,
       state: 'RUNNING',
       planned: false,
@@ -169,14 +169,14 @@ describe('mapHourlyTrendDto (backend v2 avg* + estHourlyOutput)', () => {
   });
 
   it('derives good = output - reject when goodCount absent', () => {
-    const out = mapHourlyTrendDto({ bucket: '10:00', estHourlyOutput: 1000, estHourlyReject: 25 });
+    const out = mapHourlyTrendDto({ bucket: '10:00', outputDelta: 1000, rejectDelta: 25 });
     expect(out.totalCount).toBe(1000);
     expect(out.rejectCount).toBe(25);
     expect(out.goodCount).toBe(975);
   });
 
   it('prefers explicit counts over estimates', () => {
-    const out = mapHourlyTrendDto({ bucket: '10:00', totalCount: 100, goodCount: 90, rejectCount: 10, estHourlyOutput: 8579, estHourlyReject: 999 });
+    const out = mapHourlyTrendDto({ bucket: '10:00', totalCount: 100, goodCount: 90, rejectCount: 10, outputDelta: 8579, rejectDelta: 999 });
     expect(out.totalCount).toBe(100);
     expect(out.goodCount).toBe(90);
     expect(out.rejectCount).toBe(10);
