@@ -32,13 +32,32 @@ export interface QrSchedulePreset {
   breakStart: string;
   breakEnd: string;
   breakMin: number;
+  /** Unit 003: DATE YYYY-MM-DD dari badge shift fisik (wajib lane backend). */
+  shiftDate?: string;
+  /** Unit 003: TARGET qty dari badge shift fisik (menang atas target produk). */
+  targetQty?: number;
 }
 
 export interface BatchDraft {
-  product: QrProductPreset;
-  machineId: string;
-  operator: QrOperatorPreset;
-  schedule: QrSchedulePreset;
+  /** Unit 003: null = zona belum discan/dipilih (backend lane mulai kosong). */
+  product: QrProductPreset | null;
+  machineId: string | null;
+  /** LINE dari badge mesin / master mesin (wajib backend; §C.8 MACHINE zone). */
+  machineLine: string | null;
+  /** MCH display name dari badge mesin; fallback nama mesin aktif. */
+  machineName: string | null;
+  operator: QrOperatorPreset | null;
+  schedule: QrSchedulePreset | null;
+}
+
+/** Unit 003 FR-003: draft kosong backend-mode — tanpa fallback katalog demo. */
+export function emptyBatchDraft(): BatchDraft {
+  return { product: null, machineId: null, machineLine: null, machineName: null, operator: null, schedule: null };
+}
+
+/** Unit 003 FR-003: 4 zona lengkap = syarat initiate (fail-closed). */
+export function isDraftComplete(draft: BatchDraft): boolean {
+  return Boolean(draft.product && draft.machineId && draft.operator && draft.schedule);
 }
 
 export const QR_PRODUCT_CATALOG: QrProductPreset[] = [

@@ -23,7 +23,7 @@ export const OperatorStep: React.FC<OperatorStepProps> = ({ ctx }) => {
       {hasBackendCatalog && (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5" role="group" aria-label="Operator backend">
           {backendOperators.map((op) => {
-            const selected = ctx.draft.operator.operatorId === op.operatorId;
+            const selected = ctx.draft.operator?.operatorId === op.operatorId;
             const isActive = ctx.current.operatorDisplay.includes(op.operatorName);
             return (
               <div key={op.operatorId} className={cx(cardBase, selected && themeTokens.selectedCard)}>
@@ -57,7 +57,7 @@ export const OperatorStep: React.FC<OperatorStepProps> = ({ ctx }) => {
       )}
     <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5" role="group" aria-label="Pilih operator">
       {QR_OPERATOR_CATALOG.map((op) => {
-        const selected = ctx.draft.operator.code === op.code;
+        const selected = ctx.draft.operator?.code === op.code;
         const isActive = ctx.current.operatorDisplay.includes(op.operatorName);
         const scanning = ctx.scanningCode === op.code;
 

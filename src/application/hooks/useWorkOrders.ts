@@ -6,6 +6,7 @@
 import { useCallback, useState } from 'react';
 import type { MachineConfig } from '../../domain/entities/Machine';
 import type {
+  AckWaitState,
   InitiateFromZonesResult,
   WorkOrderListItem,
   WorkOrderResolveResult,
@@ -15,6 +16,7 @@ import type {
 import type { GetMachinesUseCase } from '../use-cases/GetMachinesUseCase';
 import type { ListWorkOrdersUseCase } from '../use-cases/ListWorkOrdersUseCase';
 import { canMutate } from '../capabilityGate';
+import { useWorkOrderAckWait } from './useWorkOrderAckWait';
 
 export interface WorkOrdersDeps {
   useBackend: boolean;
@@ -50,6 +52,8 @@ export interface WorkOrdersApi {
   cancelWorkOrder: (woId: string, reason?: string) => Promise<void>;
   /** unit 002 FR-004: validate 4 zona → initiate WO + dispatch (Bearer, gate work_order.dispatch). */
   initiateFromZones: (deviceId: string, zones: ZoneRawStrings) => Promise<InitiateFromZonesResult | void>;
+  /** unit 003 FR-005/006: status tunggu ACK edge pasca initiate/dispatch (poll bounded). */
+  ackWait: AckWaitState | null;
 }
 
 export function useWorkOrders(deps: WorkOrdersDeps): WorkOrdersApi {
@@ -63,6 +67,8 @@ export function useWorkOrders(deps: WorkOrdersDeps): WorkOrdersApi {
   const [isWorkOrderDetailOpen, setIsWorkOrderDetailOpen] = useState<boolean>(false);
   const [productionSetupError, setProductionSetupError] = useState<string>('');
   const [productionSetupBusy, setProductionSetupBusy] = useState<boolean>(false);
+  // unit 003: tunggu ACK bersama untuk initiate (jalur A) dan dispatch (jalur B).
+  const { ackWait, waitForAck } = useWorkOrderAckWait(listWorkOrdersUseCase);
 
   // ===== Production setup (§C list/resolve/dispatch/complete/cancel) =====
   const openProductionSetupModal = useCallback(() => {
@@ -132,6 +138,8 @@ export function useWorkOrders(deps: WorkOrdersDeps): WorkOrdersApi {
         const pending = await listWorkOrdersUseCase.list({ status: 'PENDING', limit: 50 });
         setPendingWorkOrders(pending);
         setWorkOrderPreview(null);
+        // unit 003 FR-006: tunggu ACK edge (poll bounded) — ACTIVE berarti START siap.
+        void waitForAck(woId);
       });
     } catch (err) {
       setProductionSetupError(err instanceof Error ? err.message : 'Dispatch gagal.');
@@ -139,7 +147,7 @@ export function useWorkOrders(deps: WorkOrdersDeps): WorkOrdersApi {
     } finally {
       setProductionSetupBusy(false);
     }
-  }, [getMachinesUseCase, listWorkOrdersUseCase, runProtected, setMachines, useBackend, useBackend, mutationsAllowed, capabilities]);
+  }, [getMachinesUseCase, listWorkOrdersUseCase, runProtected, setMachines, useBackend, useBackend, mutationsAllowed, capabilities, waitForAck]);
 
   const completeWorkOrder = useCallback(async (woId: string, finalRejectCount: number) => {
     const gate = canMutate({ useBackend, mutationsAllowed, capabilities, key: 'work_order.update' });
@@ -223,6 +231,8 @@ export function useWorkOrders(deps: WorkOrdersDeps): WorkOrdersApi {
         setMachines(machineList);
         const pending = await listWorkOrdersUseCase.list({ status: 'PENDING', limit: 50 });
         setPendingWorkOrders(pending);
+        // unit 003 FR-005: tunggu ACK edge (poll bounded) — WO PENDING sampai ACK SUCCESS.
+        void waitForAck(initiated.workOrder.woId);
         return initiated;
       });
       return result;
@@ -232,7 +242,7 @@ export function useWorkOrders(deps: WorkOrdersDeps): WorkOrdersApi {
     } finally {
       setProductionSetupBusy(false);
     }
-  }, [getMachinesUseCase, listWorkOrdersUseCase, runProtected, setMachines, useBackend, mutationsAllowed, capabilities]);
+  }, [getMachinesUseCase, listWorkOrdersUseCase, runProtected, setMachines, useBackend, mutationsAllowed, capabilities, waitForAck]);
 
   return {
     isProductionSetupModalOpen,
@@ -254,5 +264,6 @@ export function useWorkOrders(deps: WorkOrdersDeps): WorkOrdersApi {
     completeWorkOrder,
     cancelWorkOrder,
     initiateFromZones,
+    ackWait,
   };
 }

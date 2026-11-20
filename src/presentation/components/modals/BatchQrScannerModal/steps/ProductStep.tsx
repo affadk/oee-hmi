@@ -23,7 +23,7 @@ export const ProductStep: React.FC<ProductStepProps> = ({ ctx }) => {
       {hasBackendCatalog && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5" role="group" aria-label="Produk backend">
           {backendProducts.map((product) => {
-            const selected = ctx.draft.product.productId === product.productId;
+            const selected = ctx.draft.product?.productId === product.productId;
             const isActive = ctx.current.productName === product.productName;
             const rate = product.stdCycleTimeSec > 0 ? Math.round(3600 / product.stdCycleTimeSec) : 0;
             return (
@@ -51,9 +51,9 @@ export const ProductStep: React.FC<ProductStepProps> = ({ ctx }) => {
                     code: product.productId,
                     productName: product.productName,
                     productId: product.productId,
-                    workOrder: ctx.draft.product.workOrder,
+                    workOrder: ctx.draft.product?.workOrder ?? '',
                     cycleTimeSec: product.stdCycleTimeSec,
-                    targetQty: ctx.draft.product.targetQty,
+                    targetQty: ctx.draft.product?.targetQty ?? 0,
                   })}
                   className="w-full py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white font-semibold text-xs transition-colors flex items-center justify-center gap-1 cursor-pointer"
                 >
@@ -67,7 +67,7 @@ export const ProductStep: React.FC<ProductStepProps> = ({ ctx }) => {
       )}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5" role="group" aria-label="Pilih produk">
       {QR_PRODUCT_CATALOG.map((product) => {
-        const selected = ctx.draft.product.code === product.code;
+        const selected = ctx.draft.product?.code === product.code;
         const isActive = ctx.current.productName === product.productName;
         const scanning = ctx.scanningCode === product.code;
         const rate = product.cycleTimeSec > 0 ? Math.round(3600 / product.cycleTimeSec) : 0;

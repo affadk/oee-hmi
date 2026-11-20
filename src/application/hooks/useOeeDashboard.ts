@@ -24,7 +24,7 @@ import type { MachineConfig, MachineStatus } from '../../domain/entities/Machine
 import type { CalculatedOeeMetrics } from '../../domain/entities/OeeMetrics';
 import type { MachineAlarmEvent } from '../../domain/entities/Alarm';
 import type { AuthSession, BackendHealth, IAuthGateway } from '../../domain/ports/IOeeBackend';
-import type { InitiateFromZonesResult, ZoneRawStrings } from '../../domain/entities/backend/WorkOrder';
+import type { AckWaitState, InitiateFromZonesResult, ZoneRawStrings } from '../../domain/entities/backend/WorkOrder';
 import type { DeviceRecord, MachineRecord, OperatorRecord, ProductRecord } from '../../domain/entities/backend/Device';
 import type { WorkOrderListItem, WorkOrderResolveResult } from '../../domain/entities/backend/WorkOrder';
 import type { DowntimeEvent } from '../../domain/entities/backend/Telemetry';
@@ -197,6 +197,8 @@ export interface UseOeeDashboardReturn {
   previewWorkOrder: (woId: string) => Promise<void>;
   /** unit 002 FR-004: validate 4 zona → initiate WO + dispatch. */
   initiateFromZones: (deviceId: string, zones: ZoneRawStrings) => Promise<InitiateFromZonesResult | void>;
+  /** unit 003 FR-005/006: status tunggu ACK edge (poll bounded) pasca initiate/dispatch. */
+  ackWait: AckWaitState | null;
   /** LINE master mesin aktif (MACHINE zone §C.8); '' = unknown. */
   machineLine: string;
   clearWorkOrderPreview: () => void;
@@ -547,6 +549,7 @@ export function useOeeDashboard(deps: OeeDashboardDeps): UseOeeDashboardReturn {
     loadPendingWorkOrders: orders.loadPendingWorkOrders,
     previewWorkOrder: orders.previewWorkOrder,
     initiateFromZones: orders.initiateFromZones,
+    ackWait: orders.ackWait,
     machineLine: machines.currentMachine?.line ?? '',
     clearWorkOrderPreview: orders.clearWorkOrderPreview,
     openWorkOrderDetail: orders.openWorkOrderDetail,

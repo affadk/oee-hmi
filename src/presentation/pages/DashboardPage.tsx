@@ -259,6 +259,7 @@ export const DashboardPage: React.FC = () => {
         onDispatch={dashboard.dispatchWorkOrder}
         onComplete={dashboard.completeWorkOrder}
         onCancel={dashboard.cancelWorkOrder}
+        ackWait={dashboard.ackWait}
         onOpenDetail={dashboard.openWorkOrderDetail}
         canDispatch={dashboard.canDispatchWorkOrder}
         canComplete={dashboard.canCompleteWorkOrder}

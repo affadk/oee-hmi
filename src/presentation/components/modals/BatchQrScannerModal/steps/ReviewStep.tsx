@@ -19,12 +19,12 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({ ctx }) => {
     {
       label: '2. Produk / WO / CT',
       old: `${current.productName} · ${current.workOrder} · ${current.cycleTimeSec}s`,
-      next: `${draft.product.productName} · ${draft.product.workOrder} · ${draft.product.cycleTimeSec}s`,
+      next: `${draft.product?.productName ?? '—'} · ${draft.product?.workOrder || '—'} · ${draft.product?.cycleTimeSec ?? '—'}s`,
     },
     {
       label: 'Target Qty / Rate',
       old: `${current.targetQty.toLocaleString()} pcs`,
-      next: `${draft.product.targetQty.toLocaleString()} pcs · ${ctx.targetRate} pcs/h`,
+      next: `${(draft.product?.targetQty ?? 0).toLocaleString()} pcs · ${ctx.targetRate} pcs/h`,
     },
     {
       label: '3. Operator',
@@ -34,7 +34,7 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({ ctx }) => {
     {
       label: '4. Shift / Istirahat',
       old: `${current.shiftLabel} (${current.breakLabel})`,
-      next: `${ctx.draftShiftLabel} (${draft.schedule.breakStart}-${draft.schedule.breakEnd}, ${draft.schedule.breakMin}m)`,
+      next: `${ctx.draftShiftLabel} (${draft.schedule ? `${draft.schedule.breakStart}-${draft.schedule.breakEnd}, ${draft.schedule.breakMin}m` : '—'})`,
     },
   ];
 
@@ -79,7 +79,7 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({ ctx }) => {
       {ctx.applied && (
         <p className="px-3 py-2 text-xs flex items-center gap-1.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-medium">
           <CheckCircle2 className="w-4 h-4" />
-          Batch diterapkan — WO {draft.product.workOrder} · {draft.product.productName} · {ctx.draftOperatorDisplay}.
+          Batch diterapkan — WO {draft.product?.workOrder || '—'} · {draft.product?.productName ?? '—'} · {ctx.draftOperatorDisplay}.
         </p>
       )}
     </div>

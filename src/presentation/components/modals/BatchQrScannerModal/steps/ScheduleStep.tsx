@@ -18,7 +18,7 @@ export const ScheduleStep: React.FC<ScheduleStepProps> = ({ ctx }) => {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5" role="group" aria-label="Pilih jadwal shift">
       {QR_SCHEDULE_CATALOG.map((sch) => {
-        const selected = ctx.draft.schedule.code === sch.code;
+        const selected = ctx.draft.schedule?.code === sch.code;
         const isActive = ctx.current.shiftLabel === `${sch.shiftStart} - ${sch.shiftEnd}`;
         const scanning = ctx.scanningCode === sch.code;
 

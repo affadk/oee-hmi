@@ -18,7 +18,9 @@ import {
   Eye,
 } from 'lucide-react';
 import type { WorkOrderListItem, WorkOrderResolveResult } from '../../../domain/entities/backend/WorkOrder';
+import type { AckWaitState } from '../../../domain/entities/backend/WorkOrder';
 import { useTheme } from '../../providers/ThemeProvider';
+import { AckStatusPanel } from './AckStatusPanel';
 
 interface ProductionSetupModalProps {
   isOpen: boolean;
@@ -41,6 +43,8 @@ interface ProductionSetupModalProps {
   canCancel?: boolean;
   gateReason?: string;
   onCancel: (woId: string, reason?: string) => Promise<void>;
+  /** unit 003 FR-005/006: status tunggu ACK edge pasca dispatch. */
+  ackWait?: AckWaitState | null;
 }
 
 export const ProductionSetupModal: React.FC<ProductionSetupModalProps> = ({
@@ -64,6 +68,7 @@ export const ProductionSetupModal: React.FC<ProductionSetupModalProps> = ({
   canComplete = true,
   canCancel = true,
   gateReason,
+  ackWait = null,
 }) => {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
@@ -121,6 +126,11 @@ export const ProductionSetupModal: React.FC<ProductionSetupModalProps> = ({
         {actionNotice && (
           <div className={`mt-3 p-3 rounded-xl border text-xs font-semibold ${isDark ? 'border-emerald-700 bg-emerald-500/10 text-emerald-300' : 'border-emerald-300 bg-emerald-50 text-emerald-700'}`}>
             {actionNotice}
+          </div>
+        )}
+        {ackWait && (
+          <div className="mt-3">
+            <AckStatusPanel ackWait={ackWait} woId={ackWait.woId} isDark={isDark} />
           </div>
         )}
 

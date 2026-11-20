@@ -4,10 +4,10 @@
 
 ## Current Position
 
-Phase: 1 (implementasi unit 002)
-Unit: `specs/002-hmi-station-surfaces` (aktif) · `specs/001-hmi-data-transfer-refresh` (verifikasi visual manual pending)
-Stage: Verifying — unit 002 T101–T117 selesai; deployed ke podman `iiot-oee-dev`; tests 169/26 hijau; sdd-check 0 FAIL
-Current Task: — (AC visual manual pemilik: countdown 429, rotation, badge, gap chart + scan kamera fisik)
+Phase: 1 (unit 003 terimplementasi + terdeploy; verifikasi kode/smoke hijau)
+Unit: `specs/003-qr-dual-lane-initiation` (VERIFIED kode+smoke, lifecycle fisik PARTIAL) · `specs/002-hmi-station-surfaces` (verifikasi visual manual pending) · `specs/001-hmi-data-transfer-refresh` (verifikasi visual manual pending)
+Stage: Done — unit 003 T201–T213 selesai; `pnpm lint` hijau, `pnpm test` 199/29 hijau, dist sync `iiot-oee/apps/hmi` (`index-CUoL8a90.js`), nginx :3002 200
+Current Task: — (AC lifecycle penuh jalur A/B + kamera fisik + timeout edge-sim offline = manual pemilik; GAP-F21..F26 CLOSED)
 
 ## Completed
 
@@ -26,6 +26,8 @@ Current Task: — (AC visual manual pemilik: countdown 429, rotation, badge, gap
 
 ## Next
 
+- [x] **Unit 003**: OQ-201..204 resolved + ADR-0005 Accepted (2026-11-20) → spec SPECIFIED rev 2 + design DESIGNED + tasks READY
+- [x] **Unit 003 implementasi**: T201–T213 selesai — parser badge zona (cermin backend), routing dual-lane (kamera zona / textfield WO), draft backend kosong fail-closed, panel konfirmasi 4 zona, ACK wait bounded (2s/20s), E2E smoke (validate 3 zona 200, resolve 200, initiate 409 fail-closed), deploy dist `index-CUoL8a90.js`. lint+199 test hijau; GAP-F21..F26 CLOSED. Sisa manual: lifecycle 200→ACK→ACTIVE + kamera fisik + timeout edge-offline.
 - [ ] Skenario visual manual unit 001 (browser): countdown 429, rotation dialog, badge staleness/online, gap chart → AC PARTIAL jadi PASS
 - [ ] E2E scan fisik 4-zona QR → initiate → dispatch → RUNNING (kamera); OID-mismatch konfirmasi; station kartu klik→live; andon publik; auto-lock 5m
 - [ ] **Pemilik backend/deploy**: GAP-B06 (posture dev tunnel publik) + GAP-B07 (anomali data sim operatingSec/performancePct)
@@ -43,6 +45,7 @@ Perombakan lapisan data transfer saja (auth password, realtime WS lengkap, DTO k
 ### 2026-11-20
 - Audit selesai: P0 auth PIN→404, PENDING_CLOSE hilang, rotation gate tak ditangani; P1 FSM/lifecycle/resync/close-code/perintah; P2 DTO kanonis/capability/access-mode.
 - SDD diinisiasi (governance 1.0, profile minimal-adapted); unit 001 + 3 ADR dibuat; implementasi belum dimulai (gate acceptance).
+- **Unit 003 (2026-11-20):** implementasi penuh T201–T213 — parser `QrZoneBadge.ts` cermin backend (alias/CT/overnight/BREAK/TARGET/DATE), routing dual-lane kamera-vs-textfield (`qrRouting.ts`), draft backend kosong fail-closed + panel konfirmasi 4 zona (`BackendZoneStep`/`BackendReviewStep`), ACK wait bounded (`useWorkOrderAckWait` 2s/20s) di modal QR + Setup, `AckStatusPanel`. Fix bug deteksi multi-zone (NAME bukan kunci diskriminatif). lint hijau + 199 test/29 file; E2E smoke: validate PRODUCT/OPERATOR/SHIFT 200 (DATE badge menang, plannedOperatingSec 28800), jalur B resolve 200, initiate 409 fail-closed (BR-002). Nuansa: CT-vs-master ditegak di initiate (bukan validate). Deploy dist `index-CUoL8a90.js` → apps/hmi, nginx :3002 200. GAP-F21..F26 CLOSED. Diff live-monitor beku = plumbing `ackWait` (nol visual). Sisa manual: lifecycle penuh + kamera fisik + timeout edge-offline.
 - OQ-001..004 dijawab (delegasi pemilik repo): env VITE_STATION_ID+store+query; poll 60s; tunnel in-scope; unknown fail-closed. Spec rev 2; plan/design/tasks reviewed rev 2; constraint station context dicatat.
 - Gap register aktif dibuat: `docs/specs/gap-register-2026-11.md` (GAP-F01..F16, GAP-B01..B03).
 - Tinjauan workflow surface (directive produk): definisi HMI standar mendukung HMI lokal per-device vs Station operator-interface; preseden v1 (StationPage/AndonPage/SupervisorPage/MultiZoneWizardModal) dipetakan; unit 002 CLARIFYING + ADR-0004 Proposed; GAP-F17..F20 + GAP-B04..B05 ditambah; QR ≠ autentikasi (dispatch wajib Bearer) dicatat sebagai temuan kritis.
@@ -56,3 +59,5 @@ Perombakan lapisan data transfer saja (auth password, realtime WS lengkap, DTO k
 - Commit & push: repo ini (docs SDD + feat F1-F2) dan iiot-oee (apps/hmi + compose hmi) — perubahan backend lain milik pemilik TIDAK disentuh.
 - T022–T024: E2E 429+Retry-After 60 live; capture WS relay transisi FSM (st=4 → UNPLANNED_DOWNTIME) + DEVICE_STATUS_UPDATE offline/online via stop/start edge-sim; null aggregate live (performancePct/oeePct null); staleness age 72478s; **sunset alias legacy DTO** (live kanonis penuh) + map counter aggregate outputDelta/goodDelta/rejectDelta; test legacy diperbarui; 148 test hijau. GAP-B01/B02 CLOSED; GAP-B07 dibuka (anomali data sim). Unit 002 plan/design/tasks DRAFT dibuat (gate ADR-0004).
 - Unit 002 implementasi selesai (T101–T117): surfaceMode resolver (kiosk device-bound, station login-first, andon publik read-only); DashboardPage switcher hide kiosk + label mode; FleetCardsPanel kartu RUNNING station-only klik→live; BatchQrScannerModal initiate-from-zones (validate 4 zona → initiate → dispatch, OID-mismatch konfirmasi); qrZones builder §C.8; MachineRecord.lineId; runProtected generic; App.tsx /audit→/overview redirect + nav exit; useInactivityLock (5m VITE_INACTIVITY_TIMEOUT_MS, pause tab hidden, soft logout, kiosk dikecualikan). Live monitor layout beku (hanya additive prop pass-through 3 file/14 baris). tests 169/26 hijau; lint:arch OK; sdd-check 0 FAIL (Spec: refs ditambahkan ke tasks). Build + sync apps/hmi + rebuild dist; podman iiot-oee-hmi-dev menyajikan index-D7JkFG_1.js (unit 002). E2E smoke: /auth/login 200 (snake_case), /work-orders/validate-zone + /initiate-from-zones route live (400/UNAUTHORIZED, bukan 404). Commit: repo ini 3636a84, iiot-oee b73346d (apps/hmi saja). AC scan kamera fisik + visual manual pending pemilik.
+- Unit 003 direncanakan (CLARIFYING): analisis sinkronisasi scan 4 badge fisik → GAP-F21..F26 (parser tak kenal PID/MID/OID/SID; semua scan backend-mode → resolve WO, draft tak terisi badge; fallback katalog demo → MASTER_NOT_FOUND fiktif; LINE/DATE/TARGET sintesis lokal; footer tak sadar-lane; klaim "WO aktif" pra-ACK). Artefak: specs/003-qr-dual-lane-initiation/{spec,plan}.md + ADR-0005 Proposed (parser zona cermin backend, routing auto-deteksi dual-lane A/B, draft fail-closed, tunggu ACK bounded 2s/20s). GAP-F17 CLOSED (pipa initiate wired unit 002). Temuan: guard START sudah ACK-aware via data (jobConfig hanya dari WO ACTIVE, BackendMachineRepository.ts:371) → panel beku tak perlu ubah. OQ-201..204 menunggu pemilik; implementasi belum dimulai (gate).
+- Unit 003 gate terpenuhi: OQ-201..204 resolved pemilik (auto-deteksi lane; **textfield hanya jalur WO, badge zona wajib kamera**; **panel konfirmasi konfigurasi sebelum tulisan ke edge**; draft kosong+blok; ACK poll bounded 2s/20s; kiosk localhost). Spec rev 2 SPECIFIED + plan PLANNED + design DESIGNED + tasks READY (T201–T213); ADR-0005 Accepted. Implementasi belum dimulai.

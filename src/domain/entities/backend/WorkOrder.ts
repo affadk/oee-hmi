@@ -102,3 +102,16 @@ export interface InitiateFromZonesResult {
   idempotentDuplicate: boolean;
   workOrder: InitiatedWorkOrder;
 }
+
+// -------------------------------------------------------------
+// Unit 003 (FR-005/006): status tunggu ACK edge pasca initiate/dispatch.
+// WAITING = poll bounded berjalan; ACTIVE = ACK SUCCESS (WO aktif, START siap);
+// ABORTED = ACK error edge; TIMEOUT = tanpa ACK ≤ batas (watchdog backend 15s).
+// -------------------------------------------------------------
+
+export type AckWaitStatus = 'WAITING' | 'ACTIVE' | 'ABORTED' | 'TIMEOUT';
+
+export interface AckWaitState {
+  woId: string;
+  status: AckWaitStatus;
+}

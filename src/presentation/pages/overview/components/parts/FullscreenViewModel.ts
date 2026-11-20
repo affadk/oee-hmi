@@ -6,7 +6,7 @@ import type { DeviceCommandKind } from '../../../../../domain/entities/backend/D
 import type { MachineConfig, CalculatedOeeMetrics } from '../../../../../domain/index';
 import type { BackendHealth } from '../../../../../domain/ports/IOeeBackend';
 import type { OperatorRecord, ProductRecord } from '../../../../../domain/entities/backend/Device';
-import type { InitiateFromZonesResult, ZoneRawStrings } from '../../../../../domain/entities/backend/WorkOrder';
+import type { AckWaitState, InitiateFromZonesResult, ZoneRawStrings } from '../../../../../domain/entities/backend/WorkOrder';
 import { telemetryAgeSec } from '../../../../../domain/index';
 import { isEdgeHealthOk } from '../../../../../domain/entities/EdgeContracts';
 import type { TimelineSegment } from '../../../../../domain/services/ShiftTimeline';
@@ -51,6 +51,8 @@ export interface FullscreenOeeViewProps {
   machineLine?: string;
   sessionOperatorId?: string | null;
   onInitiateFromZones?: (deviceId: string, zones: ZoneRawStrings) => Promise<InitiateFromZonesResult | void>;
+  /** unit 003 FR-005/006: status tunggu ACK edge (modal QR). */
+  ackWait?: AckWaitState | null;
 }
 
 /** Computed values derived from machine + metrics (single-source of truth for the view). */

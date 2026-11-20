@@ -2,7 +2,7 @@
 
 > Tanggal: 20 Nov 2026 · Status: **AKTIF** (register kerja terkini).
 > Otoritas requirement: `specs/001-hmi-data-transfer-refresh/spec.md` (rev 2). Dokumen ini = **peta gap + status**, bukan requirement; tiap gap merujuk FR/ADR/task, tidak mendefinisikan ulang perilaku.
-> Bukti audit: `docs/specs/hmi-data-transfer-2026-11.md`. Register lama `docs/specs/backend-gaps.md` (G1–G22, Sep 2026) = historis; item yang sudah ditutup backend diringkas di §C.
+> Bukti audit: `docs/specs/hmi-data-transfer-2026-11.md`. Register lama `docs/specs/backend-gaps.md` (G1–G22, Sep 2026) = historis; item yang sudah ditutup backend diringkas di §C. Gap unit 002: `specs/002-hmi-station-surfaces/research.md` (F17–F20, B04–B05); gap unit 003: analisis sinkronisasi scan 4 badge 2026-11-20 (F21–F26, `specs/003-qr-dual-lane-initiation/spec.md`).
 > Jawaban Open Questions (OQ-001..004) otoritatif di spec §11 rev 2 — diringkas di §D untuk navigasi.
 
 ## A. Gap frontend (perombakan data transfer — repo ini)
@@ -27,10 +27,16 @@ Semua OPEN sampai task terkait selesai + AC terverifikasi (`verification.md`). K
 | GAP-F14 | `refreshSession` catch-all → `AUTHZ_STALE`/subjek nonaktif jadi loop modal | `oeeApiClient.ts:357-375` | P2 | FR-006 · ADR-0002 · AC-005 | T003, T005 | 1 | CLOSED 2026-11-20 (F1-F3 + test) |
 | GAP-F15 | Ack kirim `operator_id` deprecated (diabaikan backend; aktor dari JWT) | `oeeApiClient.ts:270-274` | P2 | FR-020 · AC-019 | T020 | 3 | CLOSED 2026-11-20 (F1-F3 + test) |
 | GAP-F16 | `OperatorRole` enum statis; role backend = string bebas (ABAC-first) | `Device.ts:33` | P2 | FR-007 · ADR-0002 | T019 | 3 | CLOSED 2026-11-20 (F1-F3 + test) |
-| GAP-F17 | QR backend lane v2 = cocokkan zona ke WO pending → resolve → dispatch; `initiate-from-zones` (buat WO dari 4 QR) belum di-wire | `BatchQrScannerModal/steps/BackendReviewStep.tsx`, audit B4; v1 `MultiZoneWizardModal` sebagai pola | P1 (unit 002) | 002/FR-004 · ADR-0004 · AC-002/003 | unit 002 tasks (belum dibuat) | 002 | OPEN |
+| GAP-F17 | QR backend lane v2 = cocokkan zona ke WO pending → resolve → dispatch; `initiate-from-zones` (buat WO dari 4 QR) belum di-wire | `BatchQrScannerModal/steps/BackendReviewStep.tsx`, audit B4; v1 `MultiZoneWizardModal` sebagai pola | P1 (unit 002) | 002/FR-004 · ADR-0004 · AC-002/003 | T101–T117 | 002 | CLOSED 2026-11-20 (pipa initiate wired + test; sisa scan-fisik feeding draft → GAP-F21..F26 unit 003) |
 | GAP-F18 | Tanpa lock kiosk single-device; switcher fleet terbuka di semua mode | `App.tsx:36-41`, `DashboardPage` switcher | P1 (unit 002) | 002/FR-001/002 · ADR-0004 · AC-001 | unit 002 tasks | 002 | OPEN |
 | GAP-F19 | Tanpa gate login surface Station; fleet bukan kartu device RUNNING | `useMachinesQuery` (fleet tanpa sesi), `OverviewPage` | P1 (unit 002) | 002/FR-006/007 · ADR-0004 · AC-005/006 | unit 002 tasks | 002 | OPEN |
 | GAP-F20 | Historical/audit/export hidup di HMI (`/audit`, export, LogEventModal histori) — harus ke admin-panel | `App.tsx:39`, `AuditPage`, `ExportTelemetryUseCase` pemakai UI | P2 (unit 002) | 002/FR-009 · ADR-0004 · AC-008 | unit 002 tasks | 002 | OPEN |
+| GAP-F21 | Parser HMI tak kenal badge zona backend: cabang key-value hanya `WO/PRD/PRODUCT` → `PID=..;CT=..` ditolak ("Format key=value tidak dikenal") | `BatchQr.ts:177-195` vs backend `qr-zone-parser.ts` | P1 (unit 003) | 003/FR-001 · ADR-0005 · AC-001 | unit 003 F1 | 003 | CLOSED 2026-11-20 (unit 003 T201-T213 + test) |
+| GAP-F22 | Backend-mode: semua scan (kamera+paste) → `submitWoForPreview` (resolve WO); `applyParsedQr` tak dipanggil → draft 4 zona tak terisi dari badge fisik | `QrScanInput.tsx:23`, `BatchQrScannerModal.tsx:337-340` | P1 (unit 003) | 003/FR-002 · ADR-0005 · AC-002/003 | unit 003 F2 | 003 | CLOSED 2026-11-20 (unit 003 T201-T213 + test) |
+| GAP-F23 | `draftFromMachine` fallback katalog demo (`PRD-FLANGE-B20`/shift demo) → initiate bisa kirim ID fiktif → 400 `MASTER_NOT_FOUND` | `BatchQrScannerModal.tsx:104-121` | P1 (unit 003) | 003/FR-003 · ADR-0005 · AC-004 | unit 003 F2 | 003 | CLOSED 2026-11-20 (unit 003 T201-T213 + test) |
+| GAP-F24 | Dua jalur WO tak menyatu: footer initiate selalu tampil di backend-mode tanpa memandang lane (resolve vs draft zona) | `BatchQrScannerModal.tsx:689-710` | P1 (unit 003) | 003/FR-002/005/006 · ADR-0005 · AC-002/003 | unit 003 F2 | 003 | CLOSED 2026-11-20 (unit 003 T201-T213 + test) |
+| GAP-F25 | LINE/DATE/TARGET disintesis dari mesin + tanggal lokal, bukan badge shift → risiko `SHIFT_WINDOW_MISMATCH`; MID badge tak dicek dini | `qrZones.ts:34-41`, `BatchQrScannerModal.tsx:364` | P1 (unit 003) | 003/FR-004 · ADR-0005 · AC-005 | unit 003 F1/F2 | 003 | CLOSED 2026-11-20 (unit 003 T201-T213 + test) |
+| GAP-F26 | Pasca initiate modal klaim "WO aktif — produksi berjalan" padahal PENDING menunggu ACK; tanpa UX tunggu-ACK/`TIMEOUT_UNACKNOWLEDGED`/ABORTED | `BatchQrScannerModal.tsx:603`; backend `dispatch.ts:459-520` (ACK→ACTIVE/ABORTED, watchdog 15s) | P1 (unit 003) | 003/FR-005/006 · ADR-0005 · AC-006 | unit 003 F3 | 003 | CLOSED 2026-11-20 (unit 003 T201-T213 + test) |
 
 ## B. Gap backend / dokumentasi (tim `iiot-oee` atau verifikasi bersama)
 

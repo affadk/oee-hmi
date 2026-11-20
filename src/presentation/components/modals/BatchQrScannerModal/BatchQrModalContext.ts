@@ -2,8 +2,9 @@
 // Shared interfaces for BatchQrScannerModal sub-components.
 
 import type React from 'react';
-import type { QrBatchStep, BatchDraft, QrOperatorPreset, QrSchedulePreset } from '../../../../domain/entities/BatchQr';
+import type { QrBatchStep, BatchDraft, QrProductPreset, QrOperatorPreset, QrSchedulePreset } from '../../../../domain/entities/BatchQr';
 import type { OperatorRecord, ProductRecord } from '../../../../domain/entities/backend/Device';
+import type { AckWaitState } from '../../../../domain/entities/backend/WorkOrder';
 import type { MachineConfig } from '../../../../domain/index';
 
 export interface BatchQrModalContext {
@@ -11,6 +12,12 @@ export interface BatchQrModalContext {
   step: QrBatchStep;
   stepIndex: number;
   draft: BatchDraft;
+  /** unit 003: lane backend (4 badge zona / WO) vs simulasi. */
+  backendMode: boolean;
+  /** unit 003 FR-003: 4 zona lengkap = syarat konfirmasi initiate. */
+  draftComplete: boolean;
+  /** unit 003 FR-005/006: status tunggu ACK edge. */
+  ackWait: AckWaitState | null;
   manualQr: string;
   scanningCode: string | null;
   applying: boolean;
@@ -50,7 +57,7 @@ export interface BatchQrModalContext {
   setStep: (id: QrBatchStep) => void;
   setManualQr: (val: string) => void;
   setDraft: React.Dispatch<React.SetStateAction<BatchDraft>>;
-  onScanProduct: (p: BatchDraft['product']) => void;
+  onScanProduct: (p: QrProductPreset) => void;
   onScanMachine: (m: MachineConfig) => void;
   onScanOperator: (op: QrOperatorPreset) => void;
   onScanSchedule: (sch: QrSchedulePreset) => void;
@@ -65,4 +72,10 @@ export interface BatchQrModalContext {
   // Form handlers
   applyParsedQr: (raw: string) => void;
   submitWoForPreview: (raw: string) => Promise<void>;
+  /** unit 003: konfirmasi eksplisit panel 4 zona → validate + initiate (tulisan ke edge). */
+  onConfirmInitiate: () => void;
+  /** unit 003: pilih master nyata (pengganti scan badge, bukan katalog demo). */
+  onPickProduct: (p: ProductRecord) => void;
+  onPickOperator: (op: OperatorRecord) => void;
+  onPickBoundMachine: () => void;
 }

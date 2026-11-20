@@ -3,6 +3,13 @@
 // Setup Batch Produksi via QR Code — wizard 5 langkah (koordinator):
 //   1 Produk & Cycle Time → 2 Mesin & Line → 3 Operator → 4 Jadwal Shift → 5 Review & Terapkan
 //
+// Unit 003 (ADR-0005): backend-mode = dual-lane auto-deteksi.
+//   Jalur A: scan kamera 4 badge zona (PID/MID/OID/SID) → draft → panel konfirmasi
+//            → validate 4 zona → initiate-from-zones (WO lahir + dispatch) → tunggu ACK.
+//   Jalur B: QR ber-WO (kamera/textfield) → resolve WO existing → Setup → dispatch → ACK.
+//   Draft backend mulai kosong (fail-closed, tanpa katalog demo); textfield hanya jalur WO.
+// Lane simulasi: parseQrString katalog + draftFromMachine (perilaku lama, tidak berubah).
+//
 // State, parsing QR, dan efek keyboard tetap di sini; rendering per-langkah
 // didelegasikan ke sub-components (steps/, BatchQrStepper, QrDraftSummary,
 // QrScanInput) melalui ctx: BatchQrModalContext.
@@ -27,6 +34,7 @@ import { tx, cx, themeTokens } from '../../../styles/themeTokens';
 import type { MachineConfig } from '../../../../domain/index';
 import type { OperatorRecord, ProductRecord } from '../../../../domain/entities/backend/Device';
 import type {
+  AckWaitState,
   InitiateFromZonesResult,
   WorkOrderResolveResult,
   ZoneRawStrings,
@@ -39,11 +47,15 @@ import {
   parseQrString,
   formatOperatorDisplay,
   scheduleToShiftOverride,
+  emptyBatchDraft,
+  isDraftComplete,
   type BatchDraft,
   type QrBatchStep,
   type QrOperatorPreset,
   type QrSchedulePreset,
 } from '../../../../domain/entities/BatchQr';
+import type { ParsedZoneBadge } from '../../../../domain/entities/QrZoneBadge';
+import { routeBackendQr, isZonePaste, ZONE_PASTE_REJECT_MESSAGE } from '../../../../application/qrRouting';
 import { STEPS } from './BatchQrStepper';
 import { BatchQrStepper } from './BatchQrStepper';
 import { QrDraftSummary } from './QrDraftSummary';
@@ -54,6 +66,8 @@ import { OperatorStep } from './steps/OperatorStep';
 import { ScheduleStep } from './steps/ScheduleStep';
 import { ReviewStep } from './steps/ReviewStep';
 import { BackendReviewStep } from './steps/BackendReviewStep';
+import { BackendZoneStep } from './steps/BackendZoneStep';
+import { AckStatusPanel } from '../AckStatusPanel';
 import { buildZoneStrings } from '../../../../application/qrZones';
 import type { BatchQrModalContext } from './BatchQrModalContext';
 
@@ -78,7 +92,7 @@ interface BatchQrScannerModalProps {
     cycleTimeSec?: number,
     shiftOverride?: BatchShiftOverride,
   ) => Promise<void>;
-  /** Backend lane: ganti Terapkan-MQTT dengan pilih WO antrean. */
+  /** Backend lane: dual-lane 4 badge zona / resolve WO existing. */
   backendMode?: boolean;
   /** Hasil resolve backend untuk WO yang dipindai; null = belum ada. */
   workOrderPreview?: { woId: string; result: WorkOrderResolveResult } | null;
@@ -86,14 +100,16 @@ interface BatchQrScannerModalProps {
   onPreviewWorkOrder?: (woId: string) => Promise<void>;
   /** Lanjut ke Setup Produksi dengan preview yang sudah dimuat. */
   onProceedToSetup?: () => void;
-  /** B4: backend product/operator master; null/empty = static catalog fallback. */
+  /** B4: backend product/operator master; null/empty = tanpa picker (scan wajib). */
   catalog?: { products: ProductRecord[]; operators: OperatorRecord[] } | null;
-  /** LINE master mesin (§C.8 MACHINE zone); kosong = backend 400 yang menolak. */
+  /** LINE master mesin (§C.8 MACHINE zone); fallback bila zona mesin dari master. */
   line?: string;
   /** unit 002 FR-004: sesi operator aktif (mismatch OID vs sesi → konfirmasi). */
   sessionOperatorId?: string | null;
   /** unit 002 FR-004: validate 4 zona → initiate WO + dispatch (§C.7/§C.8). */
   onInitiateFromZones?: (deviceId: string, zones: ZoneRawStrings) => Promise<InitiateFromZonesResult | void>;
+  /** unit 003 FR-005/006: status tunggu ACK edge pasca initiate. */
+  ackWait?: AckWaitState | null;
 }
 
 interface Toast {
@@ -101,6 +117,7 @@ interface Toast {
   message: string;
 }
 
+/** Lane simulasi saja: draft dari konfigurasi mesin + katalog (perilaku lama). */
 function draftFromMachine(machine: MachineConfig): BatchDraft {
   const job = machine.jobConfig;
   const productMatch =
@@ -117,8 +134,22 @@ function draftFromMachine(machine: MachineConfig): BatchDraft {
     QR_SCHEDULE_CATALOG.find((s) => s.shiftStart === job?.shiftStart && s.shiftEnd === job?.shiftEnd) ??
     QR_SCHEDULE_CATALOG[0];
   if (!scheduleMatch) throw new Error('Katalog shift QR kosong.');
-  return { product: productMatch, machineId: machine.id, operator: operatorMatch, schedule: scheduleMatch };
+  return {
+    product: productMatch,
+    machineId: machine.id,
+    machineLine: machine.line ?? '',
+    machineName: machine.name,
+    operator: operatorMatch,
+    schedule: scheduleMatch,
+  };
 }
+
+const ZONE_STEP: Record<ParsedZoneBadge['zoneType'], QrBatchStep> = {
+  PRODUCT: 'PRODUCT',
+  MACHINE: 'MACHINE',
+  OPERATOR: 'OPERATOR',
+  SHIFT: 'SCHEDULE',
+};
 
 export const BatchQrScannerModal: React.FC<BatchQrScannerModalProps> = ({
   isOpen,
@@ -135,11 +166,13 @@ export const BatchQrScannerModal: React.FC<BatchQrScannerModalProps> = ({
   line = '',
   sessionOperatorId = null,
   onInitiateFromZones,
+  ackWait = null,
 }) => {
   const { isDark, theme, setTheme } = useTheme();
 
   const [step, setStep] = useState<QrBatchStep>('PRODUCT');
-  const [draft, setDraft] = useState<BatchDraft>(() => draftFromMachine(machine));
+  // unit 003 FR-003: backend mulai kosong (fail-closed); simulasi dari mesin.
+  const [draft, setDraft] = useState<BatchDraft>(() => (backendMode ? emptyBatchDraft() : draftFromMachine(machine)));
   const [manualQr, setManualQr] = useState('');
   const [toast, setToast] = useState<Toast | null>(null);
   const [scanningCode, setScanningCode] = useState<string | null>(null);
@@ -150,6 +183,10 @@ export const BatchQrScannerModal: React.FC<BatchQrScannerModalProps> = ({
   const [resolvingWo, setResolvingWo] = useState(false);
   const [cameraKey, setCameraKey] = useState(0);
   const [cameraError, setCameraError] = useState<string | null>(null);
+  // unit 002 FR-005: mismatch OID vs sesi → konfirmasi eksplisit (bukan tolak keras).
+  const [confirmingOidMismatch, setConfirmingOidMismatch] = useState(false);
+  // unit 003: WO hasil initiate (jalur A) — status ACK via prop ackWait.
+  const [initiatedWo, setInitiatedWo] = useState<string | null>(null);
 
   const dialogRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -159,7 +196,7 @@ export const BatchQrScannerModal: React.FC<BatchQrScannerModalProps> = ({
   // Reset draft setiap kali modal dibuka agar selalu sinkron dengan mesin aktif.
   useEffect(() => {
     if (isOpen) {
-      setDraft(draftFromMachine(machine));
+      setDraft(backendMode ? emptyBatchDraft() : draftFromMachine(machine));
       setStep('PRODUCT');
       setManualQr('');
       setToast(null);
@@ -266,7 +303,7 @@ export const BatchQrScannerModal: React.FC<BatchQrScannerModalProps> = ({
           showToast('error', `Mesin "${parsed.machineId}" tidak terdaftar di dashboard ini.`);
           return;
         }
-        setDraft((d) => ({ ...d, machineId: found.id }));
+        setDraft((d) => ({ ...d, machineId: found.id, machineLine: found.line ?? '', machineName: found.name }));
         setStep('MACHINE');
         showToast('success', `QR Mesin dikenali: ${found.name}`);
       }
@@ -275,19 +312,134 @@ export const BatchQrScannerModal: React.FC<BatchQrScannerModalProps> = ({
     [allMachines, showToast],
   );
 
+  // ── Unit 003 jalur A: badge zona → draft (kamera wajib; nilai badge menang). ──
+  const applyZoneBadge = useCallback(
+    (badge: ParsedZoneBadge) => {
+      let next: BatchDraft = draft;
+      let label = '';
+      if (badge.zoneType === 'PRODUCT' && badge.product) {
+        const p = badge.product;
+        next = {
+          ...draft,
+          product: {
+            code: 'QR-BADGE',
+            productId: p.productId,
+            productName: p.productName,
+            workOrder: '',
+            cycleTimeSec: p.cycleTimeSec,
+            targetQty: draft.schedule?.targetQty ?? draft.product?.targetQty ?? 0,
+          },
+        };
+        label = `Produk: ${p.productName} (CT ${p.cycleTimeSec}s)`;
+      } else if (badge.zoneType === 'MACHINE' && badge.machine) {
+        const m = badge.machine;
+        if (m.machineId !== machine.id) {
+          showToast('error', `Badge mesin ${m.machineId} ≠ mesin terikat ${machine.id} — scan badge mesin yang benar.`);
+          return;
+        }
+        next = { ...draft, machineId: m.machineId, machineLine: m.line, machineName: m.machineName };
+        label = `Mesin: ${m.machineName} (LINE ${m.line})`;
+      } else if (badge.zoneType === 'OPERATOR' && badge.operator) {
+        const o = badge.operator;
+        next = { ...draft, operator: { code: 'QR-BADGE', operatorId: o.operatorId, operatorName: o.operatorName } };
+        label = `Operator: ${o.operatorName} (${o.operatorId})`;
+      } else if (badge.zoneType === 'SHIFT' && badge.shift) {
+        const s = badge.shift;
+        next = {
+          ...draft,
+          schedule: {
+            code: 'QR-BADGE',
+            shiftId: s.shiftId,
+            shiftName: `Shift ${s.shiftId}`,
+            shiftStart: s.shiftStart,
+            shiftEnd: s.shiftEnd,
+            breakStart: '',
+            breakEnd: '',
+            breakMin: s.breakMin,
+            shiftDate: s.shiftDate,
+            targetQty: s.targetQty,
+          },
+          product: draft.product ? { ...draft.product, targetQty: s.targetQty } : draft.product,
+        };
+        label = `Shift: ${s.shiftDate} ${s.shiftStart}-${s.shiftEnd} (target ${s.targetQty})`;
+      } else {
+        showToast('error', 'Badge zona tidak lengkap.');
+        return;
+      }
+      setDraft(next);
+      setManualQr('');
+      showToast('success', `Badge ${label} dikenali.`);
+      // 4 zona lengkap → panel konfirmasi (FR-005); selain itu maju ke zona terkait.
+      setStep(isDraftComplete(next) ? 'REVIEW' : ZONE_STEP[badge.zoneType]);
+    },
+    [draft, machine.id, showToast],
+  );
+
+  // Pilih master nyata (pengganti scan; bukan katalog demo) — FR-003.
+  const pickProduct = useCallback(
+    (p: ProductRecord) => {
+      const next: BatchDraft = {
+        ...draft,
+        product: {
+          code: p.productId,
+          productId: p.productId,
+          productName: p.productName,
+          workOrder: '',
+          cycleTimeSec: p.stdCycleTimeSec,
+          targetQty: draft.schedule?.targetQty ?? draft.product?.targetQty ?? 0,
+        },
+      };
+      setDraft(next);
+      showToast('success', `Produk master dipilih: ${p.productName}.`);
+      if (isDraftComplete(next)) setStep('REVIEW');
+    },
+    [draft, showToast],
+  );
+
+  const pickOperator = useCallback(
+    (op: OperatorRecord) => {
+      const next: BatchDraft = {
+        ...draft,
+        operator: { code: op.operatorId, operatorId: op.operatorId, operatorName: op.operatorName },
+      };
+      setDraft(next);
+      showToast('success', `Operator master dipilih: ${op.operatorName}.`);
+      if (isDraftComplete(next)) setStep('REVIEW');
+    },
+    [draft, showToast],
+  );
+
+  const pickBoundMachine = useCallback(() => {
+    if (!machine.line) {
+      showToast('error', 'LINE master mesin terikat kosong — scan badge mesin (LINE=..) via kamera.');
+      return;
+    }
+    const next: BatchDraft = { ...draft, machineId: machine.id, machineLine: machine.line, machineName: machine.name };
+    setDraft(next);
+    showToast('success', `Mesin terikat dipakai: ${machine.name} (LINE ${machine.line}).`);
+    if (isDraftComplete(next)) setStep('REVIEW');
+  }, [draft, machine, showToast]);
+
   const handleApplyBatch = useCallback(async () => {
+    if (!isDraftComplete(draft)) {
+      showToast('error', 'Draft 4 zona belum lengkap.');
+      return;
+    }
+    const product = draft.product!;
+    const operator = draft.operator!;
+    const schedule = draft.schedule!;
     setApplying(true);
     try {
       if (draft.machineId !== machine.id) {
-        onSwitchMachine(draft.machineId);
+        onSwitchMachine(draft.machineId!);
       }
       await onApplyJobConfig(
-        draft.product.workOrder,
-        draft.product.productName,
-        formatOperatorDisplay(draft.operator),
-        draft.product.targetQty,
-        draft.product.cycleTimeSec,
-        scheduleToShiftOverride(draft.schedule),
+        product.workOrder,
+        product.productName,
+        formatOperatorDisplay(operator),
+        product.targetQty,
+        product.cycleTimeSec,
+        scheduleToShiftOverride(schedule),
       );
       setApplied(true);
       showToast('success', 'Batch diterapkan — parameter OEE tersinkronisasi.', 3500);
@@ -299,56 +451,91 @@ export const BatchQrScannerModal: React.FC<BatchQrScannerModalProps> = ({
   }, [draft, machine.id, onSwitchMachine, onApplyJobConfig, showToast]);
 
   const handleReset = useCallback(() => {
-    setDraft(draftFromMachine(machine));
+    setDraft(backendMode ? emptyBatchDraft() : draftFromMachine(machine));
     setApplied(false);
-    showToast('info', 'Draft dikembalikan ke konfigurasi mesin aktif.');
-  }, [machine, showToast]);
-
-  // Backend lane: pindai → validasi format lokal → resolve ke backend.
-  const submitWoForPreview = useCallback(async (raw: string) => {
-    let woId = '';
-    try {
-      const parsed = parseQrString(raw);
-      if (parsed.kind === 'PRODUCT' && parsed.product) woId = parsed.product.workOrder.trim();
-    } catch (err) {
-      showToast('error', err instanceof Error ? err.message : 'QR tidak valid.');
-      return;
+    if (backendMode) {
+      setInitiatedWo(null);
+      setScannedWo(null);
+      setStep('PRODUCT');
     }
-    if (!woId) {
-      showToast('error', 'QR ini tidak memuat nomor WO — pindai QR produk/WO.');
-      return;
-    }
-    if (!onPreviewWorkOrder) {
-      showToast('error', 'Pratinjau backend tidak tersedia.');
-      return;
-    }
-    setScannedWo(woId);
-    setResolvingWo(true);
-    try {
-      await onPreviewWorkOrder(woId);
-      setStep('REVIEW');
-    } catch (err) {
-      showToast('error', err instanceof Error ? err.message : `WO ${woId} tidak dapat dimuat.`);
-    } finally {
-      setResolvingWo(false);
-    }
-  }, [onPreviewWorkOrder, showToast]);
+    showToast('info', backendMode ? 'Draft dikosongkan — scan ulang 4 badge.' : 'Draft dikembalikan ke konfigurasi mesin aktif.');
+  }, [backendMode, machine, showToast]);
 
-  const handleCameraScan = useCallback((text: string) => {
-    setManualQr(text);
-    void submitWoForPreview(text);
-  }, [submitWoForPreview]);
+  // ── Unit 003 jalur B: resolve WO existing (kamera atau textfield). ──
+  const resolveWo = useCallback(
+    async (woId: string) => {
+      if (!onPreviewWorkOrder) {
+        showToast('error', 'Pratinjau backend tidak tersedia.');
+        return;
+      }
+      setScannedWo(woId);
+      setResolvingWo(true);
+      try {
+        await onPreviewWorkOrder(woId);
+        setStep('REVIEW');
+      } catch (err) {
+        showToast('error', err instanceof Error ? err.message : `WO ${woId} tidak dapat dimuat.`);
+      } finally {
+        setResolvingWo(false);
+      }
+    },
+    [onPreviewWorkOrder, showToast],
+  );
 
-  // unit 002 FR-004/005: mismatch OID vs sesi → konfirmasi eksplisit (bukan tolak keras).
-  const [confirmingOidMismatch, setConfirmingOidMismatch] = useState(false);
-  const [initiatedWo, setInitiatedWo] = useState<string | null>(null);
+  const submitWoForPreview = useCallback(
+    async (raw: string) => {
+      // Directive pemilik: textfield manual hanya jalur WO; badge zona wajib kamera.
+      if (isZonePaste(raw)) {
+        showToast('error', ZONE_PASTE_REJECT_MESSAGE);
+        return;
+      }
+      let woId = '';
+      try {
+        const parsed = parseQrString(raw);
+        if (parsed.kind === 'PRODUCT' && parsed.product) woId = parsed.product.workOrder.trim();
+      } catch (err) {
+        showToast('error', err instanceof Error ? err.message : 'QR tidak valid.');
+        return;
+      }
+      if (!woId) {
+        showToast('error', 'QR ini tidak memuat nomor WO — pindai QR produk/WO.');
+        return;
+      }
+      await resolveWo(woId);
+    },
+    [resolveWo, showToast],
+  );
 
+  // Routing tunggal kamera backend-mode: zona → draft; WO → resolve; else error.
+  const handleCameraScan = useCallback(
+    (text: string) => {
+      setManualQr(text);
+      const route = routeBackendQr(text);
+      if (route.kind === 'zone') {
+        applyZoneBadge(route.badge);
+        return;
+      }
+      if (route.kind === 'wo') {
+        void resolveWo(route.woId);
+        return;
+      }
+      showToast('error', route.message);
+    },
+    [applyZoneBadge, resolveWo, showToast],
+  );
+
+  // unit 002 FR-004/005: initiate 4 zona (konfirmasi OID-mismatch ditangani di atas).
   const handleInitiateFromZones = useCallback(async () => {
     if (!onInitiateFromZones) {
       showToast('error', 'Initiate work order tidak tersedia.');
       return;
     }
-    const oid = draft.operator.operatorId?.trim();
+    // FR-003 fail-closed: tanpa 4 zona lengkap tidak ada payload ke backend.
+    if (!isDraftComplete(draft)) {
+      showToast('error', 'Draft 4 zona belum lengkap — pindai badge produk, mesin, operator, dan shift dulu.');
+      return;
+    }
+    const oid = draft.operator!.operatorId?.trim();
     if (sessionOperatorId && oid && oid !== sessionOperatorId && !confirmingOidMismatch) {
       setConfirmingOidMismatch(true);
       return;
@@ -358,18 +545,23 @@ export const BatchQrScannerModal: React.FC<BatchQrScannerModalProps> = ({
     try {
       // Device target = mesin aktif (backend mengikat machineId via deviceId).
       if (draft.machineId !== machine.id) {
-        showToast('error', 'Pilih mesin tujuan di langkah Mesin sebelum memulai produksi.');
+        showToast('error', 'Mesin tujuan harus mesin terikat device ini — scan badge mesin yang benar.');
         return;
       }
-      const zones = buildZoneStrings(draft, { machineName: machine.name, line });
+      // FR-004: nilai badge menang (LINE/MCH/DATE/TARGET dari draft zona).
+      const zones = buildZoneStrings(draft, {
+        machineName: draft.machineName ?? machine.name,
+        line: draft.machineLine ?? line,
+      });
       const result = await onInitiateFromZones(machine.deviceId, zones);
       if (result) {
         setInitiatedWo(result.workOrder.woId);
+        // GAP-F26: WO masih PENDING sampai ACK — bukan klaim "aktif" di sini.
         showToast(
           'success',
           result.idempotentDuplicate
-            ? `WO ${result.workOrder.woId} sudah pernah dibuat (idempoten) — dispatch ulang.`
-            : `WO ${result.workOrder.woId} dibuat dan di-dispatch ke mesin.`,
+            ? `WO ${result.workOrder.woId} sudah pernah dibuat (idempoten) — dispatch ulang, menunggu ACK.`
+            : `WO ${result.workOrder.woId} dibuat & di-dispatch — menunggu ACK edge.`,
           4000,
         );
       }
@@ -387,8 +579,9 @@ export const BatchQrScannerModal: React.FC<BatchQrScannerModalProps> = ({
     setApplied(false);
   };
 
-  const manualPlaceholder =
-    step === 'PRODUCT'
+  const manualPlaceholder = backendMode
+    ? 'Tempel QR WO — cth: WO=WO-2026-001;PRD=Flange;CT=45;TARGET=560 (badge zona wajib kamera)'
+    : step === 'PRODUCT'
       ? 'Tempel QR produk — cth: QR-PRD-01 atau WO=WO-9;PRD=Flange;CT=45;TARGET=560'
       : step === 'OPERATOR'
         ? 'Tempel QR badge — cth: QR-OP-02 atau {"type":"OPERATOR",...}'
@@ -398,21 +591,40 @@ export const BatchQrScannerModal: React.FC<BatchQrScannerModalProps> = ({
             ? 'Tempel QR mesin — cth: QR-MC-STM32-OEE-01'
             : 'Tempel kode QR apa pun — otomatis diarahkan ke langkah yang tepat';
 
-  const targetRate = draft.product.cycleTimeSec > 0 ? Math.round(3600 / draft.product.cycleTimeSec) : 0;
-  const draftOperatorDisplay = formatOperatorDisplay(draft.operator);
-  const draftShiftLabel = `${draft.schedule.shiftStart} - ${draft.schedule.shiftEnd}`;
+  const draftComplete = isDraftComplete(draft);
+  const targetRate = draft.product && draft.product.cycleTimeSec > 0 ? Math.round(3600 / draft.product.cycleTimeSec) : 0;
+  const draftOperatorDisplay = draft.operator ? formatOperatorDisplay(draft.operator) : '—';
+  const draftShiftLabel = draft.schedule ? `${draft.schedule.shiftStart} - ${draft.schedule.shiftEnd}` : '—';
   const changed =
-    draft.product.productName !== current.productName ||
+    (draft.product?.productName ?? '') !== current.productName ||
     draft.machineId !== current.machineId ||
     draftOperatorDisplay !== current.operatorDisplay ||
-    draft.product.targetQty !== current.targetQty ||
+    (draft.product?.targetQty ?? 0) !== current.targetQty ||
     draftShiftLabel !== current.shiftLabel;
+
+  // Status ACK untuk WO yang di-initiate (footer + panel).
+  const ackStatus = initiatedWo && ackWait?.woId === initiatedWo ? ackWait.status : null;
+  const canRetryInitiate = ackStatus === 'TIMEOUT' || ackStatus === 'ABORTED';
+  const initiateLabel = applying
+    ? 'Memproses…'
+    : initiatedWo
+      ? ackStatus === 'ACTIVE'
+        ? `WO ${initiatedWo} Aktif`
+        : canRetryInitiate
+          ? 'Coba Lagi (idempoten)'
+          : 'Menunggu ACK…'
+      : 'Konfirmasi & Konfigurasi Mesin';
+  const initiateDisabled =
+    applying || confirmingOidMismatch || (initiatedWo ? !canRetryInitiate : !draftComplete);
 
   // Konteks yang dibagikan ke semua sub-components.
   const ctx: BatchQrModalContext = {
     step,
     stepIndex,
     draft,
+    backendMode,
+    draftComplete,
+    ackWait,
     manualQr,
     scanningCode,
     applying,
@@ -434,7 +646,7 @@ export const BatchQrScannerModal: React.FC<BatchQrScannerModalProps> = ({
     setManualQr,
     setDraft,
     onScanProduct: (p) => simulateScan(p.code, () => setDraft((d) => ({ ...d, product: p })), `QR Produk: ${p.productName}`),
-    onScanMachine: (m) => simulateScan(`QR-MC-${m.deviceId || m.id}`, () => setDraft((d) => ({ ...d, machineId: m.id })), `QR Mesin: ${m.name}`),
+    onScanMachine: (m) => simulateScan(`QR-MC-${m.deviceId || m.id}`, () => setDraft((d) => ({ ...d, machineId: m.id, machineLine: m.line ?? '', machineName: m.name })), `QR Mesin: ${m.name}`),
     onScanOperator: (op) => simulateScan(op.code, () => setDraft((d) => ({ ...d, operator: op })), `QR Operator: ${op.operatorName}`),
     onScanSchedule: (sch) => simulateScan(sch.code, () => setDraft((d) => ({ ...d, schedule: sch })), `QR Shift: ${sch.shiftName}`),
     onBack: () => {
@@ -442,11 +654,6 @@ export const BatchQrScannerModal: React.FC<BatchQrScannerModalProps> = ({
       if (prevId) goStep(prevId);
     },
     onNext: () => {
-      // Backend lane: PRODUCT langsung ke REVIEW (langkah draft MQTT dilewati).
-      if (backendMode && step === 'PRODUCT') {
-        setStep('REVIEW');
-        return;
-      }
       const nextId = STEPS[stepIndex + 1]?.id;
       if (nextId) goStep(nextId);
     },
@@ -457,6 +664,10 @@ export const BatchQrScannerModal: React.FC<BatchQrScannerModalProps> = ({
     onPreviewWorkOrder,
     applyParsedQr,
     submitWoForPreview,
+    onConfirmInitiate: () => void handleInitiateFromZones(),
+    onPickProduct: pickProduct,
+    onPickOperator: pickOperator,
+    onPickBoundMachine: pickBoundMachine,
   };
 
   return (
@@ -487,11 +698,13 @@ export const BatchQrScannerModal: React.FC<BatchQrScannerModalProps> = ({
               <h2 id="batch-qr-title" className="text-base font-bold flex items-center gap-2 flex-wrap">
                 Setup Batch Produksi via QR Code
                 <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
-                  4 Identitas Batch
+                  {backendMode ? '4 Badge Zona / WO' : '4 Identitas Batch'}
                 </span>
               </h2>
               <p id="batch-qr-desc" className={cx('text-xs', tx(themeTokens.textMuted, isDark))}>
-                Pindai atau pilih QR Produk → Mesin → Operator → Shift, lalu terapkan sekaligus di Review.
+                {backendMode
+                  ? 'Jalur A: scan kamera 4 badge (produk → mesin → operator → shift) → konfirmasi → configure edge. Jalur B: scan/tempel QR WO existing.'
+                  : 'Pindai atau pilih QR Produk → Mesin → Operator → Shift, lalu terapkan sekaligus di Review.'}
               </p>
             </div>
           </div>
@@ -551,7 +764,7 @@ export const BatchQrScannerModal: React.FC<BatchQrScannerModalProps> = ({
         {/* Ringkasan draft aktif — selalu terlihat */}
         <QrDraftSummary ctx={ctx} />
 
-        {/* Backend lane: kamera nyata + input manual → resolve WO (tanpa draft MQTT). */}
+        {/* Backend lane: kamera nyata (satu-satunya jalan badge zona) + input WO manual. */}
         {backendMode && (
           <div className="mb-3 space-y-2">
             <QrCameraScanner
@@ -578,31 +791,21 @@ export const BatchQrScannerModal: React.FC<BatchQrScannerModalProps> = ({
           </div>
         )}
 
-        {/* Input QR manual — berlaku untuk semua langkah */}
+        {/* Input QR manual — backend: hanya jalur WO; simulasi: semua langkah. */}
         <QrScanInput ctx={ctx} placeholder={manualPlaceholder} inputRef={inputRef} backendMode={backendMode} />
 
         {/* Isi langkah */}
         <div className="space-y-2 max-h-[280px] overflow-y-auto pr-1 min-h-[180px]">
           {step === 'PRODUCT' && !backendMode && <ProductStep ctx={ctx} />}
-          {step === 'MACHINE' && <MachineStep ctx={ctx} />}
-          {step === 'OPERATOR' && <OperatorStep ctx={ctx} />}
-          {step === 'SCHEDULE' && <ScheduleStep ctx={ctx} />}
+          {step === 'MACHINE' && !backendMode && <MachineStep ctx={ctx} />}
+          {step === 'OPERATOR' && !backendMode && <OperatorStep ctx={ctx} />}
+          {step === 'SCHEDULE' && !backendMode && <ScheduleStep ctx={ctx} />}
+          {backendMode && step !== 'REVIEW' && <BackendZoneStep ctx={ctx} />}
           {step === 'REVIEW' && !backendMode && <ReviewStep ctx={ctx} />}
           {step === 'REVIEW' && backendMode && (
             <div className="space-y-2">
               <BackendReviewStep ctx={ctx} workOrderPreview={workOrderPreview} />
-              {initiatedWo && (
-                <p
-                  className={cx(
-                    'rounded-lg border p-2.5 text-xs font-mono flex items-center gap-2',
-                    isDark ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400' : 'bg-emerald-50 border-emerald-300 text-emerald-700',
-                  )}
-                  role="status"
-                >
-                  <CheckCircle2 className="w-4 h-4 shrink-0" />
-                  Work order <strong>{initiatedWo}</strong> aktif — produksi berjalan.
-                </p>
-              )}
+              <AckStatusPanel ackWait={ackWait} woId={initiatedWo} isDark={isDark} />
               {confirmingOidMismatch && (
                 <div
                   className={cx(
@@ -616,7 +819,7 @@ export const BatchQrScannerModal: React.FC<BatchQrScannerModalProps> = ({
                     Operator QR berbeda dari sesi login
                   </p>
                   <p>
-                    QR: <strong>{draft.operator.operatorName}</strong> ({draft.operator.operatorId})
+                    QR: <strong>{draft.operator?.operatorName}</strong> ({draft.operator?.operatorId})
                     {sessionOperatorId ? <> · sesi: <strong>{sessionOperatorId}</strong></> : null}
                   </p>
                   <p className="opacity-80">Lanjutkan hanya jika badge QR ini memang operator yang bertugas.</p>
@@ -647,7 +850,7 @@ export const BatchQrScannerModal: React.FC<BatchQrScannerModalProps> = ({
           <button
             type="button"
             onClick={handleReset}
-            title="Kembalikan draft ke konfigurasi aktif"
+            title={backendMode ? 'Kosongkan draft 4 zona' : 'Kembalikan draft ke konfigurasi aktif'}
             className={cx(
               'px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer border',
               isDark ? 'border-slate-700 text-slate-300 hover:bg-slate-800' : 'border-slate-300 text-slate-600 hover:bg-slate-100',
@@ -686,18 +889,22 @@ export const BatchQrScannerModal: React.FC<BatchQrScannerModalProps> = ({
                 >
                   {applied ? 'Selesai' : 'Batal'}
                 </button>
-                {backendMode && onInitiateFromZones ? (
+                {backendMode && onInitiateFromZones && !scannedWo ? (
                   <button
                     type="button"
                     onClick={() => void handleInitiateFromZones()}
-                    disabled={applying || !!initiatedWo || confirmingOidMismatch}
-                    title="Validasi 4 zona lalu buat work order + dispatch ke mesin"
+                    disabled={initiateDisabled}
+                    title={
+                      !draftComplete && !initiatedWo
+                        ? 'Pindai 4 badge zona dulu (produk, mesin, operator, shift)'
+                        : 'Konfirmasi 4 zona → validate → buat WO + dispatch SET_JOB_CONFIG ke edge'
+                    }
                     className="px-4 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
                   >
                     {applying ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ClipboardCheck className="w-3.5 h-3.5" />}
-                    {applying ? 'Memproses…' : initiatedWo ? `WO ${initiatedWo} Aktif` : 'Mulai Produksi (4 Zona QR)'}
+                    {initiateLabel}
                   </button>
-                ) : backendMode && onProceedToSetup ? (
+                ) : backendMode && scannedWo && onProceedToSetup ? (
                   <button
                     type="button"
                     onClick={onProceedToSetup}
@@ -726,7 +933,9 @@ export const BatchQrScannerModal: React.FC<BatchQrScannerModalProps> = ({
         </div>
 
         <p className={cx('mt-2 text-[11px] font-mono', tx(themeTokens.textFaint, isDark))}>
-          * Menerapkan batch mengirim SET_JOB_CONFIG (WO, produk, operator, target, cycle) + override shift ke edge controller.
+          {backendMode
+            ? '* Konfirmasi mengirim SET_JOB_CONFIG (WO baru + dispatch) ke edge controller; START hanya setelah ACK ACTIVE. Jalur WO: dispatch via Setup Produksi.'
+            : '* Menerapkan batch mengirim SET_JOB_CONFIG (WO, produk, operator, target, cycle) + override shift ke edge controller.'}
         </p>
       </div>
     </div>

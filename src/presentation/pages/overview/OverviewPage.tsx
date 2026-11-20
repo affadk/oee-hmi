@@ -48,6 +48,7 @@ export const OverviewPage: React.FC = () => {
       machineLine={dashboard.machineLine}
       sessionOperatorId={dashboard.authSession?.operator.id ?? null}
       onInitiateFromZones={dashboard.initiateFromZones}
+      ackWait={dashboard.ackWait}
     />
   );
 };
