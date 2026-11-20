@@ -1,0 +1,17 @@
+# Record konvensi governance SDD repo ini (lihat .sdd/governance.md).
+governance_version: "1.0"
+profile: "minimal"   # adaptasi: specs/ + decisions/ root (konvensi ekosistem iiot-oee); docs/ = historis
+
+created:
+  date: "2026-11-20"
+
+features:
+  plan_required_above_complexity: true
+  verification_artifact: required   # unit ini menyentuh auth/aktuasi — bukti per AC wajib
+
+layout:
+  units: "specs/NNN-slug/"
+  decisions: "decisions/NNNN-slug.md"
+  historical_docs: "docs/"
+  context: ".sdd/context/"
+  constitution: ".sdd/constitution/constitution.md"
