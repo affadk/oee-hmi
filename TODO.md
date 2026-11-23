@@ -6,8 +6,8 @@
 
 Phase: 1 (unit 004 VERIFIED: chooser 2 jalur + gating + config-only terimplementasi + deploy backend-mode) · unit 003 terimplementasi + terdeploy
 Unit: `specs/004-scan-lane-chooser` (VERIFIED kode+gate+bundle dev; kamera fisik manual, 2026-11-23) · `specs/003-qr-dual-lane-initiation` (VERIFIED kode+smoke, lifecycle fisik PARTIAL) · `specs/002-hmi-station-surfaces` (verifikasi visual manual pending) · `specs/001-hmi-data-transfer-refresh` (verifikasi visual manual pending)
-Stage: unit 004 selesai (T401–T412): chooser 2 kartu + pemisahan jalur A/B + pesan arah lintas jalur + semantik config-only START-di-edge; dev stack backend-mode tanpa mock (useBackend baked true)
-Current Task: verifikasi kamera fisik unit 004 (AC-001/002/003 di perangkat) + OQ-401/OQ-402 (keputusan pemilik)
+Stage: unit 004 selesai (T401–T412) + ADR-0007 HMI non-aktuatif (tombol START/STOP/RESET dihapus dari presentasi; aktuasi hanya fisik Edge OEE); dev stack backend-mode tanpa mock (useBackend baked true)
+Current Task: verifikasi kamera fisik unit 004 (AC-001/002/003 di perangkat) · OQ-402 (keputusan pemilik) · OQ-401 RESOLVED ADR-0007
 
 ## Completed
 

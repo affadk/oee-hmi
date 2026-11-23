@@ -1,5 +1,5 @@
 // /src/presentation/components/modals/MqttEdgeInspectorModal/tabShared.tsx
-import type { DeviceCommandKind } from '../../../../domain/entities/backend/Device';
+
 // Shared types, skins, and render helpers for MqttEdgeInspectorModal tabs.
 
 import React from 'react';
@@ -121,6 +121,4 @@ export interface MqttEdgeTabContext {
   qos: 0 | 1 | 2;
   useBackend?: boolean;
   pushLog: (kind: ConsoleLine['kind'], text: string) => void;
-  sendCmd: (cmd: DeviceCommandKind) => void;
-  commandsDisabled?: boolean;
 }

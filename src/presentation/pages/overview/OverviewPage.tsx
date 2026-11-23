@@ -31,11 +31,6 @@ export const OverviewPage: React.FC = () => {
       onSwitchMachine={dashboard.selectMachine}
       onOpenFormula={dashboard.openFormulaModal}
       onViewAllEvents={() => navigate('/audit')}
-      onUpdateMachineStatus={dashboard.updateMachineStatus}
-      onLogReject={dashboard.logReject}
-      onDispatchMachineCommand={dashboard.dispatchMachineCommand}
-      commandsDisabled={!dashboard.canSendCommands}
-      disabledReason={dashboard.gateReason}
       onApplyJobConfig={dashboard.applyJobConfig}
       backendHealth={dashboard.backendHealth}
       catalog={dashboard.catalog}

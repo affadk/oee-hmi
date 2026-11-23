@@ -175,7 +175,6 @@ export const DashboardPage: React.FC = () => {
         onClose={dashboard.closeLogModal}
         machineId={dashboard.currentMachine.id}
         onAddDowntime={dashboard.logDowntime}
-        onAddReject={dashboard.logReject}
         isBackendMode={dashboard.useBackend}
         labelableDowntimes={dashboard.labelableDowntimes}
       />
@@ -190,11 +189,9 @@ export const DashboardPage: React.FC = () => {
           Perangkat + Setup Produksi (REST nyata). */}
       {!dashboard.useBackend && (
       <MqttEdgeInspectorModal
-        commandsDisabled={!dashboard.canSendCommands}
         isOpen={dashboard.isMqttModalOpen}
         onClose={dashboard.closeMqttModal}
         machine={dashboard.currentMachine}
-        onSendCommand={dashboard.dispatchMachineCommand}
         onSendJobConfig={dashboard.applyJobConfig}
         useBackend={dashboard.useBackend}
       />

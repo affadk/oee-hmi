@@ -52,7 +52,6 @@ export const AuditPage: React.FC = () => {
           void dashboard.loadPendingWorkOrders().catch(() => undefined);
         }}
         onOpenDeviceConfig={dashboard.openDeviceConfigModal}
-        onUpdateMachineStatus={dashboard.updateMachineStatus}
         teepEnabled={dashboard.teepEnabled}
         onToggleTeep={dashboard.toggleTeep}
       />
@@ -74,9 +73,6 @@ export const AuditPage: React.FC = () => {
           allMachines={dashboard.machines}
           metrics={metrics}
           onSelectMachine={dashboard.selectMachine}
-          onUpdateMachineStatus={dashboard.updateMachineStatus}
-          useBackend={dashboard.useBackend}
-          onResetCounters={dashboard.resetCounters}
           onExportTelemetry={dashboard.exportTelemetry}
         />
 

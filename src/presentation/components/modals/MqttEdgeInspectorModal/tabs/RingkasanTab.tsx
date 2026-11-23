@@ -2,7 +2,7 @@
 // Tab Ringkasan — status FSM, OEE live, counter, health, job aktif, aksi cepat.
 
 import React from 'react';
-import { Activity, PlugZap, Factory, HeartPulse, Play, Pause, Radio } from 'lucide-react';
+import { Activity, PlugZap, Factory, HeartPulse, Radio } from 'lucide-react';
 import type { MqttEdgeTabContext, TabKey } from '../tabShared';
 import { fmtDur } from '../tabShared';
 
@@ -62,8 +62,6 @@ export const RingkasanTab: React.FC<RingkasanTabProps> = ({ ctx, setActiveTab })
         <div className={`p-4 rounded-xl border ${card}`}>
           <h3 className={`text-xs font-bold uppercase tracking-wider mb-2 ${value}`}>Aksi cepat</h3>
           <div className="flex flex-wrap gap-2">
-            <button type="button" onClick={() => ctx.sendCmd('RESUME')} className="px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-1.5"><Play className="w-3.5 h-3.5" /> Resume</button>
-            <button type="button" onClick={() => ctx.sendCmd('PAUSE')} className="px-3 py-2 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold flex items-center gap-1.5"><Pause className="w-3.5 h-3.5" /> Pause</button>
             <button type="button" onClick={() => setActiveTab('TELEMETRI')} className={`px-3 py-2 rounded-lg border text-xs font-bold flex items-center gap-1.5 ${ctx.isDark ? 'border-slate-700 hover:bg-slate-800' : 'border-slate-300 hover:bg-slate-100'}`}><Radio className="w-3.5 h-3.5" /> Lihat frame</button>
             <button type="button" onClick={() => setActiveTab('KESEHATAN')} className={`px-3 py-2 rounded-lg border text-xs font-bold flex items-center gap-1.5 ${ctx.isDark ? 'border-slate-700 hover:bg-slate-800' : 'border-slate-300 hover:bg-slate-100'}`}><HeartPulse className="w-3.5 h-3.5" /> Diagnostik</button>
           </div>

@@ -16,7 +16,6 @@ import {
 import {
   MachineConfig,
   CalculatedOeeMetrics,
-  MachineStatus,
 } from "../../../../domain/index";
 import type { EdgeHealthPayload } from "../../../../domain/entities/EdgeContracts";
 import {
@@ -45,7 +44,6 @@ interface HeaderZoneProps {
   onOpenMqttModal?: () => void;
   onOpenProductionSetup?: () => void;
   onOpenDeviceConfig?: () => void;
-  onUpdateMachineStatus?: (status: MachineStatus) => void;
   teepEnabled: boolean;
   onToggleTeep: () => void;
 }
@@ -66,7 +64,6 @@ export const HeaderZone: React.FC<HeaderZoneProps> = ({
   onOpenMqttModal,
   onOpenProductionSetup,
   onOpenDeviceConfig,
-  onUpdateMachineStatus,
   teepEnabled,
   onToggleTeep,
 }) => {
@@ -504,13 +501,10 @@ export const HeaderZone: React.FC<HeaderZoneProps> = ({
               </span>
             </div>
             <div
-              onClick={() =>
-                onUpdateMachineStatus?.(isRunning ? "DOWN" : "RUNNING")
-              }
-              className={`w-[112px] px-4 py-2 rounded-md shadow-sm flex flex-col items-center justify-center cursor-pointer transition-transform hover:scale-102 shrink-0 select-none ${
+              className={`w-[112px] px-4 py-2 rounded-md shadow-sm flex flex-col items-center justify-center shrink-0 select-none ${
                 isRunning ? "bg-[#48a43f] text-white" : "bg-rose-600 text-white"
               }`}
-              title={`Status: ${isRunning ? "Active / Running" : "Down / Stopped"}. Klik untuk mengubah status.`}
+              title={`Status: ${isRunning ? "Active / Running" : "Down / Stopped"} (diperbarui dari edge)`}
             >
               <span className="audit-status font-black leading-tight tracking-wide">
                 {isRunning ? "Active" : "Down"}

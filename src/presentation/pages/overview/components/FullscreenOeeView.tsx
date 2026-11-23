@@ -5,7 +5,6 @@
 import React, { useState, useEffect } from "react";
 import { useTheme } from "../../../providers/ThemeProvider";
 import { BatchQrScannerModal } from "../../../components/modals/BatchQrScannerModal/BatchQrScannerModal";
-import { FloorPushButtonsPanel } from "./FloorPushButtonsPanel";
 import { TimeSummaryPanel } from "./panels/TimeSummaryPanel";
 import { PasXProgressStrip } from "./panels/PasXProgressStrip";
 import { FullscreenHeader } from "./parts/FullscreenHeader";
@@ -30,11 +29,6 @@ export const FullscreenOeeView: React.FC<FullscreenOeeViewProps> = ({
   onSwitchMachine,
   onOpenFormula,
   onViewAllEvents,
-  onUpdateMachineStatus = async () => {},
-  onLogReject = async () => {},
-  onDispatchMachineCommand = async () => {},
-  commandsDisabled = false,
-  disabledReason,
   onApplyJobConfig = async () => {},
   useBackend,
   backendHealth = null,
@@ -162,7 +156,6 @@ export const FullscreenOeeView: React.FC<FullscreenOeeViewProps> = ({
           headerTime={headerTime}
           headerDate={headerDate}
           isDark={vm.isDark}
-          onUpdateMachineStatus={onUpdateMachineStatus}
         />
 
         {/* 3. MAIN CONTENT */}
@@ -226,19 +219,6 @@ export const FullscreenOeeView: React.FC<FullscreenOeeViewProps> = ({
                 speedEffColor={vm.speedEffColor}
                 isDark={vm.isDark}
               />
-
-              {/* Floor Push Buttons */}
-              {!useBackend && (
-                <FloorPushButtonsPanel
-                  commandsDisabled={commandsDisabled}
-                  disabledReason={disabledReason}
-                  machine={machine}
-                  onUpdateMachineStatus={onUpdateMachineStatus}
-                  onLogReject={onLogReject}
-                  onDispatchMachineCommand={onDispatchMachineCommand}
-                  onRequestWorkOrder={() => setIsQrModalOpen(true)}
-                />
-              )}
             </div>
           </div>
 

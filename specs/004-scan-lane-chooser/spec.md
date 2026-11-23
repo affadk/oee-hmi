@@ -76,9 +76,10 @@ Modal scan backend-mode (`BatchQrScannerModal`) saat ini membuka langsung ke wiz
 
 ## 10. Open Questions
 
-- **OQ-401** Tombol START HMI (`FloorPushButtonsPanel`) — sesuai directive "START di edge", apakah tombol START HMI dihapus/dinonaktifkan, atau tetap sebagai mirror read-only? **Unit ini tidak mengubahnya** (CRITICAL, eskalasi pemilik).
+- **OQ-401 (RESOLVED, ADR-0007):** tombol START/STOP/RESET HMI dihapus seluruhnya (panel simulasi, toggle status, tab Kontrol, tab DEFECT). HMI non-aktuatif; aktuasi hanya tombol fisik Edge OEE.
 - **OQ-402** Jalur B: tetap membuka `ProductionSetupModal` terpisah untuk dispatch (perilaku kini, relabel), atau inline konfigurasi di dalam scanner? Default: tetap Setup Produksi, tombol dilabeli makna konfigurasi.
 
 ## 11. Revision History
 
 - **Rev 1 (2026-11-23):** Spec awal. Chooser 2 kartu + pemisahan jalur + semantik config-only (directive pemilik START di edge).
+- **Rev 2 (2026-11-23):** OQ-401 RESOLVED → ADR-0007: HMI non-aktuatif; semua tombol START/STOP/RESET/REJECT di presentasi dihapus (aktuasi hanya fisik Edge OEE).

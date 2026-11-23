@@ -10,10 +10,6 @@ interface MachineStatusZoneProps {
   allMachines: MachineConfig[];
   metrics: CalculatedOeeMetrics;
   onSelectMachine: (id: string) => void;
-  onUpdateMachineStatus: (status: MachineStatus) => void;
-  /** Backend lane only: counter reset via POST /devices/:id/command. */
-  useBackend?: boolean;
-  onResetCounters?: () => Promise<void>;
   /** B6: raw export download (CSV/NDJSON); presentation owns the object-URL. */
   onExportTelemetry?: (format?: 'csv' | 'ndjson') => Promise<Blob | null>;
 }
@@ -23,14 +19,10 @@ export const MachineStatusZone: React.FC<MachineStatusZoneProps> = ({
   allMachines,
   metrics,
   onSelectMachine,
-  onUpdateMachineStatus,
-  useBackend = false,
-  onResetCounters,
   onExportTelemetry,
 }) => {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
-  const [resetError, setResetError] = useState<string>('');
   const [exportError, setExportError] = useState<string>('');
 
   const handleExportTelemetry = (): void => {
@@ -48,16 +40,6 @@ export const MachineStatusZone: React.FC<MachineStatusZoneProps> = ({
       URL.revokeObjectURL(url);
     }).catch((err: unknown) => {
       setExportError(err instanceof Error ? err.message : 'Export telemetri gagal.');
-    });
-  };
-
-  const handleResetCounters = (): void => {
-    if (!onResetCounters) return;
-    // Guard konfirmasi (G8): reset counter tidak bisa di-undo.
-    if (!window.confirm(`Reset counter ${machine.name}? Total/good/reject kembali ke 0.`)) return;
-    setResetError('');
-    void onResetCounters().catch((err: unknown) => {
-      setResetError(err instanceof Error ? err.message : 'Reset counter gagal.');
     });
   };
 
@@ -90,21 +72,7 @@ export const MachineStatusZone: React.FC<MachineStatusZoneProps> = ({
           <div className="flex flex-wrap items-center justify-between gap-2 pb-2 mb-2 border-b border-slate-200 dark:border-slate-800">
             <h2 className={`text-sm font-bold tracking-tight ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>Machine Status</h2>
             <div className="flex flex-wrap items-center gap-1 audit-caption font-mono">
-              <span className={`mr-1 hidden sm:inline ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Set:</span>
-              {(['RUNNING', 'IDLE', 'DOWN', 'SETUP'] as MachineStatus[]).map((st) => (
-                <button type="button"
-                  key={st}
-                  onClick={() => onUpdateMachineStatus(st)}
-                  className={`px-2 py-0.5 rounded audit-micro font-bold border transition-all cursor-pointer ${
-                    machine.status === st
-                      ? 'bg-[#1a3464] text-white border-[#1a3464]'
-                      : isDark ? 'bg-[#132238] text-slate-400 border-slate-700 hover:text-slate-200' : 'bg-slate-100 text-slate-600 border-slate-200 hover:text-slate-900'
-                  }`}
-                >
-                  {st}
-                </button>
-              ))}
-              {useBackend && onExportTelemetry && (
+              {onExportTelemetry && (
                 <button type="button"
                   onClick={handleExportTelemetry}
                   title="Unduh bukti audit CSV via GET /telemetry/:id/export"
@@ -115,22 +83,8 @@ export const MachineStatusZone: React.FC<MachineStatusZoneProps> = ({
                   EXPORT
                 </button>
               )}
-              {useBackend && onResetCounters && (
-                <button type="button"
-                  onClick={handleResetCounters}
-                  title="Reset counter via POST /devices/:id/command (butuh PIN operator)"
-                  className={`px-2 py-0.5 rounded audit-micro font-bold border transition-all cursor-pointer ${
-                    isDark ? 'bg-transparent text-rose-400 border-rose-500/40 hover:bg-rose-500/10' : 'bg-transparent text-rose-600 border-rose-300 hover:bg-rose-50'
-                  }`}
-                >
-                  RESET
-                </button>
-              )}
             </div>
           </div>
-          {resetError ? (
-            <p role="alert" className="mt-1 text-[11px] font-mono text-rose-500">{resetError}</p>
-          ) : null}
           {exportError ? (
             <p role="alert" className="mt-1 text-[11px] font-mono text-rose-500">{exportError}</p>
           ) : null}

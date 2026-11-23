@@ -1,5 +1,4 @@
 // /src/presentation/components/modals/MqttEdgeInspectorModal/MqttEdgeInspectorModal.tsx
-import type { DeviceCommandKind } from '../../../../domain/entities/backend/Device';
 // STM32H723 Edge Controller Terminal — koordinator modal.
 // State, log console, dan publish job tetap di sini; rendering tab
 // didelegasikan ke sub-components tabs/ + MqttConsole via ctx.
@@ -31,8 +30,6 @@ interface MqttEdgeInspectorModalProps {
   isOpen: boolean;
   onClose: () => void;
   machine: MachineConfig;
-  onSendCommand: (cmd: DeviceCommandKind) => void;
-  commandsDisabled?: boolean;
   onSendJobConfig: (wo: string, product: string, operator: string, target: number, cycleTimeSec?: number) => void;
   useBackend?: boolean;
 }
@@ -41,8 +38,6 @@ export const MqttEdgeInspectorModal: React.FC<MqttEdgeInspectorModalProps> = ({
   isOpen,
   onClose,
   machine,
-  onSendCommand,
-  commandsDisabled = false,
   onSendJobConfig,
   useBackend,
 }) => {
@@ -54,7 +49,6 @@ export const MqttEdgeInspectorModal: React.FC<MqttEdgeInspectorModalProps> = ({
   const [activeTab, setActiveTab] = useState<TabKey>('RINGKASAN');
   const [isPretty, setIsPretty] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [confirmReset, setConfirmReset] = useState(false);
   const [consoleLog, setConsoleLog] = useState<ConsoleLine[]>([
     { ts: nowClock(), kind: 'SYS', text: `Terminal tersambung — relay backend oee/device/${machine.deviceId}/#` },
   ]);
@@ -165,12 +159,6 @@ export const MqttEdgeInspectorModal: React.FC<MqttEdgeInspectorModalProps> = ({
 
   const jobValid = wo.trim().length > 0 && productName.trim().length > 0 && Number(targetQty) > 0 && Number(stdCycle) > 0;
 
-  const sendCmd = (cmd: DeviceCommandKind) => {
-    pushLog('TX', `POST /api/v1/devices/${machine.deviceId}/command → "${cmd}"`);
-    onSendCommand(cmd);
-    pushLog('RX', `ACK backend: FSM event ${cmd === 'RESET_COUNTER' ? 'EVENT_BUTTON_RESET' : cmd === 'PAUSE' ? 'FSM→UNPLANNED_DT' : 'FSM→RUNNING'} diteruskan ke edge`);
-  };
-
   const publishJob = () => {
     if (!jobValid) return;
     pushLog('TX', `POST job-config ${wo} / ${productName} / target ${targetQty} (relay backend → ${topicPrefix}/config)`);
@@ -203,8 +191,6 @@ export const MqttEdgeInspectorModal: React.FC<MqttEdgeInspectorModalProps> = ({
     qos,
     useBackend,
     pushLog,
-    sendCmd,
-    commandsDisabled,
   };
 
   return (
@@ -356,7 +342,7 @@ export const MqttEdgeInspectorModal: React.FC<MqttEdgeInspectorModalProps> = ({
                   onResetDraft={resetJobDraft}
                 />
               )}
-              {activeTab === 'KONTROL' && <KontrolTab ctx={ctx} confirmReset={confirmReset} setConfirmReset={setConfirmReset} />}
+              {activeTab === 'KONTROL' && <KontrolTab ctx={ctx} />}
               {activeTab === 'TELEMETRI' && (
                 <TelemetriTab
                   ctx={ctx}

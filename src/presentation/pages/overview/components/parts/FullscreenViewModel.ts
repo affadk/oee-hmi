@@ -1,5 +1,4 @@
 // /src/presentation/layouts/sub-components/FullscreenViewModel.ts
-import type { DeviceCommandKind } from '../../../../../domain/entities/backend/Device';
 // Shared view-model: computed metrics consumed by FullscreenOeeView sub-components.
 // Kept as a plain object type so each sub-component receives only the data it needs.
 
@@ -25,11 +24,6 @@ export interface FullscreenOeeViewProps {
   onSwitchMachine: (id: string) => void;
   onOpenFormula: (metric: string) => void;
   onViewAllEvents?: () => void;
-  onUpdateMachineStatus?: (status: 'RUNNING' | 'DOWN' | 'IDLE') => Promise<void>;
-  onLogReject?: (reasonLabel: string, count: number) => Promise<void>;
-  onDispatchMachineCommand?: (command: DeviceCommandKind) => Promise<void>;
-  commandsDisabled?: boolean;
-  disabledReason?: string;
   onApplyJobConfig?: (
     wo: string,
     product: string,
