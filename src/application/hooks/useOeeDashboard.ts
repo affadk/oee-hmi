@@ -108,6 +108,8 @@ export interface OeeDashboardDeps {
   useBackend: boolean;
   /** env VITE_STATION_ID (composition root membaca env). */
   stationIdEnv: string;
+  /** HMI: login tidak dibutuhkan (FAT-248) — false = mutasi jalan tanpa sesi. */
+  loginEnabled: boolean;
   /** Query ?station= commissioning (presentation membaca router). */
   getQueryStationId?: () => string | null;
 }
@@ -260,6 +262,7 @@ export function useOeeDashboard(deps: OeeDashboardDeps): UseOeeDashboardReturn {
     getShiftTimelineUseCase,
     authGateway,
     useBackend,
+    loginEnabled,
     stationIdEnv,
     getQueryStationId,
   } = deps;
@@ -269,6 +272,7 @@ export function useOeeDashboard(deps: OeeDashboardDeps): UseOeeDashboardReturn {
   const auth = useAuthSession({
     authGateway,
     useBackend,
+    loginEnabled,
     stationIdEnv,
     getQueryStationId,
     // Registry dimuat paralel saat boot; kosong = station tak tervalidasi → ''.

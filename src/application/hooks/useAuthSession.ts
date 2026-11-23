@@ -15,6 +15,8 @@ const REFRESH_INTERVAL_MS = 300_000; // FR-006: refresh berkala ≤ 5 menit sela
 export interface AuthSessionDeps {
   authGateway: IAuthGateway;
   useBackend: boolean;
+  /** HMI: login tidak dibutuhkan (FAT-248) — true = login wajib (default keamanan). */
+  loginEnabled: boolean;
   /** env VITE_STATION_ID (deployment kiosk), diinject composition root. */
   stationIdEnv: string;
   /** Query ?station= (commissioning); presentation membaca URL. */
@@ -65,7 +67,7 @@ function errorRetryAfter(err: unknown): number | null {
 }
 
 export function useAuthSession(deps: AuthSessionDeps): AuthSessionApi {
-  const { authGateway, useBackend, stationIdEnv, getQueryStationId, getRegisteredDeviceIds, onAuthenticated } = deps;
+  const { authGateway, useBackend, loginEnabled, stationIdEnv, getQueryStationId, getRegisteredDeviceIds, onAuthenticated } = deps;
 
   const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
   const [authMode, setAuthMode] = useState<AuthMode>('login');
@@ -167,6 +169,11 @@ export function useAuthSession(deps: AuthSessionDeps): AuthSessionApi {
   }, [authGateway, authSession, loginWithPassword]);
 
   const runProtected = useCallback(async <T,>(action: () => Promise<T>): Promise<T | void> => {
+    // HMI: login tidak dibutuhkan (FAT-248) — eksekusi langsung. Identitas
+    // operatur datang dari badge zone QR / WO (operatorAuth shadow-mode).
+    if (!loginEnabled) {
+      return action();
+    }
     if (useBackend && !hasAuthToken()) {
       pendingProtectedActionRef.current = action;
       parkForLogin('');
@@ -203,6 +210,10 @@ export function useAuthSession(deps: AuthSessionDeps): AuthSessionApi {
         parkForRotation('Password wajib diganti sebelum aksi ini (spec 043).');
         return;
       }
+      if (useBackend && !loginEnabled && isUnauthorizedError(err)) {
+        // HMI tanpa login: 401 action → lempar, jangan diparkir modal.
+        throw err;
+      }
       if (useBackend && isUnauthorizedError(err)) {
         pendingProtectedActionRef.current = action;
         forceLogout();
@@ -211,11 +222,12 @@ export function useAuthSession(deps: AuthSessionDeps): AuthSessionApi {
       }
       throw err;
     }
-  }, [authGateway, authSession, forceLogout, hasAuthToken, isUnauthorizedError, parkForLogin, parkForRotation, refreshProjection, useBackend]);
+  }, [authGateway, authSession, forceLogout, hasAuthToken, isUnauthorizedError, loginEnabled, parkForLogin, parkForRotation, refreshProjection, useBackend]);
 
   // FR-006: refresh berkala selama sesi aktif (HMI idle panjang tidak mati mendadak).
+  // HMI tanpa login: authSession selalu null → efek tidak aktif (login off).
   useEffect(() => {
-    if (!useBackend || !authSession) return;
+    if (!useBackend || !loginEnabled || !authSession) return;
     const t = setInterval(() => {
       authGateway.refreshSession()
         .then((renewed) => {
@@ -250,8 +262,9 @@ export function useAuthSession(deps: AuthSessionDeps): AuthSessionApi {
   }, []);
 
   const notifyUnauthorized = useCallback(() => {
+    if (!loginEnabled) return;
     parkForLogin('Sesi operator diperlukan atau sudah kedaluwarsa.');
-  }, [parkForLogin]);
+  }, [loginEnabled, parkForLogin]);
 
   const logoutOperator = useCallback(() => {
     forceLogout();

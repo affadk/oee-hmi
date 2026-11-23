@@ -18,12 +18,11 @@ import { useFullscreen } from '../hooks/useFullscreen';
 import { LogEventModal } from '../components/modals/LogEventModal';
 import { FormulaHelpModal } from '../components/modals/FormulaHelpModal';
 import { MqttEdgeInspectorModal } from '../components/modals/MqttEdgeInspectorModal/MqttEdgeInspectorModal';
-import { AuthPinModal } from '../components/modals/AuthPinModal';
 import { DeviceConfigModal } from '../components/modals/DeviceConfigModal/DeviceConfigModal';
 import { ProductionSetupModal } from '../components/modals/ProductionSetupModal';
 import { WorkOrderDetailModal } from '../components/modals/WorkOrderDetailModal';
 import { FleetCardsPanel } from './overview/components/panels/FleetCardsPanel';
-import { LayoutDashboard, Tv, Sun, Moon } from 'lucide-react';
+import { Tv, Sun, Moon } from 'lucide-react';
 
 /** Shape handed to child pages through the router outlet context. */
 export interface DashboardOutletContext {
@@ -68,6 +67,8 @@ export const DashboardPage: React.FC = () => {
     getShiftTimelineUseCase: container.getShiftTimelineUseCase,
     authGateway: container.authGateway,
     useBackend: container.useBackend,
+    // FAT-248 (HMI tanpa login): login operator HMI tidak dibutuhkan.
+    loginEnabled: false,
     stationIdEnv: container.stationIdEnv,
     getQueryStationId: () => new URLSearchParams(location.search).get('station'),
   }), [container, location.search]);
@@ -89,26 +90,8 @@ export const DashboardPage: React.FC = () => {
             >
               Coba lagi
             </button>
-            {dashboard.useBackend && (
-              <button
-                type="button"
-                onClick={dashboard.openAuthModal}
-                className={`px-4 py-2 rounded-lg text-sm font-bold cursor-pointer border ${isDark ? 'border-slate-700 hover:bg-slate-800 text-slate-200' : 'border-slate-300 hover:bg-slate-200 text-slate-800'}`}
-              >
-                Login operator
-              </button>
-            )}
           </div>
         </div>
-        <AuthPinModal
-          isOpen={dashboard.isAuthModalOpen}
-          error={dashboard.authError}
-          mode={dashboard.authMode}
-          retryAfterSec={dashboard.retryAfterSec}
-          onClose={dashboard.closeAuthModal}
-          onSubmit={(operatorId, password) => dashboard.loginWithPassword(operatorId, password)}
-          onChangePassword={(current, next) => dashboard.submitPasswordChange(current, next)}
-        />
       </div>
     );
   }
@@ -147,18 +130,6 @@ export const DashboardPage: React.FC = () => {
           <span id="surface-mode-label" title="Mode surface (ADR-0004)" className={`px-2.5 text-[11px] font-bold uppercase tracking-wide ${isDark ? 'text-amber-300' : 'text-blue-700'}`}>
             {dashboard.surface}
           </span>
-          {dashboard.surface === 'andon' && dashboard.useBackend && (
-            <button
-              type="button"
-              id="btn-operator-login"
-              onClick={dashboard.openAuthModal}
-              title="Login operator (station mode)"
-              className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer border ${isDark ? 'border-emerald-700 text-emerald-300 hover:bg-emerald-900/40' : 'border-emerald-300 text-emerald-700 hover:bg-emerald-50'}`}
-            >
-              <LayoutDashboard className="w-3.5 h-3.5" />
-              <span>Login operator</span>
-            </button>
-          )}
           <button type="button"
             id="btn-switch-fullscreen-view"
             onClick={() => navigate('/overview')}
@@ -273,15 +244,6 @@ export const DashboardPage: React.FC = () => {
         onClose={dashboard.closeWorkOrderDetail}
       />
 
-      <AuthPinModal
-        isOpen={dashboard.isAuthModalOpen}
-        error={dashboard.authError}
-        mode={dashboard.authMode}
-        retryAfterSec={dashboard.retryAfterSec}
-        onClose={dashboard.closeAuthModal}
-        onSubmit={(operatorId, password) => dashboard.loginWithPassword(operatorId, password)}
-        onChangePassword={(current, next) => dashboard.submitPasswordChange(current, next)}
-      />
     </div>
   );
 };
