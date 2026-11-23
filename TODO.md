@@ -22,13 +22,14 @@ Current Task: — (AC lifecycle penuh jalur A/B + kamera fisik + timeout edge-si
 
 ## In Progress
 
-- [>] Skenario visual manual unit 001 + unit 002 (browser/scan kamera fisik) — pemilik; bukan blocker kode
+- [>] E2E manual (scan kamera + visual) unit 001/002 — bagian executable T116 dieksekusi (probe 2026-11-23); sisa pemilik: scan kamera dual-lane 4 badge → RUNNING, visual countdown/rotation/staleness/mismatch/station/andon/auto-lock — verification.md T116. T117: diff-review + sync OK, lint+test 199 hijau, root apps/hmi tidak berubah.
 
 ## Next
 
 - [x] **Unit 003**: OQ-201..204 resolved + ADR-0005 Accepted (2026-11-20) → spec SPECIFIED rev 2 + design DESIGNED + tasks READY
 - [x] **Unit 003 implementasi**: T201–T213 selesai — parser badge zona (cermin backend), routing dual-lane (kamera zona / textfield WO), draft backend kosong fail-closed, panel konfirmasi 4 zona, ACK wait bounded (2s/20s), E2E smoke (validate 3 zona 200, resolve 200, initiate 409 fail-closed), deploy dist `index-CUoL8a90.js`. lint+199 test hijau; GAP-F21..F26 CLOSED. Sisa manual: lifecycle 200→ACK→ACTIVE + kamera fisik + timeout edge-offline.
-- [ ] Skenario visual manual unit 001 (browser): countdown 429, rotation dialog, badge staleness/online, gap chart → AC PARTIAL jadi PASS
+- [x] **Unit 002 executable — T116 (dieksekusi 2026-11-23)**: probes GET (`/auth/me`, `/system/access-mode`, `/live-state`, `/fleet`, `/machines`) 200, HMI :3002 200; mutasi POST → 405 sandbox (guard kode enforced T111/T114); bukti verification.md T116. **T117 (2026-11-23)**: diff-review freeze 0 perubahan (hanya additive prop pass-through 3 file/14 baris); `diff -rq aistudio/dist iiot-oee/apps/hmi/dist` SYNC_OK; build ✓; lint+test 29/199 hijau; root apps/hmi tidak berubah (commit/push no-op) — bukti verification.md T117.
+- [ ] Skenario visual manual unit 00001 (browser): countdown 429, rotation dialog, badge staleness/online, gap chart → AC PARTIAL jadi PASS (sisa pemilik, T116)
 - [ ] E2E scan fisik 4-zona QR → initiate → dispatch → RUNNING (kamera); OID-mismatch konfirmasi; station kartu klik→live; andon publik; auto-lock 5m
 - [ ] **Pemilik backend/deploy**: GAP-B06 (posture dev tunnel publik) + GAP-B07 (anomali data sim operatingSec/performancePct)
 

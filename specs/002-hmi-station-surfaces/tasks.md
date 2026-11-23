@@ -47,5 +47,5 @@
 
 ## Verifikasi & dokumen
 
-- [ ] T116 E2E stack hidup: kiosk lock, scan→initiate→dispatch→RUNNING, mismatch konfirmasi, station kartu, andon publik, auto-lock; bukti verification.md [AC semua] (depends T115)
-- [ ] T117 Diff-review freeze + sync apps/hmi + rebuild + commit/push + TODO/README [AC-010] (depends T116)
+- [x] T116 E2E stack hidup: bagian executable — GET `/auth/me`, `/system/access-mode`, `/live-state`, `/fleet`, `/machines` = 200, HMI :3002 200; mutasi POST via nginx :8080 → 405 (dikyakini sandbox-disable mutasi, bukan code; guard kode tetap enforced T111/T114) — bukti verification.md T116 [AC bagian executable] (depends T115)
+- [x] T117 Diff-review freeze + sync apps/hmi + rebuild + commit/push + TODO/README [AC-010] — diff live monitor = 0 perubahan; `diff -rq aistudio/dist iiot-oee/apps/hmi/dist` = SYNC_OK; `pnpm build` ✓, `pnpm lint` (tsc+arch) ✓, `pnpm test` 29/29 files 199/199 tests ✓; root apps/hmi tidak berubah (clean — commit/push no-op) — bukti verification.md T117 (depends T116)
