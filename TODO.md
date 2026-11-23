@@ -6,7 +6,7 @@
 
 Phase: 1 (unit 003 terimplementasi + terdeploy; verifikasi kode/smoke hijau)
 Unit: `specs/003-qr-dual-lane-initiation` (VERIFIED kode+smoke, lifecycle fisik PARTIAL) · `specs/002-hmi-station-surfaces` (verifikasi visual manual pending) · `specs/001-hmi-data-transfer-refresh` (verifikasi visual manual pending)
-Stage: Done — unit 003 T201–T213 selesai; `pnpm lint` hijau, `pnpm test` 199/29 hijau, dist sync `iiot-oee/apps/hmi` (`index-CUoL8a90.js`), nginx :3002 200
+Stage: Done — unit 003 T201–T213 selesai; `pnpm lint` hijau, `pnpm test` 200/29 hijau, dist sync `iiot-oee/apps/hmi` (`index-CANDx4b_.js`), nginx :3002 200; FAT-252 (b) gate aksi sensitif + ADR-0004 §A amandemen (FAT-248/260) — commit `542965f`
 Current Task: — (AC lifecycle penuh jalur A/B + kamera fisik + timeout edge-sim offline = manual pemilik; GAP-F21..F26 CLOSED)
 
 ## Completed
