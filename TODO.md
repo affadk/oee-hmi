@@ -4,10 +4,10 @@
 
 ## Current Position
 
-Phase: 1 (unit 004 SPECIFIED: rantai SDD chooser 2 jalur + ADR-0006 ditulis, belum implementasi) · unit 003 terimplementasi + terdeploy
-Unit: `specs/004-scan-lane-chooser` (SPECIFIED: spec+plan+design+tasks+ADR-0006, 2026-11-23) · `specs/003-qr-dual-lane-initiation` (VERIFIED kode+smoke, lifecycle fisik PARTIAL) · `specs/002-hmi-station-surfaces` (verifikasi visual manual pending) · `specs/001-hmi-data-transfer-refresh` (verifikasi visual manual pending)
-Stage: SDD rantai unit 004 selesai (chooser 2 kartu + pemisahan jalur + semantik config-only START-di-edge; directive pemilik 2026-11-23); implementasi belum dimulai
-Current Task: Unit 004 implementasi (T401–T412): state scanLane + ScanLaneChooser + gating jalur A/B + copy config-only + gate/deploy
+Phase: 1 (unit 004 VERIFIED: chooser 2 jalur + gating + config-only terimplementasi + deploy backend-mode) · unit 003 terimplementasi + terdeploy
+Unit: `specs/004-scan-lane-chooser` (VERIFIED kode+gate+bundle dev; kamera fisik manual, 2026-11-23) · `specs/003-qr-dual-lane-initiation` (VERIFIED kode+smoke, lifecycle fisik PARTIAL) · `specs/002-hmi-station-surfaces` (verifikasi visual manual pending) · `specs/001-hmi-data-transfer-refresh` (verifikasi visual manual pending)
+Stage: unit 004 selesai (T401–T412): chooser 2 kartu + pemisahan jalur A/B + pesan arah lintas jalur + semantik config-only START-di-edge; dev stack backend-mode tanpa mock (useBackend baked true)
+Current Task: verifikasi kamera fisik unit 004 (AC-001/002/003 di perangkat) + OQ-401/OQ-402 (keputusan pemilik)
 
 ## Completed
 
@@ -28,6 +28,7 @@ Current Task: Unit 004 implementasi (T401–T412): state scanLane + ScanLaneChoo
 
 - [x] **Unit 003**: OQ-201..204 resolved + ADR-0005 Accepted (2026-11-20) → spec SPECIFIED rev 2 + design DESIGNED + tasks READY
 - [x] **Unit 003 implementasi**: T201–T213 selesai — parser badge zona (cermin backend), routing dual-lane (kamera zona / textfield WO), draft backend kosong fail-closed, panel konfirmasi 4 zona, ACK wait bounded (2s/20s), E2E smoke (validate 3 zona 200, resolve 200, initiate 409 fail-closed), deploy dist `index-CUoL8a90.js`. lint+199 test hijau; GAP-F21..F26 CLOSED. Sisa manual: lifecycle 200→ACK→ACTIVE + kamera fisik + timeout edge-offline.
+- [x] **Unit 004 implementasi (2026-11-23)**: T401–T412 selesai — state `scanLane` (`CHOOSER`/`ZONE`/`WO`) + `ScanLaneChooser` 2 kartu fokusabel; gating kamera per jalur (QR salah → pesan arah Jalur A/B via `WO_LANE_WRONG_MESSAGE`/`ZONE_LANE_WRONG_MESSAGE`, kamera re-arm `cameraKey++`); textfield WO-saja + badge zona ditolak arah Jalur A; footer "Pilihan Jalur" kembali ke chooser; relabel "Konfigurasi Edge Device" + `START_EDGE_HINT` (START = tombol fisik Edge OEE); simulasi tak berubah. lint hijau + **203 test**/29 file; diff live monitor nol. Build `VITE_USE_BACKEND=true` → dist `index-Cepz0eVU.js` → apps/hmi; :3002 200. Stack backend-mode: `/health` db_connected, ws_clients 1, telemetry live; `/api/v1/machines`+`/work-orders` 200; bundle `useBackend` true (nol mock). Bukti: `specs/004-scan-lane-chooser/verification.md`.
 - [x] **Unit 002 executable — T116 (dieksekusi 2026-11-23)**: probes GET (`/auth/me`, `/system/access-mode`, `/live-state`, `/fleet`, `/machines`) 200, HMI :3002 200; mutasi POST → 405 sandbox (guard kode enforced T111/T114); bukti verification.md T116. **T117 (2026-11-23)**: diff-review freeze 0 perubahan (hanya additive prop pass-through 3 file/14 baris); `diff -rq aistudio/dist iiot-oee/apps/hmi/dist` SYNC_OK; build ✓; lint+test 29/199 hijau; root apps/hmi tidak berubah (commit/push no-op) — bukti verification.md T117.
 - [ ] Skenario visual manual unit 00001 (browser): countdown 429, rotation dialog, badge staleness/online, gap chart → AC PARTIAL jadi PASS (sisa pemilik, T116)
 - [ ] E2E scan fisik 4-zona QR → initiate → dispatch → RUNNING (kamera); OID-mismatch konfirmasi; station kartu klik→live; andon publik; auto-lock 5m

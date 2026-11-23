@@ -35,8 +35,12 @@ export function routeBackendQr(raw: string): QrRoute {
 }
 
 /** Pesan tolak badge zona di textfield manual (directive pemilik: textfield hanya jalur WO). */
-export const ZONE_PASTE_REJECT_MESSAGE =
-  'Badge zona (PID/MID/OID/SID) wajib dipindai via kamera — textfield manual hanya untuk QR WO.';
+/** unit 004 FR-002/003: arah lintas jalur (QR jenis salah di jalur terpilih). */
+export const WO_LANE_WRONG_MESSAGE =
+  'QR WO terdeteksi — gunakan Jalur B: Scan WO Existing untuk konfigurasi dari WO tersimpan.';
+
+export const ZONE_LANE_WRONG_MESSAGE =
+  'Badge zona terdeteksi — gunakan Jalur A: 4 QR Bertahap (produk → mesin → operator → shift).';
 
 /** True bila input textfield adalah badge zona (harus ditolak, arah kamera). */
 export function isZonePaste(raw: string): boolean {

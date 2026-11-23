@@ -230,6 +230,8 @@ export interface UseOeeDashboardReturn {
   canLabelDowntime: boolean;
   canAckAlarm: boolean;
   canEditRegistry: boolean;
+  /** FAT-252 (b): sesi login aktif? false (HMI login-off) → aksi sensitif ditolak. */
+  authenticated: boolean;
   gateReason: string;
 }
 

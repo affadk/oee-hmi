@@ -1,6 +1,6 @@
 // Unit 003 T207: routing dual-lane kamera/textfield (FR-002).
 import { describe, expect, it } from 'vitest';
-import { routeBackendQr, isZonePaste, ZONE_PASTE_REJECT_MESSAGE } from '../src/application/qrRouting';
+import { routeBackendQr, isZonePaste, WO_LANE_WRONG_MESSAGE, ZONE_LANE_WRONG_MESSAGE } from '../src/application/qrRouting';
 
 describe('routeBackendQr', () => {
   it('badge zona → kind zone', () => {
@@ -50,7 +50,24 @@ describe('isZonePaste (directive: textfield hanya jalur WO)', () => {
     expect(isZonePaste('{"type":"OPERATOR","operatorId":"OP-1"}')).toBe(false);
   });
 
-  it('pesan reject menyebut kamera', () => {
-    expect(ZONE_PASTE_REJECT_MESSAGE).toMatch(/kamera/);
+  it('pesan reject mengarah ke Jalur A', () => {
+    expect(ZONE_LANE_WRONG_MESSAGE).toMatch(/Jalur A/);
+  });
+});
+
+// Unit 004 FR-002/003: pesan arah lintas jalur (jenis QR salah di jalur terpilih).
+describe('pesan arah lintas jalur (unit 004)', () => {
+  it('WO di jalur ZONE → arah Jalur B', () => {
+    expect(WO_LANE_WRONG_MESSAGE).toMatch(/Jalur B/);
+    expect(WO_LANE_WRONG_MESSAGE).toMatch(/WO/);
+  });
+
+  it('badge zona di jalur WO → arah Jalur A', () => {
+    expect(ZONE_LANE_WRONG_MESSAGE).toMatch(/Jalur A/);
+    expect(ZONE_LANE_WRONG_MESSAGE).toMatch(/4 QR|4 badge/i);
+  });
+
+  it('pesan arah berbeda satu sama lain', () => {
+    expect(WO_LANE_WRONG_MESSAGE).not.toBe(ZONE_LANE_WRONG_MESSAGE);
   });
 });

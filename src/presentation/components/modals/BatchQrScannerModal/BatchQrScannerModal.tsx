@@ -55,11 +55,12 @@ import {
   type QrSchedulePreset,
 } from '../../../../domain/entities/BatchQr';
 import type { ParsedZoneBadge } from '../../../../domain/entities/QrZoneBadge';
-import { routeBackendQr, isZonePaste, ZONE_PASTE_REJECT_MESSAGE } from '../../../../application/qrRouting';
+import { routeBackendQr, isZonePaste, WO_LANE_WRONG_MESSAGE, ZONE_LANE_WRONG_MESSAGE } from '../../../../application/qrRouting';
 import { STEPS } from './BatchQrStepper';
 import { BatchQrStepper } from './BatchQrStepper';
 import { QrDraftSummary } from './QrDraftSummary';
 import { QrScanInput } from './QrScanInput';
+import { ScanLaneChooser, START_EDGE_HINT } from './steps/ScanLaneChooser';
 import { ProductStep } from './steps/ProductStep';
 import { MachineStep } from './steps/MachineStep';
 import { OperatorStep } from './steps/OperatorStep';
@@ -116,6 +117,9 @@ interface Toast {
   kind: 'success' | 'error' | 'info';
   message: string;
 }
+
+/** unit 004 FR-001: backend-mode pilih jalur dulu (CHOOSER) sebelum input aktif. */
+type ScanLane = 'CHOOSER' | 'ZONE' | 'WO';
 
 /** Lane simulasi saja: draft dari konfigurasi mesin + katalog (perilaku lama). */
 function draftFromMachine(machine: MachineConfig): BatchDraft {
@@ -187,6 +191,8 @@ export const BatchQrScannerModal: React.FC<BatchQrScannerModalProps> = ({
   const [confirmingOidMismatch, setConfirmingOidMismatch] = useState(false);
   // unit 003: WO hasil initiate (jalur A) — status ACK via prop ackWait.
   const [initiatedWo, setInitiatedWo] = useState<string | null>(null);
+  // unit 004 FR-001: lane backend-mode; simulasi tak pakai chooser (default ZONE).
+  const [scanLane, setScanLane] = useState<ScanLane>(backendMode ? 'CHOOSER' : 'ZONE');
 
   const dialogRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -208,6 +214,7 @@ export const BatchQrScannerModal: React.FC<BatchQrScannerModalProps> = ({
       setCameraError(null);
       setInitiatedWo(null);
       setConfirmingOidMismatch(false);
+      setScanLane(backendMode ? 'CHOOSER' : 'ZONE');
       setCameraKey((k) => k + 1);
       // Fokus ke kolom QR setelah mount untuk alur keyboard.
       const t = setTimeout(() => inputRef.current?.focus(), 60);
@@ -486,7 +493,7 @@ export const BatchQrScannerModal: React.FC<BatchQrScannerModalProps> = ({
     async (raw: string) => {
       // Directive pemilik: textfield manual hanya jalur WO; badge zona wajib kamera.
       if (isZonePaste(raw)) {
-        showToast('error', ZONE_PASTE_REJECT_MESSAGE);
+        showToast('error', ZONE_LANE_WRONG_MESSAGE);
         return;
       }
       let woId = '';
@@ -506,23 +513,45 @@ export const BatchQrScannerModal: React.FC<BatchQrScannerModalProps> = ({
     [resolveWo, showToast],
   );
 
-  // Routing tunggal kamera backend-mode: zona → draft; WO → resolve; else error.
+  // unit 004: gating kamera per jalur. ZONE hanya badge zona (re-arm tiap badge);
+  // WO hanya QR WO. Jenis salah → pesan arah, tak menyentuh draft.
   const handleCameraScan = useCallback(
     (text: string) => {
       setManualQr(text);
       const route = routeBackendQr(text);
-      if (route.kind === 'zone') {
-        applyZoneBadge(route.badge);
+      if (scanLane === 'ZONE') {
+        if (route.kind === 'zone') {
+          applyZoneBadge(route.badge);
+          setCameraKey((k) => k + 1); // re-arm untuk badge berikutnya
+          return;
+        }
+        showToast('error', route.kind === 'wo' ? WO_LANE_WRONG_MESSAGE : route.message);
+        setCameraKey((k) => k + 1);
         return;
       }
+      // scanLane === 'WO'
       if (route.kind === 'wo') {
         void resolveWo(route.woId);
         return;
       }
-      showToast('error', route.message);
+      showToast('error', route.kind === 'zone' ? ZONE_LANE_WRONG_MESSAGE : route.message);
+      setCameraKey((k) => k + 1);
     },
-    [applyZoneBadge, resolveWo, showToast],
+    [scanLane, applyZoneBadge, resolveWo, showToast],
   );
+
+  // unit 004 FR-005: pilih / ganti jalur. Reset draft + kamera; chooser = kembali.
+  const chooseLane = useCallback((lane: ScanLane) => {
+    setScanLane(lane);
+    setDraft(backendMode ? emptyBatchDraft() : draftFromMachine(machine));
+    setScannedWo(null);
+    setInitiatedWo(null);
+    setManualQr('');
+    setCameraError(null);
+    setApplied(false);
+    setStep('PRODUCT');
+    setCameraKey((k) => k + 1);
+  }, [backendMode, machine]);
 
   // unit 002 FR-004/005: initiate 4 zona (konfirmasi OID-mismatch ditangani di atas).
   const handleInitiateFromZones = useCallback(async () => {
@@ -573,6 +602,12 @@ export const BatchQrScannerModal: React.FC<BatchQrScannerModalProps> = ({
   }, [onInitiateFromZones, draft, machine, line, sessionOperatorId, confirmingOidMismatch, showToast]);
 
   if (!isOpen) return null;
+
+  // unit 004: peta render per jalur.
+  const showChooser = backendMode && scanLane === 'CHOOSER';
+  const showWoLane = backendMode && scanLane === 'WO';
+  const showZoneLane = !backendMode || scanLane === 'ZONE';
+  const laneActive = !backendMode || scanLane !== 'CHOOSER';
 
   const goStep = (id: QrBatchStep) => {
     setStep(id);
@@ -730,8 +765,8 @@ export const BatchQrScannerModal: React.FC<BatchQrScannerModalProps> = ({
           </div>
         </div>
 
-        {/* Stepper */}
-        <BatchQrStepper ctx={ctx} />
+        {/* Stepper + ringkasan zona hanya Jalur A / simulasi (FR-006). */}
+        {showZoneLane && <BatchQrStepper ctx={ctx} />}
 
         {/* Toast */}
         <div aria-live="polite" className="shrink-0">
@@ -761,11 +796,11 @@ export const BatchQrScannerModal: React.FC<BatchQrScannerModalProps> = ({
           )}
         </div>
 
-        {/* Ringkasan draft aktif — selalu terlihat */}
-        <QrDraftSummary ctx={ctx} />
+        {/* Ringkasan draft aktif — hanya Jalur A / simulasi */}
+        {showZoneLane && <QrDraftSummary ctx={ctx} />}
 
-        {/* Backend lane: kamera nyata (satu-satunya jalan badge zona) + input WO manual. */}
-        {backendMode && (
+        {/* Backend lane: kamera nyata per jalur + input WO manual (Jalur B). */}
+        {backendMode && laneActive && (
           <div className="mb-3 space-y-2">
             <QrCameraScanner
               key={cameraKey}
@@ -791,16 +826,21 @@ export const BatchQrScannerModal: React.FC<BatchQrScannerModalProps> = ({
           </div>
         )}
 
-        {/* Input QR manual — backend: hanya jalur WO; simulasi: semua langkah. */}
-        <QrScanInput ctx={ctx} placeholder={manualPlaceholder} inputRef={inputRef} backendMode={backendMode} />
+        {/* Input QR manual — backend: hanya Jalur B (WO); simulasi: semua langkah. */}
+        {(!backendMode || showWoLane) && (
+          <QrScanInput ctx={ctx} placeholder={manualPlaceholder} inputRef={inputRef} backendMode={backendMode} />
+        )}
 
-        {/* Isi langkah */}
+        {/* Isi langkah / chooser */}
+        {showChooser ? (
+          <ScanLaneChooser ctx={ctx} onPickZone={() => chooseLane('ZONE')} onPickWo={() => chooseLane('WO')} />
+        ) : (
         <div className="space-y-2 max-h-[280px] overflow-y-auto pr-1 min-h-[180px]">
           {step === 'PRODUCT' && !backendMode && <ProductStep ctx={ctx} />}
           {step === 'MACHINE' && !backendMode && <MachineStep ctx={ctx} />}
           {step === 'OPERATOR' && !backendMode && <OperatorStep ctx={ctx} />}
           {step === 'SCHEDULE' && !backendMode && <ScheduleStep ctx={ctx} />}
-          {backendMode && step !== 'REVIEW' && <BackendZoneStep ctx={ctx} />}
+          {showZoneLane && backendMode && step !== 'REVIEW' && <BackendZoneStep ctx={ctx} />}
           {step === 'REVIEW' && !backendMode && <ReviewStep ctx={ctx} />}
           {step === 'REVIEW' && backendMode && (
             <div className="space-y-2">
@@ -844,24 +884,52 @@ export const BatchQrScannerModal: React.FC<BatchQrScannerModalProps> = ({
             </div>
           )}
         </div>
+        )}
 
         {/* Footer navigasi */}
         <div className={cx('mt-4 pt-3 border-t flex items-center justify-between gap-2 flex-wrap', tx(themeTokens.divider, isDark))}>
-          <button
-            type="button"
-            onClick={handleReset}
-            title={backendMode ? 'Kosongkan draft 4 zona' : 'Kembalikan draft ke konfigurasi aktif'}
-            className={cx(
-              'px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer border',
-              isDark ? 'border-slate-700 text-slate-300 hover:bg-slate-800' : 'border-slate-300 text-slate-600 hover:bg-slate-100',
+          <div className="flex items-center gap-2">
+            {backendMode && laneActive && (
+              <button
+                type="button"
+                onClick={() => chooseLane('CHOOSER')}
+                title="Ganti jalur scan"
+                className={cx(
+                  'px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer border',
+                  isDark ? 'border-slate-700 text-slate-300 hover:bg-slate-800' : 'border-slate-300 text-slate-600 hover:bg-slate-100',
+                )}
+              >
+                <ArrowLeft className="w-3.5 h-3.5" />
+                Pilihan Jalur
+              </button>
             )}
-          >
-            <RotateCcw className="w-3.5 h-3.5" />
-            Reset
-          </button>
+            {!showChooser && (
+              <button
+                type="button"
+                onClick={handleReset}
+                title={backendMode ? 'Kosongkan draft' : 'Kembalikan draft ke konfigurasi aktif'}
+                className={cx(
+                  'px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer border',
+                  isDark ? 'border-slate-700 text-slate-300 hover:bg-slate-800' : 'border-slate-300 text-slate-600 hover:bg-slate-100',
+                )}
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                Reset
+              </button>
+            )}
+          </div>
 
           <div className="flex items-center gap-2">
-            {stepIndex > 0 && (
+            {showChooser && (
+              <button
+                type="button"
+                onClick={onClose}
+                className={cx('px-4 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer', tx(themeTokens.footerButton, isDark))}
+              >
+                Batal
+              </button>
+            )}
+            {!showChooser && showZoneLane && stepIndex > 0 && (
               <button
                 type="button"
                 onClick={ctx.onBack}
@@ -871,7 +939,7 @@ export const BatchQrScannerModal: React.FC<BatchQrScannerModalProps> = ({
                 Kembali
               </button>
             )}
-            {stepIndex < STEPS.length - 1 ? (
+            {!showChooser && showZoneLane && stepIndex < STEPS.length - 1 ? (
               <button
                 type="button"
                 onClick={ctx.onNext}
@@ -880,7 +948,7 @@ export const BatchQrScannerModal: React.FC<BatchQrScannerModalProps> = ({
                 Lanjut
                 <ArrowRight className="w-3.5 h-3.5" />
               </button>
-            ) : (
+            ) : !showChooser ? (
               <>
                 <button
                   type="button"
@@ -889,7 +957,7 @@ export const BatchQrScannerModal: React.FC<BatchQrScannerModalProps> = ({
                 >
                   {applied ? 'Selesai' : 'Batal'}
                 </button>
-                {backendMode && onInitiateFromZones && !scannedWo ? (
+                {showZoneLane && backendMode && onInitiateFromZones && !scannedWo ? (
                   <button
                     type="button"
                     onClick={() => void handleInitiateFromZones()}
@@ -909,13 +977,13 @@ export const BatchQrScannerModal: React.FC<BatchQrScannerModalProps> = ({
                     type="button"
                     onClick={onProceedToSetup}
                     disabled={!workOrderPreview || workOrderPreview.woId !== scannedWo}
-                    title="Tutup pemindai dan buka Setup Produksi dengan WO ini"
+                    title="Buka Setup Produksi untuk mengonfigurasi edge device dari WO ini (START = tombol fisik di Edge OEE)"
                     className="px-4 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
                   >
                     <ClipboardCheck className="w-3.5 h-3.5" />
-                    Mulai Setup Produksi
+                    Konfigurasi Edge Device
                   </button>
-                ) : (
+                ) : !backendMode ? (
                   <button
                     type="button"
                     onClick={handleApplyBatch}
@@ -926,15 +994,15 @@ export const BatchQrScannerModal: React.FC<BatchQrScannerModalProps> = ({
                     {applying ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ClipboardCheck className="w-3.5 h-3.5" />}
                     {applying ? 'Menerapkan…' : applied ? 'Terapkan Ulang' : 'Terapkan Batch'}
                   </button>
-                )}
+                ) : null}
               </>
-            )}
+            ) : null}
           </div>
         </div>
 
         <p className={cx('mt-2 text-[11px] font-mono', tx(themeTokens.textFaint, isDark))}>
           {backendMode
-            ? '* Konfirmasi mengirim SET_JOB_CONFIG (WO baru + dispatch) ke edge controller; START hanya setelah ACK ACTIVE. Jalur WO: dispatch via Setup Produksi.'
+            ? `${START_EDGE_HINT} SET_JOB_CONFIG (WO + dispatch) hanya mengonfigurasi edge; START logging = tombol fisik di Edge OEE setelah ACK ACTIVE.`
             : '* Menerapkan batch mengirim SET_JOB_CONFIG (WO, produk, operator, target, cycle) + override shift ke edge controller.'}
         </p>
       </div>
