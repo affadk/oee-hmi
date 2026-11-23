@@ -56,6 +56,16 @@ Menetapkan empat surface dengan peran tegas sesuai definisi HMI standar (HMI lok
 - **FR-009** Historical/audit/export/master/IAM tidak tersedia di surface HMI/Station/Andon; pesan pengarahan ke admin-panel; rute `/audit` v2 dikeluarkan bertahap sesuai OQ-103.
 - **FR-010** Kiosk auto-lock aksi mutasi setelah inaktivitas: default **5 menit** paritas v1 (`VITE_INACTIVITY_TIMEOUT_MS`, env-configurable); pause saat tab hidden; buka kunci = login ulang; data live tetap tampil saat terkunci.
 
+### Amandemen FAT-248/252/260 (2026-11-23, ADR-0004 §A)
+
+Amandemen ini menggantikan FR-003/005/006/007/010 dan AC-002/004/005/009 sejauh bertentangan. Teks di atas dipertahankan sebagai jejak historis.
+
+- **FR-003 (amandemen)** Kiosk tidak memakai sesi login password; start/logging jalan tanpa sesi. Atribusi operator dari badge OID zona 4-QR, bukan JWT. Modul `useAuthSession` tetap ada namun `loginEnabled=false` pada deployment HMI.
+- **FR-005 (amandemen)** OID QR = identitas operator (bukan pembanding sesi); tidak ada login untuk dibandingkan. Atribusi ganda WO.operator_id (zona) + audit backend tetap.
+- **FR-006 (amandemen)** Station = identitas terminal HMI terikat satu mesin (`VITE_STATION_ID`/query tervalidasi registry), bukan surface login-first + fleet multi-mesin. Kredensial per-station (broker DynSec, FR-043-25). Fleet agregat → Andon/admin-panel.
+- **FR-007 (amandemen)** Aksi sensitif (`work_order.cancel`, `machine.update`, `device.update` — `SENSITIVE_KEYS` di `src/application/capabilityGate.ts`) TIDAK tersedia di HMI login-off: tombol nonaktif + alasan "tersedia di admin-panel" (FAT-252 opsi b). Start/stop/logging tetap tanpa login. Backend RBAC tidak berubah.
+- **FR-010 (amandemen)** Auto-lock inactivity + unlock = login ulang tidak berlaku pada kiosk login-off; tidak ada sesi untuk dikunci. Data live tetap tampil.
+
 ## 6. Business Rules
 
 - BR-001 (unit 001) LAN-only aktuasi; tunnel read-only.

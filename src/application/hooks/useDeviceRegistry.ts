@@ -17,6 +17,8 @@ export interface DeviceRegistryDeps {
   runProtected: <T>(action: () => Promise<T>) => Promise<T | void>;
   capabilities: import('../../domain/ports/IOeeBackend').CapabilityMap | null;
   mutationsAllowed: boolean | null;
+  /** FAT-252 (b): sesi login aktif — aksi sensitif (device.update/machine.update) ditolak bila false. */
+  authenticated?: boolean;
   setMachines: React.Dispatch<React.SetStateAction<MachineConfig[]>>;
 }
 
@@ -36,7 +38,7 @@ export interface DeviceRegistryApi {
 }
 
 export function useDeviceRegistry(deps: DeviceRegistryDeps): DeviceRegistryApi {
-  const { useBackend, configureDeviceUseCase, getMachinesUseCase, runProtected, capabilities, mutationsAllowed, setMachines } = deps;
+  const { useBackend, configureDeviceUseCase, getMachinesUseCase, runProtected, capabilities, mutationsAllowed, authenticated, setMachines } = deps;
 
   const [isDeviceConfigModalOpen, setIsDeviceConfigModalOpen] = useState<boolean>(false);
   const [deviceRegistry, setDeviceRegistry] = useState<{ devices: DeviceRecord[]; machines: MachineRecord[] } | null>(null);
@@ -75,7 +77,7 @@ export function useDeviceRegistry(deps: DeviceRegistryDeps): DeviceRegistryApi {
   const closeDeviceConfigModal = useCallback(() => setIsDeviceConfigModalOpen(false), []);
 
   const saveDeviceMetadata = useCallback(async (deviceId: string, patch: { ipAddress?: string; firmwareVersion?: string }) => {
-    const gate = canMutate({ useBackend, mutationsAllowed, capabilities, key: 'device.update' });
+    const gate = canMutate({ useBackend, mutationsAllowed, capabilities, authenticated, key: 'device.update' });
     if (!gate.allowed) throw new Error(gate.reason);
     if (!useBackend) throw new Error('Konfigurasi perangkat hanya tersedia pada mode backend.');
     await runProtected(async () => {
@@ -83,10 +85,10 @@ export function useDeviceRegistry(deps: DeviceRegistryDeps): DeviceRegistryApi {
       const registry = await configureDeviceUseCase.loadRegistry();
       setDeviceRegistry(registry);
     });
-  }, [configureDeviceUseCase, runProtected, useBackend, useBackend, mutationsAllowed, capabilities]);
+  }, [configureDeviceUseCase, runProtected, useBackend, mutationsAllowed, capabilities, authenticated]);
 
   const saveMachineMetadata = useCallback(async (machineId: string, patch: MachineMetadataPatch) => {
-    const gate = canMutate({ useBackend, mutationsAllowed, capabilities, key: 'machine.update' });
+    const gate = canMutate({ useBackend, mutationsAllowed, capabilities, authenticated, key: 'machine.update' });
     if (!gate.allowed) throw new Error(gate.reason);
     if (!useBackend) throw new Error('Konfigurasi mesin hanya tersedia pada mode backend.');
     await runProtected(async () => {
@@ -94,10 +96,10 @@ export function useDeviceRegistry(deps: DeviceRegistryDeps): DeviceRegistryApi {
       const registry = await configureDeviceUseCase.loadRegistry();
       setDeviceRegistry(registry);
     });
-  }, [configureDeviceUseCase, runProtected, useBackend, useBackend, mutationsAllowed, capabilities]);
+  }, [configureDeviceUseCase, runProtected, useBackend, mutationsAllowed, capabilities, authenticated]);
 
   const bindDeviceToMachine = useCallback(async (machineId: string, deviceId: string) => {
-    const gate = canMutate({ useBackend, mutationsAllowed, capabilities, key: 'machine.update' });
+    const gate = canMutate({ useBackend, mutationsAllowed, capabilities, authenticated, key: 'machine.update' });
     if (!gate.allowed) throw new Error(gate.reason);
     if (!useBackend) throw new Error('Binding perangkat hanya tersedia pada mode backend.');
     await runProtected(async () => {
@@ -109,10 +111,10 @@ export function useDeviceRegistry(deps: DeviceRegistryDeps): DeviceRegistryApi {
       setDeviceRegistry(registry);
       setMachines(machineList);
     });
-  }, [configureDeviceUseCase, getMachinesUseCase, runProtected, setMachines, useBackend, useBackend, mutationsAllowed, capabilities]);
+  }, [configureDeviceUseCase, getMachinesUseCase, runProtected, setMachines, useBackend, mutationsAllowed, capabilities, authenticated]);
 
   const unbindDeviceFromMachine = useCallback(async (machineId: string) => {
-    const gate = canMutate({ useBackend, mutationsAllowed, capabilities, key: 'machine.update' });
+    const gate = canMutate({ useBackend, mutationsAllowed, capabilities, authenticated, key: 'machine.update' });
     if (!gate.allowed) throw new Error(gate.reason);
     if (!useBackend) throw new Error('Unbind perangkat hanya tersedia pada mode backend.');
     await runProtected(async () => {
@@ -124,7 +126,7 @@ export function useDeviceRegistry(deps: DeviceRegistryDeps): DeviceRegistryApi {
       setDeviceRegistry(registry);
       setMachines(machineList);
     });
-  }, [configureDeviceUseCase, getMachinesUseCase, runProtected, setMachines, useBackend, useBackend, mutationsAllowed, capabilities]);
+  }, [configureDeviceUseCase, getMachinesUseCase, runProtected, setMachines, useBackend, mutationsAllowed, capabilities, authenticated]);
 
   return {
     isDeviceConfigModalOpen,

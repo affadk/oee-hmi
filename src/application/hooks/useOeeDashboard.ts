@@ -373,6 +373,7 @@ export function useOeeDashboard(deps: OeeDashboardDeps): UseOeeDashboardReturn {
     runProtected: auth.runProtected as <T>(action: () => Promise<T>) => Promise<T | void>,
     capabilities: auth.capabilities,
     mutationsAllowed: auth.mutationsAllowed,
+    authenticated: auth.hasAuthToken(),
     setMachines: machines.setMachines,
   });
 
@@ -448,6 +449,7 @@ export function useOeeDashboard(deps: OeeDashboardDeps): UseOeeDashboardReturn {
     runProtected: auth.runProtected as <T>(action: () => Promise<T>) => Promise<T | void>,
     capabilities: auth.capabilities,
     mutationsAllowed: auth.mutationsAllowed,
+    authenticated: auth.hasAuthToken(),
     setMachines: machines.setMachines,
   });
 
@@ -571,13 +573,15 @@ export function useOeeDashboard(deps: OeeDashboardDeps): UseOeeDashboardReturn {
     mutationsAllowed: auth.mutationsAllowed,
     logoutOperator: auth.logoutOperator,
     // FR-007/008: boolean gate untuk disable tombol (alasan via gateReason*).
-    canSendCommands: canMutate({ useBackend, mutationsAllowed: auth.mutationsAllowed, capabilities: auth.capabilities, key: 'device_command.send' }).allowed,
-    canDispatchWorkOrder: canMutate({ useBackend, mutationsAllowed: auth.mutationsAllowed, capabilities: auth.capabilities, key: 'work_order.dispatch' }).allowed,
-    canCompleteWorkOrder: canMutate({ useBackend, mutationsAllowed: auth.mutationsAllowed, capabilities: auth.capabilities, key: 'work_order.update' }).allowed,
-    canCancelWorkOrder: canMutate({ useBackend, mutationsAllowed: auth.mutationsAllowed, capabilities: auth.capabilities, key: 'work_order.cancel' }).allowed,
-    canLabelDowntime: canMutate({ useBackend, mutationsAllowed: auth.mutationsAllowed, capabilities: auth.capabilities, key: 'downtime.reason.label' }).allowed,
-    canAckAlarm: canMutate({ useBackend, mutationsAllowed: auth.mutationsAllowed, capabilities: auth.capabilities, key: 'operational_event.ack' }).allowed,
-    canEditRegistry: canMutate({ useBackend, mutationsAllowed: auth.mutationsAllowed, capabilities: auth.capabilities, key: 'machine.update' }).allowed,
+    // FAT-252 (b): sesi login aktif? false (HMI login-off) → aksi sensitif ditolak.
+    authenticated: auth.hasAuthToken(),
+    canSendCommands: canMutate({ useBackend, mutationsAllowed: auth.mutationsAllowed, capabilities: auth.capabilities, key: 'device_command.send', authenticated: auth.hasAuthToken() }).allowed,
+    canDispatchWorkOrder: canMutate({ useBackend, mutationsAllowed: auth.mutationsAllowed, capabilities: auth.capabilities, key: 'work_order.dispatch', authenticated: auth.hasAuthToken() }).allowed,
+    canCompleteWorkOrder: canMutate({ useBackend, mutationsAllowed: auth.mutationsAllowed, capabilities: auth.capabilities, key: 'work_order.update', authenticated: auth.hasAuthToken() }).allowed,
+    canCancelWorkOrder: canMutate({ useBackend, mutationsAllowed: auth.mutationsAllowed, capabilities: auth.capabilities, key: 'work_order.cancel', authenticated: auth.hasAuthToken() }).allowed,
+    canLabelDowntime: canMutate({ useBackend, mutationsAllowed: auth.mutationsAllowed, capabilities: auth.capabilities, key: 'downtime.reason.label', authenticated: auth.hasAuthToken() }).allowed,
+    canAckAlarm: canMutate({ useBackend, mutationsAllowed: auth.mutationsAllowed, capabilities: auth.capabilities, key: 'operational_event.ack', authenticated: auth.hasAuthToken() }).allowed,
+    canEditRegistry: canMutate({ useBackend, mutationsAllowed: auth.mutationsAllowed, capabilities: auth.capabilities, key: 'machine.update', authenticated: auth.hasAuthToken() }).allowed,
     gateReason: canMutate({ useBackend, mutationsAllowed: auth.mutationsAllowed, capabilities: auth.capabilities, key: 'device_command.send' }).reason,
   };
 }

@@ -3,6 +3,7 @@
 **Status:** Accepted
 **Acceptance:** pemilik repo, 2026-11-20 (jawaban eksplisit acceptance)
 **Tanggal:** 2026-11-20
+**Amandemen:** 2026-11-23 (FAT-248/260, lihat §A)
 **Unit terkait:** `specs/002-hmi-station-surfaces`
 **Acuan:** Wikipedia *User interface* §Terminology (HMI lokal satu mesin vs operator interface multi-mesin); API_DOCUMENTATION §C.7/8 (4-zone QR), §C.4 (dispatch auth), §L (login), §B/§F (public read); preseden v1 `iiot-oee/apps/frontend` (StationPage/AndonPage/SupervisorPage/MultiZoneWizardModal); directive produk pemilik repo 2026-11-20.
 
@@ -30,4 +31,28 @@ Repo v2 menggabung semua peran dalam satu shell (`/overview` live + `/audit` his
 
 - Positif: peran jelas sesuai standar industri; kiosk aman & fokus; station supervisory terotentikasi; HMI ringan (tanpa historical); reuse maksimal v1+v2.
 - Negatif/biaya: empat surface = empat konfigurasi deployment; sesi operator kiosk wajib (login per shift) menambah langkah dibanding QR-saja; pemindahan `/audit` butuh sequencing agar tidak ada vacuum historical sebelum admin-panel siap (OQ-103).
+
+---
+
+## §A — Amandemen 2026-11-23 (FAT-248 / FAT-252 / FAT-260)
+
+**Status amandemen:** Accepted (directive produk pemilik repo 2026-11-23; opsi (a) untuk FAT-248/249/260, opsi (b) untuk FAT-252).
+
+**Konteks:** v2 menghapus gerbang login password operator di HMI kiosk. Operator shopfloor tidak punya akun per-user; identitas operator sudah datang dari badge OID di 4-zone QR (spec 043) sehingga sesi login = friksi tanpa nilai. Aksi sensitif tidak boleh dari HMI.
+
+**Keputusan (menggantikan sebagian §Keputusan butir 3–4 dan §Konsekuensi negatif "sesi operator kiosk wajib"):**
+
+1. **HMI tanpa login operator.** Kiosk live tidak menuntut sesi operator. Start via tombol fisik + 4 QR; logging/atribusi dari badge OID zona (bukan JWT sesi). Sesi login tetap ada di kode (`useAuthSession`) namun dimatikan pada deployment HMI (`loginEnabled=false` di `DashboardPage`); jalur login password tidak dihapus agar surface yang membutuhkan tetap dapat mengaktifkan kembali.
+
+2. **Station = identitas terminal HMI (menggantikan "Station login-first").** "Station" bukan surface login-first dengan fleet multi-mesin, melainkan terminal HMI terikat satu mesin (`VITE_STATION_ID`/query tervalidasi registry), dikomisionkan sekali, diidentifikasi lewat kredensial terminal (broker DynSec per-station, FR-043-25). Fleet multi-mesin di HMI dihapus — agregat fleet ada di Andon (read-only) dan admin-panel.
+
+3. **Aksi sensitif → admin-panel (FAT-252, opsi b).** HMI login-off tidak dapat: batalkan WO (`work_order.cancel`), ubah konfigurasi mesin (`machine.update`/`device.update`). Gate `canMutate` menolak kunci sensitif saat tanpa sesi (`authenticated:false`) dengan tombol nonaktif + alasan "tersedia di admin-panel", bukan 403 buta. Daftar aksi sensitif di `SENSITIVE_KEYS` (`src/application/capabilityGate.ts`). Start/stop/logging tetap tanpa login.
+
+4. **Otorisasi backend tidak berubah.** RBAC backend tetap per-rute; amandemen hanya menggeser *di mana* aksi sensitif diekspos di UI (HMI → admin-panel), bukan melonggarkan backend. Dispatch/ack shadow-mode (operatorAuth) tetap.
+
+**Konsekuensi (memperbarui §Konsekuensi):**
+- HMI tidak lagi menuntut login password; modul auth tetap untuk admin-panel/station yang memerlukan.
+- Surface "Station" kehilangan peran login-first + fleet; definisi terminal terikat-mesin menggantikan.
+- Aksi sensitif hanya lewat admin-panel (login Spec 044).
+- Sesi operator shift hilang sebagai konsep operasional HMI; atribusi via badge OID + audit backend.
 - Netral: unit 001 tidak berubah arah; kontrak backend tidak diubah; gap guard initiate-from-zones dieskalasi via probe (GAP-B04/B05).

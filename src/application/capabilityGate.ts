@@ -9,11 +9,22 @@
 
 import type { CapabilityMap } from '../domain/ports/IOeeBackend';
 
+// FAT-252 (option b): aksi sensitif = batalkan WO, ubah konfigurasi mesin,
+// edit data master. Hanya boleh dari admin-panel (login Spec 044). HMI
+// login-off tidak punya sesi → gate menolak (tombol nonaktif), bukan 403 buta.
+export const SENSITIVE_KEYS: ReadonlySet<string> = new Set([
+  'work_order.cancel',
+  'machine.update',
+  'device.update',
+]);
+
 export interface MutationGateInput {
   useBackend: boolean;
   mutationsAllowed: boolean | null;
   capabilities: CapabilityMap | null;
   key: string;
+  /** Sesi login aktif? false = HMI login-off → aksi sensitif ditolak (FAT-252). */
+  authenticated?: boolean;
 }
 
 export interface MutationGateResult {
@@ -23,6 +34,9 @@ export interface MutationGateResult {
 
 export function canMutate(input: MutationGateInput): MutationGateResult {
   if (!input.useBackend) return { allowed: true, reason: '' }; // lane simulasi
+  if (input.authenticated === false && SENSITIVE_KEYS.has(input.key)) {
+    return { allowed: false, reason: 'Aksi sensitif hanya tersedia di admin-panel (FAT-252).' };
+  }
   if (input.mutationsAllowed === false) {
     return { allowed: false, reason: 'Mode read-only: mutasi dinonaktifkan pada kanal ini (tunnel).' };
   }

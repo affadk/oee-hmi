@@ -28,6 +28,8 @@ export interface WorkOrdersDeps {
   runProtected: <T>(action: () => Promise<T>) => Promise<T | void>;
   capabilities: import('../../domain/ports/IOeeBackend').CapabilityMap | null;
   mutationsAllowed: boolean | null;
+  /** FAT-252 (b): sesi login aktif — aksi sensitif (device.update/machine.update) ditolak bila false. */
+  authenticated?: boolean;
   setMachines: React.Dispatch<React.SetStateAction<MachineConfig[]>>;
 }
 
@@ -57,7 +59,7 @@ export interface WorkOrdersApi {
 }
 
 export function useWorkOrders(deps: WorkOrdersDeps): WorkOrdersApi {
-  const { useBackend, currentDeviceId, currentTotalCount, listWorkOrdersUseCase, getMachinesUseCase, runProtected, capabilities, mutationsAllowed, setMachines } = deps;
+  const { useBackend, currentDeviceId, currentTotalCount, listWorkOrdersUseCase, getMachinesUseCase, runProtected, capabilities, mutationsAllowed, authenticated, setMachines } = deps;
 
   const [isProductionSetupModalOpen, setIsProductionSetupModalOpen] = useState<boolean>(false);
   const [pendingWorkOrders, setPendingWorkOrders] = useState<WorkOrderListItem[]>([]);
@@ -185,7 +187,7 @@ export function useWorkOrders(deps: WorkOrdersDeps): WorkOrdersApi {
   }, [currentTotalCount, getMachinesUseCase, listWorkOrdersUseCase, runProtected, setMachines, useBackend, useBackend, mutationsAllowed, capabilities]);
 
   const cancelWorkOrder = useCallback(async (woId: string, reason?: string) => {
-    const gate = canMutate({ useBackend, mutationsAllowed, capabilities, key: 'work_order.cancel' });
+    const gate = canMutate({ useBackend, mutationsAllowed, capabilities, authenticated, key: 'work_order.cancel' });
     if (!gate.allowed) { setProductionSetupError(gate.reason); throw new Error(gate.reason); }
     if (!useBackend) throw new Error('Cancel work order hanya tersedia pada mode backend.');
     setProductionSetupBusy(true);
@@ -201,7 +203,7 @@ export function useWorkOrders(deps: WorkOrdersDeps): WorkOrdersApi {
     } finally {
       setProductionSetupBusy(false);
     }
-  }, [getMachinesUseCase, listWorkOrdersUseCase, runProtected, setMachines, useBackend, useBackend, mutationsAllowed, capabilities]);
+  }, [getMachinesUseCase, listWorkOrdersUseCase, runProtected, setMachines, useBackend, mutationsAllowed, capabilities, authenticated]);
 
   // unit 002 FR-004: validate 4 zona berurutan (error per zona) → initiate.
   // initiate-from-zones backend SUDAH dispatch (MQTT config + watchdog tx);

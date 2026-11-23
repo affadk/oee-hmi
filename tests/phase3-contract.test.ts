@@ -85,6 +85,15 @@ describe('canMutate — fail-closed (FR-007/008, OQ-004)', () => {
   it('lane simulasi → boleh tanpa capability', () => {
     expect(canMutate({ ...base, useBackend: false, capabilities: null }).allowed).toBe(true);
   });
+  it('FAT-252 (b): aksi sensitif ditolak tanpa sesi login', () => {
+    // HMI login-off (authenticated:false) — start/stop tetap boleh, sensitif tidak.
+    expect(canMutate({ ...base, key: 'device_command.send', authenticated: false }).allowed).toBe(true);
+    expect(canMutate({ ...base, key: 'work_order.cancel', authenticated: false }).allowed).toBe(false);
+    expect(canMutate({ ...base, key: 'machine.update', authenticated: false }).reason).toContain('admin-panel');
+    expect(canMutate({ ...base, key: 'device.update', authenticated: false }).allowed).toBe(false);
+    // Dengan sesi login → sensitif mengikuti capability (tidak diblok gate sesi).
+    expect(canMutate({ ...base, key: 'work_order.cancel', authenticated: true, capabilities: null }).allowed).toBe(true);
+  });
 });
 
 describe('OeeCalculator fallback — parity run/(run+udt) (FR-019, 016/ADR-019)', () => {
