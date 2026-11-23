@@ -4,10 +4,10 @@
 
 ## Current Position
 
-Phase: 1 (unit 003 terimplementasi + terdeploy; verifikasi kode/smoke hijau)
-Unit: `specs/003-qr-dual-lane-initiation` (VERIFIED kode+smoke, lifecycle fisik PARTIAL) · `specs/002-hmi-station-surfaces` (verifikasi visual manual pending) · `specs/001-hmi-data-transfer-refresh` (verifikasi visual manual pending)
-Stage: Done — unit 003 T201–T213 selesai; `pnpm lint` hijau, `pnpm test` 200/29 hijau, dist sync `iiot-oee/apps/hmi` (`index-CANDx4b_.js`), nginx :3002 200; FAT-252 (b) gate aksi sensitif + ADR-0004 §A amandemen (FAT-248/260) — commit `542965f`
-Current Task: — (AC lifecycle penuh jalur A/B + kamera fisik + timeout edge-sim offline = manual pemilik; GAP-F21..F26 CLOSED)
+Phase: 1 (unit 004 SPECIFIED: rantai SDD chooser 2 jalur + ADR-0006 ditulis, belum implementasi) · unit 003 terimplementasi + terdeploy
+Unit: `specs/004-scan-lane-chooser` (SPECIFIED: spec+plan+design+tasks+ADR-0006, 2026-11-23) · `specs/003-qr-dual-lane-initiation` (VERIFIED kode+smoke, lifecycle fisik PARTIAL) · `specs/002-hmi-station-surfaces` (verifikasi visual manual pending) · `specs/001-hmi-data-transfer-refresh` (verifikasi visual manual pending)
+Stage: SDD rantai unit 004 selesai (chooser 2 kartu + pemisahan jalur + semantik config-only START-di-edge; directive pemilik 2026-11-23); implementasi belum dimulai
+Current Task: Unit 004 implementasi (T401–T412): state scanLane + ScanLaneChooser + gating jalur A/B + copy config-only + gate/deploy
 
 ## Completed
 
