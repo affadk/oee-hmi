@@ -28,7 +28,7 @@ import type { AckWaitState, InitiateFromZonesResult, ZoneRawStrings } from '../.
 import type { DeviceRecord, MachineRecord, OperatorRecord, ProductRecord } from '../../domain/entities/backend/Device';
 import type { WorkOrderListItem, WorkOrderResolveResult } from '../../domain/entities/backend/WorkOrder';
 import type { DowntimeEvent } from '../../domain/entities/backend/Telemetry';
-import type { TimelineSegment } from '../../domain/services/ShiftTimeline';
+import type { TimelineSegment, ShiftBucket } from '../../domain/services/ShiftTimeline';
 import type { CalculateOeeUseCase } from '../use-cases/CalculateOeeUseCase';
 import type { GetMachinesUseCase } from '../use-cases/GetMachinesUseCase';
 import type { UpdateMachineStatusUseCase } from '../use-cases/UpdateMachineStatusUseCase';
@@ -144,6 +144,9 @@ export interface UseOeeDashboardReturn {
   activeDowntimeCount: number | null;
   /** Fase 2 server timeline segments (§3.2); null = client buildShiftTimeline. */
   shiftSegments: TimelineSegment[] | null;
+  /** Resolusi bucket timeline (5m/15m/1h) — dipilih operator. */
+  shiftBucket: ShiftBucket;
+  setShiftBucket: (bucket: ShiftBucket) => void;
   deviceRegistry: { devices: DeviceRecord[]; machines: MachineRecord[] } | null;
   deviceRegistryError: string;
   catalog: { products: ProductRecord[]; operators: OperatorRecord[] } | null;
@@ -313,6 +316,8 @@ export function useOeeDashboard(deps: OeeDashboardDeps): UseOeeDashboardReturn {
     () => resolveShiftWindowIso(shiftStart, shiftEnd, new Date(nowMinute * 60000)),
     [shiftStart, shiftEnd, nowMinute],
   );
+  // Resolusi timeline dapat dipilih operator (default 5m, sama dengan server).
+  const [shiftBucket, setShiftBucket] = useState<ShiftBucket>('5m');
 
   const supplemental = useSupplementalSync({
     useBackend,
@@ -463,6 +468,7 @@ export function useOeeDashboard(deps: OeeDashboardDeps): UseOeeDashboardReturn {
     currentMachineId: machines.currentMachineId,
     currentDeviceId: machines.currentDeviceId,
     shiftWindow,
+    shiftBucket,
     getShiftSummaryUseCase,
     getShiftTimelineUseCase,
   });
@@ -508,6 +514,8 @@ export function useOeeDashboard(deps: OeeDashboardDeps): UseOeeDashboardReturn {
     liveTrend,
     activeDowntimeCount: supplemental.activeDowntimeCount,
     shiftSegments: shiftServer.shiftSegments,
+    shiftBucket,
+    setShiftBucket,
     deviceRegistry: registry.deviceRegistry,
     deviceRegistryError: registry.deviceRegistryError,
     catalog: registry.catalog,

@@ -35,6 +35,8 @@ export const FullscreenOeeView: React.FC<FullscreenOeeViewProps> = ({
   catalog = null,
   onRefreshCatalog,
   shiftSegments = null,
+  shiftBucket,
+  onShiftBucketChange,
   livePoints = null,
   workOrderPreview = null,
   onPreviewWorkOrder,
@@ -232,6 +234,8 @@ export const FullscreenOeeView: React.FC<FullscreenOeeViewProps> = ({
               metrics={metrics}
               useBackend={useBackend}
               serverSegments={shiftSegments}
+              shiftBucket={shiftBucket}
+              onShiftBucketChange={onShiftBucketChange}
             />
           </div>
         </main>

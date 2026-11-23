@@ -10,6 +10,9 @@ import { isPlannedDowntimeCategory } from '../entities/backend/Telemetry';
 
 export type TimelineKind = 'Active' | 'Breakdown' | 'Changeover' | 'Waiting' | 'Planned' | 'Undefined';
 
+/** Query resolution for GET /shift-timeline (backend enum: 1m/5m/15m/1h). */
+export type ShiftBucket = '1m' | '5m' | '15m' | '1h';
+
 export interface TimelineSegment {
   key: string;
   kind: TimelineKind;
@@ -274,7 +277,10 @@ export function toTimelineSegments(segments: ShiftTimelineSegment[], windowFromI
     if (!Number.isFinite(from) || !Number.isFinite(to) || to <= from) return;
     const durationMinutes = Math.max(1, Math.round((to - from) / 60000));
     out.push({
-      key: seg.downtimeId !== null ? `srv-dt-${seg.downtimeId}` : `srv-${idx}`,
+      // Bucket 5m mengembalikan satu item per interval; downtime_id yang sama
+      // berulang di setiap bucket. Key harus unik per-segmen atau semua bucket
+      // dengan downtime_id sama ikut ter-highlight saat satu diklik.
+      key: seg.downtimeId !== null ? `srv-dt-${seg.downtimeId}-${idx}` : `srv-${idx}`,
       kind: serverSegmentToKind(seg.state, seg.category, seg.planned),
       label: seg.reason ?? seg.category ?? seg.state,
       durationMinutes,

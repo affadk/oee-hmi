@@ -9,6 +9,7 @@ import {
   formatDuration,
   type TimelineKind,
   type TimelineSegment,
+  type ShiftBucket,
 } from "../../../../../domain/services/ShiftTimeline";
 
 interface PasXProgressStripProps {
@@ -18,6 +19,9 @@ interface PasXProgressStripProps {
   useBackend?: boolean;
   /** Fase 2 server timeline (§3.2); null = client buildShiftTimeline. */
   serverSegments?: TimelineSegment[] | null;
+  /** Resolusi bucket timeline aktif (5m/15m/1h). */
+  shiftBucket?: ShiftBucket;
+  onShiftBucketChange?: (bucket: ShiftBucket) => void;
 }
 
 interface TimelineEvent {
@@ -116,6 +120,8 @@ export const PasXProgressStrip: React.FC<PasXProgressStripProps> = ({
   machine,
   useBackend = false,
   serverSegments = null,
+  shiftBucket = "5m",
+  onShiftBucketChange,
 }) => {
   const { theme } = useTheme();
   const isDark = theme === "dark";
@@ -187,6 +193,12 @@ export const PasXProgressStrip: React.FC<PasXProgressStripProps> = ({
       };
     });
   }, [machine, windowMin, serverSegments]);
+
+  // Segmen berubah (bucket/shift/data) → buang seleksi lama yang key-nya
+  // sudah tidak ada, supaya detail tidak menunjuk segmen hantu.
+  useEffect(() => {
+    setSelectedEvent(null);
+  }, [serverSegments, shiftBucket]);
 
   // Live clock — penanda real-time, refresh tiap detik
   const [now, setNow] = useState(() => new Date());
@@ -339,17 +351,44 @@ export const PasXProgressStrip: React.FC<PasXProgressStripProps> = ({
       </div>
 
       {/* Sub-header Shift — teks biasa, bukan badge; live stamp real-time */}
-      <div className="shrink-0 pt-[0.6vh] flex flex-wrap items-baseline gap-x-2">
-        <span
-          className={`text-sm font-bold tracking-tight ${isDark ? "text-slate-200" : "text-slate-700"}`}
-        >
-          {shiftNumber}
-        </span>
-        <span
-          className={`font-mono text-xs ${isDark ? "text-slate-400" : "text-slate-500"}`}
-        >
-          ({shiftStartStr ?? "-"} - {shiftEndStr ?? "-"}) · {liveFullStamp}
-        </span>
+      <div className="shrink-0 pt-[0.6vh] flex flex-wrap items-baseline justify-between gap-x-2 gap-y-1">
+        <div className="flex flex-wrap items-baseline gap-x-2">
+          <span
+            className={`text-sm font-bold tracking-tight ${isDark ? "text-slate-200" : "text-slate-700"}`}
+          >
+            {shiftNumber}
+          </span>
+          <span
+            className={`font-mono text-xs ${isDark ? "text-slate-400" : "text-slate-500"}`}
+          >
+            ({shiftStartStr ?? "-"} - {shiftEndStr ?? "-"}) · {liveFullStamp}
+          </span>
+        </div>
+        {useBackend && onShiftBucketChange && (
+          <div
+            className="flex items-center gap-2 shrink-0"
+            role="group"
+            aria-label="Resolusi timeline"
+          >
+            {(["1m", "5m", "15m", "1h"] as ShiftBucket[]).map((b) => (
+              <button
+                key={b}
+                type="button"
+                onClick={() => onShiftBucketChange(b)}
+                aria-pressed={shiftBucket === b}
+                className={`rounded-md border px-2.5 py-1 text-[0.7rem] font-semibold cursor-pointer ${
+                  shiftBucket === b
+                    ? "bg-blue-600 border-blue-500 text-white"
+                    : isDark
+                      ? "bg-slate-800 border-slate-700 text-slate-300 hover:text-white"
+                      : "bg-slate-100 border-slate-300 text-slate-600 hover:text-slate-900"
+                }`}
+              >
+                {b}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Horizontal grid — detail dibuat kompak proporsional dengan grafik */}

@@ -57,6 +57,15 @@ describe('mapShiftTimelineListDto + toTimelineSegments', () => {
     expect(tl).toEqual([]);
   });
 
+  it('keeps keys unique when one downtime spans several buckets', () => {
+    const segs = mapShiftTimelineListDto([
+      { from: '2026-09-21T22:00:00+07:00', to: '2026-09-21T22:05:00+07:00', state: 'DOWN', downtime_id: 42, category: 'BREAKDOWN' },
+      { from: '2026-09-21T22:05:00+07:00', to: '2026-09-21T22:10:00+07:00', state: 'DOWN', downtime_id: 42, category: 'BREAKDOWN' },
+    ]);
+    const keys = toTimelineSegments(segs, '2026-09-21T22:00:00+07:00').map((s) => s.key);
+    expect(new Set(keys).size).toBe(keys.length);
+  });
+
   it('accepts {data} envelopes and rejects garbage', () => {
     expect(mapShiftTimelineListDto({ data: SPEC_SEGMENTS })).toHaveLength(2);
     expect(mapShiftTimelineListDto(null)).toEqual([]);

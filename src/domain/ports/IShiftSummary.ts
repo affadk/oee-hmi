@@ -42,7 +42,7 @@ export interface ShiftTimelineQuery {
   deviceId?: string;
   from: string;
   to: string;
-  bucket?: '1m' | '5m' | '15m';
+  bucket?: '1m' | '5m' | '15m' | '1h';
 }
 
 export interface ShiftTimelineSegment {

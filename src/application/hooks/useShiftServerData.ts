@@ -13,6 +13,7 @@ import type {
 import type {
   TimelineSegment,
   ShiftWindowIso,
+  ShiftBucket,
 } from "../../domain/services/ShiftTimeline";
 import { toTimelineSegments } from "../../domain/services/ShiftTimeline";
 import type { GetShiftSummaryUseCase } from "../use-cases/GetShiftSummaryUseCase";
@@ -23,6 +24,8 @@ export interface ShiftServerDataDeps {
   currentMachineId: string;
   currentDeviceId: string;
   shiftWindow: ShiftWindowIso | null;
+  /** Resolusi bucket timeline (default 5m). */
+  shiftBucket?: ShiftBucket;
   getShiftSummaryUseCase: GetShiftSummaryUseCase;
   getShiftTimelineUseCase: GetShiftTimelineUseCase;
 }
@@ -83,6 +86,7 @@ export function useShiftServerData(
     currentMachineId,
     currentDeviceId,
     shiftWindow,
+    shiftBucket = "5m",
     getShiftSummaryUseCase,
     getShiftTimelineUseCase,
   } = deps;
@@ -119,7 +123,7 @@ export function useShiftServerData(
                 deviceId: currentDeviceId,
                 from: windowFrom,
                 to: windowTo,
-                bucket: "5m",
+                bucket: shiftBucket,
               })
             : Promise.resolve(null),
         ]);
@@ -146,6 +150,7 @@ export function useShiftServerData(
     currentDeviceId,
     windowFrom,
     windowTo,
+    shiftBucket,
     getShiftSummaryUseCase,
     getShiftTimelineUseCase,
   ]);

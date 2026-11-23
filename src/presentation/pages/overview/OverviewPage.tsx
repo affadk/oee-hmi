@@ -36,6 +36,8 @@ export const OverviewPage: React.FC = () => {
       catalog={dashboard.catalog}
       onRefreshCatalog={dashboard.refreshCatalog}
       shiftSegments={dashboard.shiftSegments}
+      shiftBucket={dashboard.shiftBucket}
+      onShiftBucketChange={dashboard.setShiftBucket}
       livePoints={dashboard.liveTrend}
       workOrderPreview={dashboard.workOrderPreview}
       onPreviewWorkOrder={dashboard.previewWorkOrder}

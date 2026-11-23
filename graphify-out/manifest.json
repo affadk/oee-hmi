@@ -102,15 +102,15 @@
     "semantic_hash": ""
   },
   "src/application/hooks/useOeeDashboard.ts": {
-    "mtime": 1795424254.6952724,
-    "seen": 1795425655.1460764,
-    "ast_hash": "785794460ea74f8dcdb5034a0935d5d6",
+    "mtime": 1795428329.8368413,
+    "seen": 1795429843.0682287,
+    "ast_hash": "a9ae98d552b7527456dde72d00dba2d8",
     "semantic_hash": ""
   },
   "src/application/hooks/useShiftServerData.ts": {
-    "mtime": 1795141185.1132674,
-    "seen": 1795425655.1460774,
-    "ast_hash": "9fc074076638260036ee4bcb6603e018",
+    "mtime": 1795428311.6235886,
+    "seen": 1795429843.0682304,
+    "ast_hash": "4a6d22720e8b9191c06288a9f0ac2067",
     "semantic_hash": ""
   },
   "src/application/hooks/useSimulationTicker.ts": {
@@ -426,9 +426,9 @@
     "semantic_hash": ""
   },
   "src/domain/ports/IShiftSummary.ts": {
-    "mtime": 1795141185.1172676,
-    "seen": 1795425655.14613,
-    "ast_hash": "9a2fa235e2f638bd7817e868c340bb52",
+    "mtime": 1795429783.3651068,
+    "seen": 1795429843.0682971,
+    "ast_hash": "bd968862f9ab1c845bb5b7b8e628da7e",
     "semantic_hash": ""
   },
   "src/domain/ports/IThemeStorage.ts": {
@@ -444,9 +444,9 @@
     "semantic_hash": ""
   },
   "src/domain/services/ShiftTimeline.ts": {
-    "mtime": 1795141185.1182675,
-    "seen": 1795425655.1461332,
-    "ast_hash": "c9225a77713c35262ce8772b6a3c7978",
+    "mtime": 1795428303.5414765,
+    "seen": 1795429843.0683007,
+    "ast_hash": "f1b8382fec29633639f97c637fe3795b",
     "semantic_hash": ""
   },
   "src/domain/simulation/index.ts": {
@@ -762,9 +762,9 @@
     "semantic_hash": ""
   },
   "src/presentation/components/modals/LogEventModal.tsx": {
-    "mtime": 1795150208.3470113,
-    "seen": 1795425655.1461878,
-    "ast_hash": "ce3ba62b64d2ab112ffcd897ac4d3fce",
+    "mtime": 1795427556.7795548,
+    "seen": 1795427957.1106882,
+    "ast_hash": "10f27e0aea0d5a9764f3690e2a4eb85e",
     "semantic_hash": ""
   },
   "src/presentation/components/modals/MqttEdgeInspectorModal/MqttConsole.tsx": {
@@ -774,15 +774,15 @@
     "semantic_hash": ""
   },
   "src/presentation/components/modals/MqttEdgeInspectorModal/MqttEdgeInspectorModal.tsx": {
-    "mtime": 1795150266.25814,
-    "seen": 1795425655.1461895,
-    "ast_hash": "357e1181500cb5dbd67d9464ce073f81",
+    "mtime": 1795427409.6437833,
+    "seen": 1795427957.1106944,
+    "ast_hash": "b081777e4258b410805df756bbc5c1f3",
     "semantic_hash": ""
   },
   "src/presentation/components/modals/MqttEdgeInspectorModal/tabShared.tsx": {
-    "mtime": 1795150266.2575645,
-    "seen": 1795425655.1461906,
-    "ast_hash": "a2ad37486f1d7aa13a6af549067bef9d",
+    "mtime": 1795427438.0511177,
+    "seen": 1795427957.1106966,
+    "ast_hash": "38c40db2267c11a00b2ac0df6f979be8",
     "semantic_hash": ""
   },
   "src/presentation/components/modals/MqttEdgeInspectorModal/tabs/JaringanTab.tsx": {
@@ -798,9 +798,9 @@
     "semantic_hash": ""
   },
   "src/presentation/components/modals/MqttEdgeInspectorModal/tabs/KontrolTab.tsx": {
-    "mtime": 1795150266.2577214,
-    "seen": 1795425655.1461935,
-    "ast_hash": "797be802bd7dd0639c7e35eddf7facc8",
+    "mtime": 1795427177.9282339,
+    "seen": 1795427957.1107042,
+    "ast_hash": "487c9a49ea19eb61a8c78beb73da5f27",
     "semantic_hash": ""
   },
   "src/presentation/components/modals/MqttEdgeInspectorModal/tabs/PerangkatTab.tsx": {
@@ -816,9 +816,9 @@
     "semantic_hash": ""
   },
   "src/presentation/components/modals/MqttEdgeInspectorModal/tabs/RingkasanTab.tsx": {
-    "mtime": 1795141185.1286945,
-    "seen": 1795425655.1461964,
-    "ast_hash": "c270ecd69fe793110ca9634943a0dd4e",
+    "mtime": 1795427593.5380116,
+    "seen": 1795427957.110712,
+    "ast_hash": "5d05c73e7453a703fc580ef886763936",
     "semantic_hash": ""
   },
   "src/presentation/components/modals/MqttEdgeInspectorModal/tabs/TelemetriTab.tsx": {
@@ -858,21 +858,21 @@
     "semantic_hash": ""
   },
   "src/presentation/pages/DashboardPage.tsx": {
-    "mtime": 1795407161.9800131,
-    "seen": 1795425655.146203,
-    "ast_hash": "67c21aa5a451dde3fa44d93b95b0a815",
+    "mtime": 1795427469.3794909,
+    "seen": 1795427957.110729,
+    "ast_hash": "b6161ef612cc92657118e90027f6398b",
     "semantic_hash": ""
   },
   "src/presentation/pages/audit/AuditPage.tsx": {
-    "mtime": 1795150266.2593353,
-    "seen": 1795425655.146204,
-    "ast_hash": "b4ff3b43eb15c0a312dfb779aa99d628",
+    "mtime": 1795426717.527101,
+    "seen": 1795427957.1107314,
+    "ast_hash": "e5842a481b957f6eeeb77e08f8eaa7c1",
     "semantic_hash": ""
   },
   "src/presentation/pages/audit/components/HeaderZone.tsx": {
-    "mtime": 1795141218.175404,
-    "seen": 1795425655.146205,
-    "ast_hash": "c8d4cdf38b9ea50c6da6db00e873674c",
+    "mtime": 1795426461.7211204,
+    "seen": 1795427957.1107337,
+    "ast_hash": "63cf72d7f6f879d0a54f31e6c3a15b14",
     "semantic_hash": ""
   },
   "src/presentation/pages/audit/components/index.ts": {
@@ -900,9 +900,9 @@
     "semantic_hash": ""
   },
   "src/presentation/pages/audit/components/zones/MachineStatusZone.tsx": {
-    "mtime": 1795141218.175832,
-    "seen": 1795425655.1462095,
-    "ast_hash": "af283825709350841b24523f7a06f3b2",
+    "mtime": 1795426695.647761,
+    "seen": 1795427957.110746,
+    "ast_hash": "fdfea63f60aacf69109f56c0580fdfa7",
     "semantic_hash": ""
   },
   "src/presentation/pages/audit/components/zones/ProductionZone.tsx": {
@@ -924,27 +924,21 @@
     "semantic_hash": ""
   },
   "src/presentation/pages/overview/OverviewPage.tsx": {
-    "mtime": 1795164336.0278041,
-    "seen": 1795425655.1462135,
-    "ast_hash": "0f7cf78a49fbafbb1a5a5198e1925c4f",
-    "semantic_hash": ""
-  },
-  "src/presentation/pages/overview/components/FloorPushButtonsPanel.tsx": {
-    "mtime": 1795150346.5012336,
-    "seen": 1795425655.1462147,
-    "ast_hash": "73c5d7d15be3365a0ea50332f33fec3f",
+    "mtime": 1795428353.8721755,
+    "seen": 1795429843.0683992,
+    "ast_hash": "8d6242a523b0a8a6997cb91d6e8be1db",
     "semantic_hash": ""
   },
   "src/presentation/pages/overview/components/FullscreenOeeView.tsx": {
-    "mtime": 1795164336.0447934,
-    "seen": 1795425655.1462157,
-    "ast_hash": "0d183d3bb76cb6290034b3ae18434c78",
+    "mtime": 1795428353.8851755,
+    "seen": 1795429843.0684001,
+    "ast_hash": "3f5a5e05c00141afad289c4b8dfbed10",
     "semantic_hash": ""
   },
   "src/presentation/pages/overview/components/index.ts": {
-    "mtime": 1795141218.1769257,
-    "seen": 1795425655.1462166,
-    "ast_hash": "72d6991ad9270b32149d367a3b0216c9",
+    "mtime": 1795426342.894266,
+    "seen": 1795427957.1107605,
+    "ast_hash": "ac76d9cc3c0fd8a10a3022d5796d9572",
     "semantic_hash": ""
   },
   "src/presentation/pages/overview/components/panels/FleetCardsPanel.tsx": {
@@ -954,9 +948,9 @@
     "semantic_hash": ""
   },
   "src/presentation/pages/overview/components/panels/PasXProgressStrip.tsx": {
-    "mtime": 1795141218.1769257,
-    "seen": 1795425655.1462188,
-    "ast_hash": "268756e177b0449c7b97dec288d96274",
+    "mtime": 1795429748.9167497,
+    "seen": 1795429843.0684037,
+    "ast_hash": "c820808578beaa7274c4b9fbec3d17fc",
     "semantic_hash": ""
   },
   "src/presentation/pages/overview/components/panels/TimeSummaryPanel.tsx": {
@@ -984,15 +978,15 @@
     "semantic_hash": ""
   },
   "src/presentation/pages/overview/components/parts/FullscreenSubHeader.tsx": {
-    "mtime": 1795141218.1776824,
-    "seen": 1795425655.1462235,
-    "ast_hash": "a7d15f26596c1ab0418cb75e080f6184",
+    "mtime": 1795426290.846452,
+    "seen": 1795427957.1107764,
+    "ast_hash": "934310bdc361967b434fa0066068450d",
     "semantic_hash": ""
   },
   "src/presentation/pages/overview/components/parts/FullscreenViewModel.ts": {
-    "mtime": 1795164336.0438044,
-    "seen": 1795425655.1462247,
-    "ast_hash": "32109a1c583d88588588ffb6af9f6cf0",
+    "mtime": 1795428353.8851755,
+    "seen": 1795429843.0684118,
+    "ast_hash": "d5a18508502619429ae3eb3496d8910c",
     "semantic_hash": ""
   },
   "src/presentation/pages/overview/components/parts/KpiCard.tsx": {
@@ -1170,9 +1164,9 @@
     "semantic_hash": ""
   },
   "tests/shift-fase2.test.ts": {
-    "mtime": 1795141185.1342678,
-    "seen": 1795425655.1462557,
-    "ast_hash": "b196a5d2faefd39ef03c7c2015596f61",
+    "mtime": 1795429810.1017349,
+    "seen": 1795429843.0684512,
+    "ast_hash": "3bbf37cba2a6387a55c13ad560f45a3b",
     "semantic_hash": ""
   },
   "tests/shift-window.test.ts": {
@@ -1302,9 +1296,9 @@
     "semantic_hash": ""
   },
   "TODO.md": {
-    "mtime": 1795425530.921376,
-    "seen": 1795425655.146277,
-    "ast_hash": "977c418c45960587e68774efeb64423b",
+    "mtime": 1795427736.7808342,
+    "seen": 1795427957.110909,
+    "ast_hash": "262ac17e3eb336afd25736604f014759",
     "semantic_hash": ""
   },
   "decisions/0001-realtime-data-transfer-ws-resync.md": {
@@ -1512,9 +1506,9 @@
     "semantic_hash": ""
   },
   "specs/004-scan-lane-chooser/spec.md": {
-    "mtime": 1795423277.3938458,
-    "seen": 1795425655.1463115,
-    "ast_hash": "c9203defad826b1598cbc48b5671b295",
+    "mtime": 1795427764.1821897,
+    "seen": 1795427957.1109977,
+    "ast_hash": "0a0547a74d99e91096c4cfcaad3b9858",
     "semantic_hash": ""
   },
   "specs/004-scan-lane-chooser/tasks.md": {
@@ -1527,6 +1521,18 @@
     "mtime": 1795425441.9359193,
     "seen": 1795425655.1463134,
     "ast_hash": "e9b77aedd660875b2fb57d1ca2ce2d87",
+    "semantic_hash": ""
+  },
+  "tests/noHmiActuation.test.ts": {
+    "mtime": 1795427625.2334092,
+    "seen": 1795427957.11084,
+    "ast_hash": "b4f5c3cf22d48f7c4cddb9ed6a08b5a9",
+    "semantic_hash": ""
+  },
+  "decisions/0007-hmi-non-actuating.md": {
+    "mtime": 1795427785.4322867,
+    "seen": 1795427957.1109264,
+    "ast_hash": "2452b01dfe8d68a8092af9d5f42bd11e",
     "semantic_hash": ""
   },
   "pnpm-lock.yaml": {

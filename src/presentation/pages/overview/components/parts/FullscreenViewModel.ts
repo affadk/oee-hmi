@@ -8,7 +8,7 @@ import type { OperatorRecord, ProductRecord } from '../../../../../domain/entiti
 import type { AckWaitState, InitiateFromZonesResult, ZoneRawStrings } from '../../../../../domain/entities/backend/WorkOrder';
 import { telemetryAgeSec } from '../../../../../domain/index';
 import { isEdgeHealthOk } from '../../../../../domain/entities/EdgeContracts';
-import type { TimelineSegment } from '../../../../../domain/services/ShiftTimeline';
+import type { TimelineSegment, ShiftBucket } from '../../../../../domain/services/ShiftTimeline';
 import type { WorkOrderResolveResult } from '../../../../../domain/entities/backend/WorkOrder';
 import { fluid } from '../../../../utils/fluidType';
 
@@ -37,6 +37,9 @@ export interface FullscreenOeeViewProps {
   catalog?: { products: ProductRecord[]; operators: OperatorRecord[] } | null;
   onRefreshCatalog?: () => Promise<void>;
   shiftSegments?: TimelineSegment[] | null;
+  /** Resolusi bucket timeline (5m/15m/1h); selector tampil di header shift. */
+  shiftBucket?: ShiftBucket;
+  onShiftBucketChange?: (bucket: ShiftBucket) => void;
   livePoints?: Array<{ timestamp: string; oee: number | null }> | null;
   workOrderPreview?: { woId: string; result: WorkOrderResolveResult } | null;
   onPreviewWorkOrder?: (woId: string) => Promise<void>;
